@@ -1,0 +1,37 @@
+name: River Updater Telemetry Sync
+
+on:
+  schedule:
+    # Executa a cada 15 minutos
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # Permite acionamento manual no painel de Actions do GitHub
+
+jobs:
+  update-river-levels:
+    name: Sincronizar Níveis do Rio
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do Repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: river-updater/package.json
+
+      - name: Instalar Dependências (river-updater)
+        run: |
+          cd river-updater
+          npm ci || npm install
+
+      - name: Executar Sincronização Hidrológica
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OFFICIAL_SOURCE_URL: ${{ secrets.OFFICIAL_SOURCE_URL }}
+        run: |
+          cd river-updater
+          npm start

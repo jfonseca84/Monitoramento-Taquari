@@ -1,0 +1,6 @@
+{
+  "name": "Rio Taquari - Monitoramento Hidrológico",
+  "description": "Sistema completo e profissional para monitoramento hidrológico em tempo real do Rio Taquari com alertas, gráficos, câmeras ao vivo, histórico e painel administrativo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
