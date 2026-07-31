@@ -88,3 +88,40 @@ export function getCityThresholds(slugOrIdOrCity: any): HydrologicalThresholds {
 
   return CITY_THRESHOLDS["Santa Tereza"];
 }
+
+export interface CityCotaOption {
+  value: number;
+  label: string;
+}
+
+export function getCityAvailableCotas(slugOrIdOrCity: any): CityCotaOption[] {
+  const t = getCityThresholds(slugOrIdOrCity);
+  const cotasSet = new Set<number>();
+
+  if (t.attention) cotasSet.add(Number(t.attention.toFixed(2)));
+  if (t.alert) cotasSet.add(Number(t.alert.toFixed(2)));
+  if (t.flood) cotasSet.add(Number(t.flood.toFixed(2)));
+
+  const floodLevel = t.flood || 10;
+  const step = floodLevel < 5 ? 0.5 : floodLevel < 10 ? 1.0 : 2.0;
+
+  for (let i = 1; i <= 6; i++) {
+    const nextVal = floodLevel + (i * step);
+    cotasSet.add(Number(nextVal.toFixed(2)));
+  }
+
+  const sortedCotas = Array.from(cotasSet).sort((a, b) => a - b);
+
+  return sortedCotas.map(val => {
+    let tag = '';
+    if (Math.abs(val - t.attention) < 0.05) tag = ' (Atenção)';
+    else if (Math.abs(val - t.alert) < 0.05) tag = ' (Alerta)';
+    else if (Math.abs(val - t.flood) < 0.05) tag = ' (Inundação)';
+
+    return {
+      value: val,
+      label: `${val.toFixed(2).replace('.', ',')} metros${tag}`
+    };
+  });
+}
+

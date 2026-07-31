@@ -49,22 +49,15 @@ CREATE POLICY "Public read admin_users" ON public.admin_users FOR SELECT USING (
 CREATE POLICY "Admin write admin_users" ON public.admin_users FOR ALL 
 USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
 
--- 4. AUTH TRIGGER: AUTOMATICALLY SYNC NEW SUPABASE AUTH USERS TO ADMIN_USERS
+-- 4. AUTH TRIGGER: AUTOMATICALLY LINK PRE-AUTHORIZED ADMIN USERS TO SUPABASE AUTH
 CREATE OR REPLACE FUNCTION public.handle_new_admin_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.admin_users (id, user_id, nome, email, nivel_acesso)
-  VALUES (
-    uuid_generate_v4(),
-    NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'nome', split_part(NEW.email, '@', 1)),
-    NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'nivel_acesso', 'administrador')
-  )
-  ON CONFLICT (email) DO UPDATE
-  SET user_id = EXCLUDED.user_id,
-      nome = EXCLUDED.nome,
-      nivel_acesso = EXCLUDED.nivel_acesso;
+  -- Only link user_id if the email was pre-authorized in admin_users
+  UPDATE public.admin_users
+  SET user_id = NEW.id
+  WHERE LOWER(email) = LOWER(NEW.email);
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

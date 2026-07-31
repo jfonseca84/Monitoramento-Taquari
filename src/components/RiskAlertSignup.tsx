@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Bell, ShieldAlert, CheckCircle2, AlertTriangle, Lock, Send, Info, UserCheck, Smartphone, Mail, MapPin, Building2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bell, ShieldAlert, CheckCircle2, AlertTriangle, Lock, Send, Info, UserCheck, Smartphone, Mail, MapPin, Building2, Layers } from 'lucide-react';
 import { City } from '../types';
-import { subscribeToAlerts, confirmAlertNotification, fetchAlertNotifications } from '../lib/supabase';
+import { subscribeToAlerts, confirmAlertNotification } from '../lib/supabase';
+import { getCityAvailableCotas } from '../data/cityThresholds';
 
 interface RiskAlertSignupProps {
   cities: City[];
@@ -16,6 +17,19 @@ export const RiskAlertSignup: React.FC<RiskAlertSignupProps> = ({ cities }) => {
   const [residesInRiskArea, setResidesInRiskArea] = useState<boolean>(true);
   const [declarationConfirmed, setDeclarationConfirmed] = useState<boolean>(false);
   
+  // Available cotas for selected city
+  const availableCotas = getCityAvailableCotas(citySlug);
+  const [selectedCota, setSelectedCota] = useState<number>(availableCotas[0]?.value || 19.0);
+
+  useEffect(() => {
+    const cotas = getCityAvailableCotas(citySlug);
+    if (cotas.length > 0) {
+      // Default to flood level cota or first
+      const defaultCota = cotas.find(c => c.label.includes('Inundação'))?.value || cotas[0].value;
+      setSelectedCota(defaultCota);
+    }
+  }, [citySlug]);
+
   const [receiveAttention, setReceiveAttention] = useState<boolean>(true);
   const [receiveAlert, setReceiveAlert] = useState<boolean>(true);
   const [receiveFlood, setReceiveFlood] = useState<boolean>(true);
@@ -54,15 +68,27 @@ export const RiskAlertSignup: React.FC<RiskAlertSignupProps> = ({ cities }) => {
       return;
     }
 
+    // Validate that selected cota is allowed for the city
+    const isValidCota = availableCotas.some(c => Math.abs(c.value - Number(selectedCota)) < 0.01);
+    if (!isValidCota) {
+      setErrorMessage('A cota selecionada não é válida para esta cidade. Escolha uma cota da lista oficial.');
+      return;
+    }
+
     setLoading(true);
 
     try {
       await subscribeToAlerts({
+        nome_completo: name.trim(),
         name: name.trim(),
         email: email.trim() || undefined,
         whatsapp: whatsapp.trim() || undefined,
+        cidade: citySlug,
         city_slug: citySlug,
+        bairro: neighborhood.trim(),
         neighborhood: neighborhood.trim(),
+        cota_residencia: Number(selectedCota),
+        receber_alertas: true,
         resides_in_risk_area: residesInRiskArea,
         receive_attention: receiveAttention,
         receive_alert: receiveAlert,
@@ -70,11 +96,8 @@ export const RiskAlertSignup: React.FC<RiskAlertSignupProps> = ({ cities }) => {
         active: true
       });
 
-      if (residesInRiskArea) {
-        setSuccessMessage('Cadastro realizado com sucesso na Rede Comunitária de Alerta Preventivo! Você receberá avisos prioritários quando o rio atingir níveis de atenção ou emergência na sua região.');
-      } else {
-        setSuccessMessage('Cadastro concluído com sucesso! Como selecionou que não reside em área de risco, seu cadastro acompanhará comunicados informativos.');
-      }
+      const cityNameFormatted = cities.find(c => c.slug === citySlug)?.name || citySlug;
+      setSuccessMessage(`Cadastro concluído com sucesso para ${cityNameFormatted}! Quando o nível do rio atingir a cota de ${selectedCota.toFixed(2).replace('.', ',')}m na sua região, você receberá o alerta preventivo prioritário.`);
 
       // Reset form
       setName('');
@@ -185,7 +208,7 @@ export const RiskAlertSignup: React.FC<RiskAlertSignupProps> = ({ cities }) => {
               />
             </div>
 
-            {/* CIDADE & BAIRRO */}
+            {/* CIDADE, BAIRRO & COTA DE RESIDÊNCIA */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -219,6 +242,29 @@ export const RiskAlertSignup: React.FC<RiskAlertSignupProps> = ({ cities }) => {
                   required
                 />
               </div>
+            </div>
+
+            {/* COTA DA RESIDÊNCIA (SELEÇÃO CONFORME COTAS DISPONÍVEIS DA CIDADE) */}
+            <div className="bg-cyan-950/30 border border-cyan-800/50 rounded-2xl p-4 space-y-2">
+              <label className="block text-xs font-semibold text-cyan-300 uppercase tracking-wider flex items-center gap-1.5">
+                <Layers className="w-4 h-4 text-cyan-400" />
+                Cota em que sua Residência é Atingida <span className="text-rose-400">*</span>
+              </label>
+              <select
+                value={selectedCota}
+                onChange={(e) => setSelectedCota(Number(e.target.value))}
+                className="w-full bg-slate-900 border border-cyan-700/70 rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:ring-2 focus:ring-cyan-400 transition-all text-sm cursor-pointer"
+                required
+              >
+                {availableCotas.map((cota) => (
+                  <option key={cota.value} value={cota.value}>
+                    {cota.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11.5px] text-slate-300 leading-relaxed">
+                Nível oficial de emergência para {cities.find(c => c.slug === citySlug)?.name || citySlug}. Você receberá um alerta prioritário quando o rio atingir esta medição.
+              </p>
             </div>
 
             {/* CONTATOS: E-MAIL & WHATSAPP */}

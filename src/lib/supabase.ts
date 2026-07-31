@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { City, Station, NewsItem, AlertItem, SystemLog, Sponsor, LevelTrend, LevelStatus, AdminUser, AlertSubscriber, AlertNotification, AlertStats } from '../types';
+import { City, Station, NewsItem, AlertItem, SystemLog, Sponsor, LevelTrend, LevelStatus, AdminUser, AlertSubscriber, AlertNotification, AlertStats, AlertHistoryItem, AlertDispatchItem } from '../types';
 import { INITIAL_CITIES, INITIAL_STATIONS, INITIAL_NEWS, INITIAL_ALERTS, INITIAL_LOGS, INITIAL_SPONSORS, generateHistoryForCity, calculateStatusLevel } from '../data/initialData';
 import { getCityThresholds } from '../data/cityThresholds';
 import { BRASILIA_TIMEZONE, getBrasiliaLastUpdatedString, getBrasiliaTimeString } from './dateUtils';
@@ -64,6 +64,30 @@ class LocalStore {
     } catch (e) {}
     return [];
   })();
+  private history: AlertHistoryItem[] = (() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('taquari_alert_history');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      }
+    } catch (e) {}
+    return [];
+  })();
+  private dispatches: AlertDispatchItem[] = (() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('taquari_alert_dispatches');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      }
+    } catch (e) {}
+    return [];
+  })();
 
   private saveSubscribers() {
     try {
@@ -77,6 +101,22 @@ class LocalStore {
     try {
       if (typeof window !== 'undefined') {
         localStorage.setItem('taquari_notifications', JSON.stringify(this.notifications));
+      }
+    } catch (e) {}
+  }
+
+  private saveHistory() {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('taquari_alert_history', JSON.stringify(this.history));
+      }
+    } catch (e) {}
+  }
+
+  private saveDispatches() {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('taquari_alert_dispatches', JSON.stringify(this.dispatches));
       }
     } catch (e) {}
   }
@@ -139,6 +179,86 @@ class LocalStore {
       return true;
     }
     return false;
+  }
+
+  getAlertHistory(cidade?: string): AlertHistoryItem[] {
+    let list = [...this.history];
+    if (cidade && cidade !== 'todas') {
+      list = list.filter(h => h.cidade === cidade);
+    }
+    return list;
+  }
+
+  addAlertHistory(data: Omit<AlertHistoryItem, 'id' | 'criado_em'>): AlertHistoryItem {
+    const newItem: AlertHistoryItem = {
+      ...data,
+      id: `hist-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      criado_em: new Date().toISOString()
+    };
+    this.history.unshift(newItem);
+    this.saveHistory();
+    return newItem;
+  }
+
+  approveAlertHistory(id: string, adminUser?: string): boolean {
+    const item = this.history.find(h => h.id === id);
+    if (item) {
+      item.enviado = true;
+      item.aprovado_por = adminUser || 'Administrador';
+      item.aprovado_em = new Date().toISOString();
+      this.saveHistory();
+      return true;
+    }
+    return false;
+  }
+
+  getDispatches(alertHistoryId?: string): AlertDispatchItem[] {
+    if (alertHistoryId) {
+      return this.dispatches.filter(d => d.alert_history_id === alertHistoryId);
+    }
+    return [...this.dispatches];
+  }
+
+  addDispatches(items: Omit<AlertDispatchItem, 'id' | 'criado_em'>[]): AlertDispatchItem[] {
+    const created: AlertDispatchItem[] = [];
+    for (const item of items) {
+      // Avoid duplicate dispatch for same alert_history_id, subscriber_id, canal
+      const exists = this.dispatches.some(
+        d => d.alert_history_id === item.alert_history_id &&
+             d.subscriber_id === item.subscriber_id &&
+             d.canal === item.canal
+      );
+      if (!exists) {
+        const newItem: AlertDispatchItem = {
+          ...item,
+          id: `dispatch-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+          criado_em: new Date().toISOString()
+        };
+        this.dispatches.push(newItem);
+        created.push(newItem);
+      }
+    }
+    if (created.length > 0) {
+      this.saveDispatches();
+    }
+    return created;
+  }
+
+  processDispatches(alertHistoryId?: string): { processedCount: number; dispatches: AlertDispatchItem[] } {
+    let count = 0;
+    const now = new Date().toISOString();
+    this.dispatches.forEach(d => {
+      if (d.status === 'pendente' && (!alertHistoryId || d.alert_history_id === alertHistoryId)) {
+        d.status = 'enviado';
+        d.enviado_em = now;
+        count++;
+      }
+    });
+    if (count > 0) {
+      this.saveDispatches();
+    }
+    const result = alertHistoryId ? this.dispatches.filter(d => d.alert_history_id === alertHistoryId) : [...this.dispatches];
+    return { processedCount: count, dispatches: result };
   }
   private sponsors: Sponsor[] = (() => {
     try {
@@ -503,6 +623,8 @@ export async function fetchCities(): Promise<City[]> {
 
 
 export async function saveCity(cityData: Partial<City>): Promise<City> {
+  let updatedCity: City;
+
   if (isSupabaseConfigured && supabase) {
     if (cityData.id) {
       const { data, error } = await supabase
@@ -511,21 +633,40 @@ export async function saveCity(cityData: Partial<City>): Promise<City> {
         .eq('id', cityData.id)
         .select()
         .single();
-      if (!error && data) return data as City;
+      if (!error && data) {
+        updatedCity = data as City;
+      } else {
+        updatedCity = localStore.updateCity(cityData.id, cityData);
+      }
     } else {
       const { data, error } = await supabase
         .from('cities')
         .insert({ ...cityData })
         .select()
         .single();
-      if (!error && data) return data as City;
+      if (!error && data) {
+        updatedCity = data as City;
+      } else {
+        updatedCity = localStore.addCity(cityData as any);
+      }
+    }
+  } else {
+    if (cityData.id) {
+      updatedCity = localStore.updateCity(cityData.id, cityData);
+    } else {
+      updatedCity = localStore.addCity(cityData as any);
     }
   }
 
-  if (cityData.id) {
-    return localStore.updateCity(cityData.id, cityData);
+  if (typeof updatedCity.current_level === 'number' && updatedCity.current_level > 0) {
+    try {
+      await processHydrologicalMeasurement(updatedCity.slug || updatedCity.name, updatedCity.current_level);
+    } catch (e) {
+      console.warn('Erro ao processar evento de medição para alerta:', e);
+    }
   }
-  return localStore.addCity(cityData as any);
+
+  return updatedCity;
 }
 
 export async function deleteCity(cityId: string): Promise<void> {
@@ -957,6 +1098,87 @@ export async function saveCityThresholds(
 // ==========================================
 // ADMIN USERS MANAGEMENT (admin_users)
 // ==========================================
+/**
+ * Verifies if an authenticated Supabase user has administrative privileges in `admin_users`.
+ * 
+ * SECURITY AUDIT RULES:
+ * 1. Common users authenticated in Supabase Auth DO NOT automatically get admin access.
+ * 2. An admin profile is returned ONLY IF:
+ *    - The user_id UUID exists in `admin_users`, OR
+ *    - The user's email was pre-authorized in `admin_users` (in which case user_id is linked).
+ * 3. Returns `null` if the user is not an authorized administrator.
+ */
+export async function verifyAdminUserProfile(authUser: {
+  id: string;
+  email?: string | null;
+  user_metadata?: Record<string, any>;
+}): Promise<AdminUser | null> {
+  const email = (authUser.email || '').toLowerCase().trim();
+
+  // Local/demo fallback when Supabase keys are not set
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      id: authUser.id,
+      user_id: authUser.id,
+      nome: authUser.user_metadata?.nome || authUser.user_metadata?.full_name || (email ? email.split('@')[0] : 'Administrador Local'),
+      email: email,
+      nivel_acesso: 'administrador',
+      criado_em: new Date().toISOString()
+    };
+  }
+
+  try {
+    // 1. Check by user_id UUID in admin_users
+    const { data: profileByUid, error: uidError } = await supabase
+      .from('admin_users')
+      .select('*')
+      .eq('user_id', authUser.id)
+      .maybeSingle();
+
+    if (!uidError && profileByUid) {
+      return profileByUid as AdminUser;
+    }
+
+    // 2. Check if email is pre-authorized in admin_users
+    if (email) {
+      const { data: profileByEmail, error: emailError } = await supabase
+        .from('admin_users')
+        .select('*')
+        .ilike('email', email)
+        .maybeSingle();
+
+      if (!emailError && profileByEmail) {
+        // Link user_id UUID to pre-authorized admin row
+        const { data: updatedProfile, error: updateError } = await supabase
+          .from('admin_users')
+          .update({ user_id: authUser.id })
+          .eq('id', profileByEmail.id)
+          .select()
+          .single();
+
+        if (!updateError && updatedProfile) {
+          return updatedProfile as AdminUser;
+        }
+        return { ...profileByEmail, user_id: authUser.id } as AdminUser;
+      }
+    }
+  } catch (err) {
+    console.error('Error verifying admin permissions:', err);
+  }
+
+  // Strictly return null for unauthorized users! No auto-insertion.
+  return null;
+}
+
+// Deprecated alias for backwards compatibility
+export async function ensureAdminUserProfile(authUser: {
+  id: string;
+  email?: string | null;
+  user_metadata?: Record<string, any>;
+}): Promise<AdminUser | null> {
+  return verifyAdminUserProfile(authUser);
+}
+
 export async function fetchAdminUsers(): Promise<AdminUser[]> {
   if (isSupabaseConfigured && supabase) {
     try {
@@ -1036,37 +1258,68 @@ export async function deleteAdminUser(adminId: string): Promise<void> {
 // ==========================================
 
 export async function subscribeToAlerts(
-  data: Omit<AlertSubscriber, 'id' | 'created_at'>
+  data: Partial<AlertSubscriber>
 ): Promise<AlertSubscriber> {
+  const nomeCompleto = data.nome_completo || data.name || 'Morador';
+  const cidade = data.cidade || data.city_slug || 'lajeado';
+  const bairro = data.bairro || data.neighborhood || 'Centro';
+  const cotaResidencia = Number(data.cota_residencia) || 19.0;
+  const receberAlertas = data.receber_alertas ?? data.active ?? true;
+
   if (isSupabaseConfigured && supabase) {
     try {
+      const payload = {
+        nome_completo: nomeCompleto,
+        name: nomeCompleto,
+        email: data.email || null,
+        whatsapp: data.whatsapp || null,
+        cidade: cidade,
+        city_slug: cidade,
+        bairro: bairro,
+        neighborhood: bairro,
+        cota_residencia: cotaResidencia,
+        receber_alertas: receberAlertas,
+        active: receberAlertas,
+        resides_in_risk_area: data.resides_in_risk_area ?? true,
+        receive_attention: data.receive_attention ?? true,
+        receive_alert: data.receive_alert ?? true,
+        receive_flood: data.receive_flood ?? true,
+        criado_em: new Date().toISOString()
+      };
+
       const { data: res, error } = await supabase
         .from('alert_subscribers')
-        .insert({
-          name: data.name,
-          email: data.email || null,
-          whatsapp: data.whatsapp || null,
-          city_slug: data.city_slug,
-          neighborhood: data.neighborhood,
-          resides_in_risk_area: data.resides_in_risk_area,
-          receive_attention: data.receive_attention,
-          receive_alert: data.receive_alert,
-          receive_flood: data.receive_flood,
-          active: data.active ?? true
-        })
+        .insert([payload])
         .select()
         .single();
 
       if (!error && res) {
         return res as AlertSubscriber;
       } else if (error) {
-        console.warn('Supabase subscribeToAlerts error, using localStore:', error);
+        console.warn('Supabase subscribeToAlerts error:', error);
       }
     } catch (e) {
       console.warn('Exception in subscribeToAlerts:', e);
     }
   }
-  return localStore.addSubscriber(data);
+
+  return localStore.addSubscriber({
+    nome_completo: nomeCompleto,
+    name: nomeCompleto,
+    email: data.email,
+    whatsapp: data.whatsapp,
+    cidade: cidade,
+    city_slug: cidade,
+    bairro: bairro,
+    neighborhood: bairro,
+    cota_residencia: cotaResidencia,
+    receber_alertas: receberAlertas,
+    active: receberAlertas,
+    resides_in_risk_area: data.resides_in_risk_area ?? true,
+    receive_attention: data.receive_attention ?? true,
+    receive_alert: data.receive_alert ?? true,
+    receive_flood: data.receive_flood ?? true
+  });
 }
 
 export async function fetchAlertSubscribers(
@@ -1076,27 +1329,50 @@ export async function fetchAlertSubscribers(
   if (isSupabaseConfigured && supabase) {
     try {
       let query = supabase.from('alert_subscribers').select('*').order('created_at', { ascending: false });
-      if (citySlug) query = query.eq('city_slug', citySlug);
-      if (neighborhood) query = query.ilike('neighborhood', `%${neighborhood}%`);
+      if (citySlug && citySlug !== 'todas') {
+        query = query.or(`cidade.eq.${citySlug},city_slug.eq.${citySlug}`);
+      }
+      if (neighborhood) {
+        query = query.or(`bairro.ilike.%${neighborhood}%,neighborhood.ilike.%${neighborhood}%`);
+      }
 
       const { data, error } = await query;
-      if (!error && data) return data as AlertSubscriber[];
+      if (!error && data) {
+        return data.map((item: any) => ({
+          ...item,
+          nome_completo: item.nome_completo || item.name || 'Morador',
+          cidade: item.cidade || item.city_slug || 'lajeado',
+          bairro: item.bairro || item.neighborhood || 'Centro',
+          cota_residencia: item.cota_residencia != null ? Number(item.cota_residencia) : 19.0,
+          receber_alertas: item.receber_alertas ?? item.active ?? true,
+          criado_em: item.criado_em || item.created_at || new Date().toISOString()
+        })) as AlertSubscriber[];
+      }
     } catch (e) {
       console.warn('Exception in fetchAlertSubscribers:', e);
     }
   }
-  return localStore.getSubscribers(citySlug, neighborhood);
+
+  return localStore.getSubscribers(citySlug, neighborhood).map(item => ({
+    ...item,
+    nome_completo: item.nome_completo || item.name || 'Morador',
+    cidade: item.cidade || item.city_slug || 'lajeado',
+    bairro: item.bairro || item.neighborhood || 'Centro',
+    cota_residencia: item.cota_residencia != null ? Number(item.cota_residencia) : 19.0,
+    receber_alertas: item.receber_alertas ?? item.active ?? true,
+    criado_em: item.criado_em || item.created_at || new Date().toISOString()
+  }));
 }
 
 export async function toggleSubscriberActive(id: string, active: boolean): Promise<void> {
   if (isSupabaseConfigured && supabase) {
     try {
-      await supabase.from('alert_subscribers').update({ active }).eq('id', id);
+      await supabase.from('alert_subscribers').update({ active, receber_alertas: active, atualizado_em: new Date().toISOString() }).eq('id', id);
     } catch (e) {
       console.warn('Exception in toggleSubscriberActive:', e);
     }
   }
-  localStore.updateSubscriber(id, { active });
+  localStore.updateSubscriber(id, { active, receber_alertas: active });
 }
 
 export async function deleteSubscriber(id: string): Promise<void> {
@@ -1108,6 +1384,22 @@ export async function deleteSubscriber(id: string): Promise<void> {
     }
   }
   localStore.deleteSubscriber(id);
+}
+
+/**
+ * Future Alert Dispatch helper logic:
+ * Filters subscribers whose registered risk cota is <= current river level.
+ */
+export async function findMatchingSubscribersForCityLevel(
+  cidade: string,
+  nivelAtual: number
+): Promise<AlertSubscriber[]> {
+  const allSubscribers = await fetchAlertSubscribers(cidade);
+  return allSubscribers.filter(sub => {
+    const active = sub.receber_alertas ?? sub.active ?? true;
+    const cota = Number(sub.cota_residencia || 0);
+    return active && cota > 0 && cota <= nivelAtual;
+  });
 }
 
 export async function fetchAlertNotifications(citySlug?: string): Promise<AlertNotification[]> {
@@ -1250,5 +1542,342 @@ export async function checkAndTriggerRiverLevelAlerts(
   }
 
   return sentCount;
+}
+
+/**
+ * Structuring sendHydrologicalAlert function for future message dispatch (WhatsApp / Email).
+ * Receives city, current river level, alert type, and affected subscribers list.
+ * Currently registers the execution log record into `alert_history`.
+ */
+export async function sendHydrologicalAlert(
+  cidade: string,
+  nivelAtual: number,
+  tipoAlerta: 'atenção' | 'alerta' | 'inundação',
+  moradoresAtingidos: AlertSubscriber[],
+  cotaDisparada?: number,
+  mensagemCustom?: string
+): Promise<AlertHistoryItem> {
+  const cotaVal = cotaDisparada ?? nivelAtual;
+  const quantidade = moradoresAtingidos.length;
+  const defaultMsg = mensagemCustom || `[SIMULAÇÃO / REGISTRO] Alerta de ${tipoAlerta.toUpperCase()} para ${cidade}: Nível ${nivelAtual.toFixed(2)}m (Cota ${cotaVal.toFixed(2)}m). ${quantidade} moradores elegíveis na faixa de risco.`;
+
+  const payload = {
+    cidade,
+    nivel_rio: nivelAtual,
+    cota_disparada: cotaVal,
+    quantidade_usuarios_atingidos: quantidade,
+    mensagem: defaultMsg,
+    tipo_alerta: tipoAlerta,
+    enviado: true
+  };
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('alert_history')
+        .insert([payload])
+        .select()
+        .single();
+
+      if (!error && data) {
+        return data as AlertHistoryItem;
+      } else if (error) {
+        console.warn('Supabase alert_history insert error:', error);
+      }
+    } catch (e) {
+      console.warn('Exception in sendHydrologicalAlert:', e);
+    }
+  }
+
+  return localStore.addAlertHistory(payload);
+}
+
+export async function fetchAlertHistory(cidade?: string): Promise<AlertHistoryItem[]> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      let query = supabase.from('alert_history').select('*').order('criado_em', { ascending: false });
+      if (cidade && cidade !== 'todas') {
+        query = query.eq('cidade', cidade);
+      }
+
+      const { data, error } = await query;
+      if (!error && data) {
+        return data as AlertHistoryItem[];
+      }
+    } catch (e) {
+      console.warn('Exception in fetchAlertHistory:', e);
+    }
+  }
+
+  return localStore.getAlertHistory(cidade);
+}
+
+export async function fetchAlertDispatches(alertHistoryId?: string): Promise<AlertDispatchItem[]> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      let query = supabase.from('alert_dispatches').select('*').order('criado_em', { ascending: false });
+      if (alertHistoryId) {
+        query = query.eq('alert_history_id', alertHistoryId);
+      }
+      const { data, error } = await query;
+      if (!error && data) {
+        return data as AlertDispatchItem[];
+      }
+    } catch (e) {
+      console.warn('Supabase fetchAlertDispatches error:', e);
+    }
+  }
+  return localStore.getDispatches(alertHistoryId);
+}
+
+export async function dispatchHydrologicalAlert(
+  alertHistoryId: string,
+  subscribersOverride?: AlertSubscriber[]
+): Promise<AlertDispatchItem[]> {
+  const history = await fetchAlertHistory();
+  const alertItem = history.find(h => h.id === alertHistoryId);
+  if (!alertItem) {
+    console.warn('Alert history item not found for dispatching:', alertHistoryId);
+    return [];
+  }
+
+  const cityName = alertItem.cidade;
+  const citySlug = alertItem.cidade.toLowerCase();
+  
+  let allSubs: AlertSubscriber[] = subscribersOverride || [];
+  if (!subscribersOverride) {
+    allSubs = await fetchAlertSubscribers(citySlug);
+  }
+
+  const affectedSubscribers = allSubs.filter(s => {
+    const matchesCity = (s.cidade || s.city_slug) === citySlug || (s.cidade || s.city_slug) === cityName.toLowerCase();
+    const active = s.receber_alertas ?? s.active ?? true;
+    const cota = Number(s.cota_residencia || 0);
+    return matchesCity && active && cota > 0 && cota <= alertItem.nivel_rio;
+  });
+
+  const dispatchPayloads: Omit<AlertDispatchItem, 'id' | 'criado_em'>[] = [];
+
+  for (const sub of affectedSubscribers) {
+    const subName = sub.nome_completo || sub.name || 'Morador';
+    const whatsapp = sub.whatsapp || sub.phone;
+    const email = sub.email;
+
+    if (whatsapp) {
+      dispatchPayloads.push({
+        alert_history_id: alertHistoryId,
+        subscriber_id: sub.id,
+        subscriber_name: subName,
+        canal: 'whatsapp',
+        destino: whatsapp,
+        mensagem: alertItem.mensagem,
+        status: 'pendente',
+        tentativa: 1
+      });
+    }
+
+    if (email) {
+      dispatchPayloads.push({
+        alert_history_id: alertHistoryId,
+        subscriber_id: sub.id,
+        subscriber_name: subName,
+        canal: 'email',
+        destino: email,
+        mensagem: alertItem.mensagem,
+        status: 'pendente',
+        tentativa: 1
+      });
+    }
+  }
+
+  if (dispatchPayloads.length === 0) {
+    return [];
+  }
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const existing = await fetchAlertDispatches(alertHistoryId);
+      const newPayloads = dispatchPayloads.filter(p => 
+        !existing.some(e => e.subscriber_id === p.subscriber_id && e.canal === p.canal)
+      );
+
+      if (newPayloads.length > 0) {
+        const { data, error } = await supabase
+          .from('alert_dispatches')
+          .insert(newPayloads)
+          .select();
+        if (!error && data) {
+          return data as AlertDispatchItem[];
+        }
+      } else {
+        return existing;
+      }
+    } catch (e) {
+      console.warn('Supabase dispatchHydrologicalAlert exception:', e);
+    }
+  }
+
+  return localStore.addDispatches(dispatchPayloads);
+}
+
+export async function processDispatchQueue(
+  alertHistoryId?: string
+): Promise<{ processedCount: number; dispatches: AlertDispatchItem[] }> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const now = new Date().toISOString();
+      let query = supabase
+        .from('alert_dispatches')
+        .update({ status: 'enviado', enviado_em: now })
+        .eq('status', 'pendente');
+
+      if (alertHistoryId) {
+        query = query.eq('alert_history_id', alertHistoryId);
+      }
+
+      const { data, error } = await query.select();
+      if (!error && data) {
+        const dispatches = await fetchAlertDispatches(alertHistoryId);
+        return { processedCount: data.length, dispatches };
+      }
+    } catch (e) {
+      console.warn('Supabase processDispatchQueue exception:', e);
+    }
+  }
+
+  return localStore.processDispatches(alertHistoryId);
+}
+
+export async function approveAlertHistory(
+  id: string,
+  adminUser?: string,
+  subscribersOverride?: AlertSubscriber[]
+): Promise<boolean> {
+  const adminName = adminUser || 'Administrador';
+  const now = new Date().toISOString();
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { error } = await supabase
+        .from('alert_history')
+        .update({ enviado: true, aprovado_por: adminName, aprovado_em: now })
+        .eq('id', id);
+      if (!error) {
+        await dispatchHydrologicalAlert(id, subscribersOverride);
+        return true;
+      }
+    } catch (e) {
+      console.warn('Supabase approveAlertHistory error:', e);
+    }
+  }
+
+  const success = localStore.approveAlertHistory(id, adminName);
+  if (success) {
+    await dispatchHydrologicalAlert(id, subscribersOverride);
+  }
+  return success;
+}
+
+/**
+ * Serviço de monitoramento de eventos hidrológicos.
+ * Integração automática com a Central de Alertas ao registrar nova medição.
+ * Se houver mudança de categoria/cota (Normal -> Atenção -> Alerta -> Inundação),
+ * cria um registro pendente em alert_history (enviado: false).
+ * Não envia mensagens reais ainda e não duplica alertas para a mesma faixa/categoria.
+ */
+export async function processHydrologicalMeasurement(
+  citySlugOrName: string,
+  newLevel: number,
+  subscribersOverride?: AlertSubscriber[]
+): Promise<AlertHistoryItem | null> {
+  const cities = await fetchCities();
+  const cityObj = cities.find(c => 
+    c.slug.toLowerCase() === citySlugOrName.toLowerCase() || 
+    c.name.toLowerCase() === citySlugOrName.toLowerCase()
+  );
+  const cityName = cityObj?.name || citySlugOrName;
+  const citySlug = cityObj?.slug || citySlugOrName.toLowerCase();
+
+  const thresholds = getCityThresholds(cityObj || citySlug);
+
+  let currentCategory: 'normal' | 'atenção' | 'alerta' | 'inundação' = 'normal';
+  let cotaDisparada = 0;
+
+  if (newLevel >= thresholds.flood) {
+    currentCategory = 'inundação';
+    cotaDisparada = Math.floor(newLevel);
+    if (cotaDisparada < thresholds.flood) {
+      cotaDisparada = thresholds.flood;
+    }
+  } else if (newLevel >= thresholds.alert) {
+    currentCategory = 'alerta';
+    cotaDisparada = thresholds.alert;
+  } else if (newLevel >= thresholds.attention) {
+    currentCategory = 'atenção';
+    cotaDisparada = thresholds.attention;
+  }
+
+  if (currentCategory === 'normal') {
+    return null;
+  }
+
+  const history = await fetchAlertHistory(cityName);
+  const cityHistory = history.filter(h => 
+    h.cidade.toLowerCase() === cityName.toLowerCase() || 
+    h.cidade.toLowerCase() === citySlug.toLowerCase()
+  );
+
+  if (cityHistory.length > 0) {
+    const lastAlert = cityHistory[0];
+    if (
+      lastAlert.tipo_alerta === currentCategory && 
+      Number(lastAlert.cota_disparada) === cotaDisparada
+    ) {
+      return null;
+    }
+  }
+
+  let allSubs: AlertSubscriber[] = subscribersOverride || [];
+  if (!subscribersOverride) {
+    allSubs = await fetchAlertSubscribers(citySlug);
+  }
+
+  const affectedSubscribers = allSubs.filter(s => {
+    const matchesCity = (s.cidade || s.city_slug) === citySlug || (s.cidade || s.city_slug) === cityName.toLowerCase();
+    const active = s.receber_alertas ?? s.active ?? true;
+    const cota = Number(s.cota_residencia || 0);
+    return matchesCity && active && cota > 0 && cota <= newLevel;
+  });
+
+  const quantidade = affectedSubscribers.length;
+  const mensagem = `[MONITORAMENTO AUTOMÁTICO] Alteração de Nível Hidrológico em ${cityName}: Rio atingiu ${newLevel.toFixed(2)}m (Cota do Alerta: ${cotaDisparada.toFixed(2)}m - Categoria: ${currentCategory.toUpperCase()}). ${quantidade} morador(es) na faixa de risco.`;
+
+  const payload = {
+    cidade: cityName,
+    nivel_rio: newLevel,
+    cota_disparada: cotaDisparada,
+    quantidade_usuarios_atingidos: quantidade,
+    mensagem,
+    tipo_alerta: currentCategory,
+    enviado: false
+  };
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('alert_history')
+        .insert([payload])
+        .select()
+        .single();
+
+      if (!error && data) {
+        return data as AlertHistoryItem;
+      }
+    } catch (e) {
+      console.warn('Supabase alert_history insert exception:', e);
+    }
+  }
+
+  return localStore.addAlertHistory(payload);
 }
 

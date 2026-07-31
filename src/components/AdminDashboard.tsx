@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { City, NewsItem, AlertItem, Sponsor, AdminUser, AlertSubscriber, AlertNotification, AlertStats, LevelStatus } from '../types';
+import { City, NewsItem, AlertItem, Sponsor, AdminUser, AlertSubscriber, AlertNotification, AlertStats, AlertHistoryItem, LevelStatus } from '../types';
 import { getCityThresholds } from '../data/cityThresholds';
 import {
   supabase,
@@ -11,6 +11,7 @@ import {
   fetchAdminUsers,
   saveAdminUser,
   deleteAdminUser,
+  verifyAdminUserProfile,
   fetchSponsors,
   saveSponsor,
   deleteSponsor,
@@ -35,8 +36,15 @@ import {
   deleteSubscriber,
   fetchAlertNotifications,
   getAlertStats,
-  checkAndTriggerRiverLevelAlerts
+  checkAndTriggerRiverLevelAlerts,
+  sendHydrologicalAlert,
+  fetchAlertHistory,
+  approveAlertHistory,
+  processHydrologicalMeasurement,
+  fetchAlertDispatches,
+  processDispatchQueue
 } from '../lib/supabase';
+import { AlertDispatchItem } from '../types';
 import {
   X,
   LayoutDashboard,
@@ -71,7 +79,15 @@ import {
   UserCheck,
   CheckCircle,
   Search,
-  Filter
+  Filter,
+  Radio,
+  Download,
+  Map,
+  Mail,
+  MessageSquare,
+  Smartphone,
+  Eye,
+  SendHorizontal
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -113,6 +129,128 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [subCityFilter, setSubCityFilter] = useState<string>('all');
   const [subNeighborhoodFilter, setSubNeighborhoodFilter] = useState<string>('');
   const [subRiskFilter, setSubRiskFilter] = useState<'all' | 'risk' | 'info'>('all');
+  const [subCotaFilter, setSubCotaFilter] = useState<string>('all');
+  const [subStatusFilter, setSubStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+
+  // Central de Alertas State
+  const [alertHistoryList, setAlertHistoryList] = useState<AlertHistoryItem[]>([]);
+  const [dispatchesList, setDispatchesList] = useState<AlertDispatchItem[]>([]);
+  const [centralCitySlug, setCentralCitySlug] = useState<string>('lajeado');
+  const [centralSimLevel, setCentralSimLevel] = useState<number>(19.0);
+  const [centralCustomMessage, setCentralCustomMessage] = useState<string>('');
+  const [centralDispatching, setCentralDispatching] = useState<boolean>(false);
+  const [centralSuccessMsg, setCentralSuccessMsg] = useState<string | null>(null);
+  const [isProcessingQueue, setIsProcessingQueue] = useState<boolean>(false);
+  const [selectedHistoryForDispatchModal, setSelectedHistoryForDispatchModal] = useState<AlertHistoryItem | null>(null);
+
+  const handleSimulateHydrologicalAlert = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCentralDispatching(true);
+    setCentralSuccessMsg(null);
+
+    try {
+      const cityData = citiesList.find(c => c.slug === centralCitySlug);
+      const cityName = cityData?.name || centralCitySlug;
+      
+      const citySubscribers = subscribersList.filter(s => (s.cidade || s.city_slug) === centralCitySlug && (s.receber_alertas ?? s.active ?? true));
+      const impactedSubscribers = citySubscribers.filter(s => Number(s.cota_residencia || 0) <= Number(centralSimLevel));
+
+      const th = getCityThresholds(cityData || centralCitySlug);
+      let tipoAlerta: 'atenção' | 'alerta' | 'inundação' = 'atenção';
+      if (centralSimLevel >= th.flood) tipoAlerta = 'inundação';
+      else if (centralSimLevel >= th.alert) tipoAlerta = 'alerta';
+
+      await sendHydrologicalAlert(
+        cityName,
+        Number(centralSimLevel),
+        tipoAlerta,
+        impactedSubscribers,
+        Number(centralSimLevel),
+        centralCustomMessage.trim() || undefined
+      );
+
+      await addAuditLog(
+        'INSERT',
+        'alert_history',
+        `Alerta simulado para ${cityName} cota ${centralSimLevel}m - ${impactedSubscribers.length} moradores alertados`
+      );
+
+      setCentralSuccessMsg(`Simulação e registro gravados no histórico! ${impactedSubscribers.length} morador(es) na cota ≤ ${Number(centralSimLevel).toFixed(2)}m identificados.`);
+      
+      const updatedHistory = await fetchAlertHistory();
+      setAlertHistoryList(updatedHistory);
+    } catch (err) {
+      console.error('Erro na simulação do alerta:', err);
+    } finally {
+      setCentralDispatching(false);
+    }
+  };
+
+  const handleApproveAlert = async (alertId: string) => {
+    try {
+      const adminName = currentAdminUser?.nome || 'Administrador';
+      const success = await approveAlertHistory(alertId, adminName);
+      if (success) {
+        await addAuditLog(
+          'UPDATE',
+          'alert_history',
+          `Alerta ID ${alertId} aprovado pelo administrador ${adminName} e fila multicanal gerada`
+        );
+        setCentralSuccessMsg(`Alerta aprovado e fila de envio gerada com sucesso!`);
+        const updatedHistory = await fetchAlertHistory();
+        setAlertHistoryList(updatedHistory);
+        const updatedDispatches = await fetchAlertDispatches();
+        setDispatchesList(updatedDispatches);
+      }
+    } catch (err) {
+      console.error('Erro ao aprovar alerta:', err);
+    }
+  };
+
+  const handleProcessQueue = async (alertHistoryId?: string) => {
+    setIsProcessingQueue(true);
+    setCentralSuccessMsg(null);
+    try {
+      const res = await processDispatchQueue(alertHistoryId);
+      setCentralSuccessMsg(`Fila de envio processada com sucesso! ${res.processedCount} notificação(ões) enviada(s).`);
+      const updatedDispatches = await fetchAlertDispatches();
+      setDispatchesList(updatedDispatches);
+    } catch (err) {
+      console.error('Erro ao processar fila de envio:', err);
+    } finally {
+      setIsProcessingQueue(false);
+    }
+  };
+
+  const handleExportSubscribersCSV = () => {
+    const filtered = subscribersList
+      .filter(s => subCityFilter === 'all' || (s.cidade || s.city_slug) === subCityFilter)
+      .filter(s => subCotaFilter === 'all' || Number(s.cota_residencia || 0) <= Number(subCotaFilter))
+      .filter(s => subStatusFilter === 'all' || (subStatusFilter === 'active' ? (s.receber_alertas ?? s.active) : !(s.receber_alertas ?? s.active)))
+      .filter(s => !subNeighborhoodFilter || (s.bairro || s.neighborhood || '').toLowerCase().includes(subNeighborhoodFilter.toLowerCase()));
+
+    const headers = ['ID', 'Nome Completo', 'Cidade', 'Bairro', 'WhatsApp', 'E-mail', 'Cota Residencia (m)', 'Status', 'Data Cadastro'];
+    const rows = filtered.map(s => [
+      s.id,
+      `"${s.nome_completo || s.name || ''}"`,
+      `"${s.cidade || s.city_slug || ''}"`,
+      `"${s.bairro || s.neighborhood || ''}"`,
+      `"${s.whatsapp || ''}"`,
+      `"${s.email || ''}"`,
+      (s.cota_residencia != null ? s.cota_residencia : 19).toFixed(2),
+      (s.receber_alertas ?? s.active) ? 'Ativo' : 'Inativo',
+      new Date(s.criado_em || s.created_at || Date.now()).toLocaleDateString('pt-BR')
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `alertas_moradores_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Simulator state
   const [simCitySlug, setSimCitySlug] = useState<string>('lajeado');
@@ -248,6 +386,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const notifsData = await fetchAlertNotifications();
       setNotificationsList(notifsData);
 
+      const historyData = await fetchAlertHistory();
+      setAlertHistoryList(historyData);
+
+      const dispatchesData = await fetchAlertDispatches();
+      setDispatchesList(dispatchesData);
+
       const statsData = await getAlertStats();
       setAlertStatsList(statsData);
 
@@ -305,20 +449,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             return;
           }
 
-          setIsAuthenticated(true);
-          const { data: profile } = await supabase.from('admin_users').select('*').eq('user_id', session.user.id).maybeSingle();
-          if (profile) {
-            setCurrentAdminUser(profile as AdminUser);
-            setUserRole(profile.nivel_acesso || 'administrador');
+          const adminProfile = await verifyAdminUserProfile(session.user);
+          if (adminProfile) {
+            setIsAuthenticated(true);
+            setCurrentAdminUser(adminProfile);
+            setUserRole(adminProfile.nivel_acesso || 'administrador');
           } else {
-            setCurrentAdminUser({
-              id: session.user.id,
-              user_id: session.user.id,
-              nome: session.user.user_metadata?.nome || session.user.email?.split('@')[0] || 'Administrador',
-              email: session.user.email || '',
-              nivel_acesso: 'administrador'
-            });
-            setUserRole('administrador');
+            setIsAuthenticated(false);
+            setCurrentAdminUser(null);
+            setAuthError(`Acesso Negado: O e-mail (${session.user.email}) não possui autorização de acesso ao painel administrativo.`);
+            await supabase.auth.signOut();
           }
         } catch (e) {
           console.warn('Session check note:', e);
@@ -341,11 +481,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           setIsAuthenticated(false);
           setCurrentAdminUser(null);
         } else if (session?.user && isOpen) {
-          setIsAuthenticated(true);
-          const { data: profile } = await supabase.from('admin_users').select('*').eq('user_id', session.user.id).maybeSingle();
-          if (profile) {
-            setCurrentAdminUser(profile as AdminUser);
-            setUserRole(profile.nivel_acesso || 'administrador');
+          const adminProfile = await verifyAdminUserProfile(session.user);
+          if (adminProfile) {
+            setIsAuthenticated(true);
+            setCurrentAdminUser(adminProfile);
+            setUserRole(adminProfile.nivel_acesso || 'administrador');
+          } else {
+            setIsAuthenticated(false);
+            setCurrentAdminUser(null);
+            setAuthError(`Acesso Negado: O e-mail (${session.user.email}) não possui autorização de acesso ao painel administrativo.`);
+            await supabase.auth.signOut();
           }
         }
       });
@@ -389,22 +534,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       }
 
       if (data.user) {
-        setIsAuthenticated(true);
-        const { data: profile } = await supabase.from('admin_users').select('*').eq('user_id', data.user.id).maybeSingle();
-        if (profile) {
-          setCurrentAdminUser(profile as AdminUser);
-          setUserRole(profile.nivel_acesso || 'administrador');
+        const adminProfile = await verifyAdminUserProfile(data.user);
+        if (adminProfile) {
+          setIsAuthenticated(true);
+          setCurrentAdminUser(adminProfile);
+          setUserRole(adminProfile.nivel_acesso || 'administrador');
+          await addAuditLog('LOGIN', 'auth', 'Usuário autenticado no painel administrativo', { email: data.user.email, user_id: data.user.id });
         } else {
-          const newAdmin = {
-            user_id: data.user.id,
-            nome: data.user.user_metadata?.nome || data.user.email?.split('@')[0] || 'Administrador',
-            email: data.user.email || email,
-            nivel_acesso: 'administrador' as const
-          };
-          const created = await saveAdminUser(newAdmin);
-          if (created) setCurrentAdminUser(created);
+          setIsAuthenticated(false);
+          setCurrentAdminUser(null);
+          setAuthError(`Acesso Negado: O e-mail (${data.user.email}) não possui autorização administrativa. Entre em contato com o administrador principal.`);
+          await addAuditLog('UNAUTHORIZED_ACCESS_ATTEMPT', 'auth', `Tentativa de acesso por usuário comum sem autorização: ${data.user.email}`, { user_id: data.user.id, email: data.user.email });
+          await supabase.auth.signOut();
         }
-        await addAuditLog('LOGIN', 'auth', 'Usuário autenticado no painel administrativo', { email: data.user.email });
       }
     } catch (err: any) {
       setAuthError(err.message || 'Erro ao realizar login.');
@@ -937,7 +1079,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <aside className="w-full md:w-64 bg-[#0B132B] border-r border-slate-800 p-3 flex flex-row md:flex-col gap-1 overflow-x-auto shrink-0">
               {[
                 { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-                { id: 'rede_alertas', label: 'Rede de Alertas', icon: BellRing },
+                { id: 'central_alertas', label: 'Central de Alertas', icon: Radio },
+                { id: 'rede_alertas', label: 'Alertas de Moradores', icon: BellRing },
                 { id: 'patrocinadores', label: 'Patrocinadores', icon: Award },
                 { id: 'cidades', label: 'Cidades', icon: Building2 },
                 { id: 'cotas', label: 'Cotas Oficiais', icon: Sliders },
@@ -1003,6 +1146,500 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* TAB: CENTRAL DE ALERTAS */}
+              {activeTab === 'central_alertas' && (() => {
+                const currentCityObj = citiesList.find(c => c.slug === centralCitySlug);
+                const currentCityName = currentCityObj?.name || centralCitySlug;
+
+                const citySubs = subscribersList.filter(s => 
+                  (s.cidade || s.city_slug) === centralCitySlug && (s.receber_alertas ?? s.active ?? true)
+                );
+
+                const impactedAtSimLevel = citySubs.filter(s => Number(s.cota_residencia || 0) <= Number(centralSimLevel));
+                const safeAtSimLevel = citySubs.filter(s => Number(s.cota_residencia || 0) > Number(centralSimLevel));
+
+                const th = getCityThresholds(currentCityObj || centralCitySlug);
+                let currentSimStatus: 'atenção' | 'alerta' | 'inundação' = 'atenção';
+                if (centralSimLevel >= th.flood) currentSimStatus = 'inundação';
+                else if (centralSimLevel >= th.alert) currentSimStatus = 'alerta';
+
+                const pendingAlerts = alertHistoryList.filter(item => !item.enviado);
+
+                return (
+                  <div className="space-y-8">
+                    {/* TOP HEADER & BRIEF */}
+                    <div className="bg-gradient-to-r from-slate-900 via-cyan-950/40 to-slate-900 border border-cyan-800/40 rounded-2xl p-5 space-y-2">
+                      <div className="flex items-center gap-2 text-cyan-400 font-bold text-base">
+                        <Radio className="w-5 h-5 text-cyan-400 animate-pulse" />
+                        <span>Central de Gerenciamento & Simulação de Alertas Hidrológicos</span>
+                      </div>
+                      <p className="text-xs text-slate-300 leading-relaxed max-w-4xl">
+                        Simule níveis d'água e cotas críticas em tempo real para visualizar instantaneamente quantos e quais moradores serão notificados antes da ativação dos gateways de envio em massa (WhatsApp & E-mail).
+                      </p>
+                    </div>
+
+                    {/* ÁREA DE ALERTAS PENDENTES */}
+                    <div className="bg-[#0F172A] border border-amber-900/60 rounded-2xl p-5 space-y-4">
+                      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="w-5 h-5 text-amber-400 animate-pulse" />
+                          <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                            Alertas Pendentes de Aprovação ({pendingAlerts.length})
+                          </h3>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-full bg-amber-950 text-amber-300 border border-amber-800 text-xs font-bold">
+                          Monitoramento Automático
+                        </span>
+                      </div>
+
+                      {pendingAlerts.length === 0 ? (
+                        <p className="text-xs text-slate-500 italic p-4 text-center">
+                          Nenhum alerta pendente de aprovação no momento. A monitoração automática gerará um alerta assim que uma cidade mudar de categoria de risco.
+                        </p>
+                      ) : (
+                        <div className="space-y-3">
+                          {pendingAlerts.map(alert => (
+                            <div key={alert.id} className="p-4 rounded-xl bg-slate-900/90 border border-amber-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                              <div className="space-y-1.5 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-white text-sm">{alert.cidade}</span>
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-950 text-amber-300 border border-amber-800">
+                                    {alert.tipo_alerta}
+                                  </span>
+                                  <span className="text-[11px] text-slate-400">
+                                    {new Date(alert.criado_em).toLocaleString('pt-BR')}
+                                  </span>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                                  <span className="text-cyan-400 font-mono font-bold">Nível Atual: {Number(alert.nivel_rio).toFixed(2)}m</span>
+                                  <span className="text-amber-300 font-mono font-bold">Cota Atingida: {Number(alert.cota_disparada).toFixed(2)}m</span>
+                                  <span className="text-emerald-400 font-bold">{alert.quantidade_usuarios_atingidos} morador(es) afetados</span>
+                                </div>
+                                <p className="text-xs text-slate-300 font-mono bg-slate-950 p-2 rounded border border-slate-800 mt-1">
+                                  {alert.mensagem}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => handleApproveAlert(alert.id)}
+                                className="shrink-0 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow transition-all cursor-pointer"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                                <span>Aprovar Alerta</span>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* FILA MULTICANAL & DISPAROS REGISTRADOS */}
+                    <div className="bg-[#0F172A] border border-cyan-900/60 rounded-2xl p-5 space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                        <div className="flex items-center gap-2">
+                          <SendHorizontal className="w-5 h-5 text-cyan-400" />
+                          <div>
+                            <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                              Fila Multicanal de Disparos de Alerta
+                            </h3>
+                            <p className="text-xs text-slate-400">
+                              Gerenciamento e envio para WhatsApp & E-mail de alertas aprovados
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleProcessQueue()}
+                          disabled={isProcessingQueue || dispatchesList.filter(d => d.status === 'pendente').length === 0}
+                          className="px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow transition-all cursor-pointer disabled:opacity-50"
+                        >
+                          <RefreshCw className={`w-4 h-4 ${isProcessingQueue ? 'animate-spin' : ''}`} />
+                          <span>{isProcessingQueue ? 'Processando...' : 'Processar fila de envio'}</span>
+                        </button>
+                      </div>
+
+                      {/* SUMMARY METRICS OF QUEUE */}
+                      {(() => {
+                        const pendingDispatches = dispatchesList.filter(d => d.status === 'pendente');
+                        const sentDispatches = dispatchesList.filter(d => d.status === 'enviado');
+                        const waCount = dispatchesList.filter(d => d.canal === 'whatsapp').length;
+                        const emailCount = dispatchesList.filter(d => d.canal === 'email').length;
+
+                        return (
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl">
+                              <span className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
+                                <MessageSquare className="w-3.5 h-3.5 text-emerald-400" /> WhatsApp
+                              </span>
+                              <p className="text-xl font-black text-white mt-1">{waCount} <span className="text-xs text-slate-500 font-normal">mensagens</span></p>
+                            </div>
+                            <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl">
+                              <span className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
+                                <Mail className="w-3.5 h-3.5 text-blue-400" /> E-mail
+                              </span>
+                              <p className="text-xl font-black text-white mt-1">{emailCount} <span className="text-xs text-slate-500 font-normal">mensagens</span></p>
+                            </div>
+                            <div className="p-3 bg-slate-900/80 border border-amber-900/40 rounded-xl">
+                              <span className="text-[10px] text-amber-400 uppercase font-bold flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5" /> Aguardando envio
+                              </span>
+                              <p className="text-xl font-black text-amber-300 mt-1">{pendingDispatches.length}</p>
+                            </div>
+                            <div className="p-3 bg-slate-900/80 border border-emerald-900/40 rounded-xl">
+                              <span className="text-[10px] text-emerald-400 uppercase font-bold flex items-center gap-1">
+                                <CheckCircle2 className="w-3.5 h-3.5" /> Enviados com sucesso
+                              </span>
+                              <p className="text-xl font-black text-emerald-300 mt-1">{sentDispatches.length}</p>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* VISUALIZAÇÃO DOS NÍVEIS ATUAIS POR CIDADE */}
+                    <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-5 space-y-4">
+                      <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                        <Waves className="w-4 h-4 text-cyan-400" />
+                        <span>Níveis Atuais de Telemetria e Impacto de Moradores em Tempo Real</span>
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {citiesList.map(city => {
+                          const level = city.current_level ?? 0;
+                          const cSubs = subscribersList.filter(s => (s.cidade || s.city_slug) === city.slug && (s.receber_alertas ?? s.active ?? true));
+                          const affectedNow = cSubs.filter(s => Number(s.cota_residencia || 0) <= level);
+                          const cityTh = getCityThresholds(city);
+
+                          let statusBadge = 'bg-emerald-950 text-emerald-400 border-emerald-800/50';
+                          let statusTxt = 'Normal';
+                          if (level >= cityTh.flood) {
+                            statusBadge = 'bg-rose-950 text-rose-400 border-rose-800/50';
+                            statusTxt = 'Inundação';
+                          } else if (level >= cityTh.alert) {
+                            statusBadge = 'bg-orange-950 text-orange-400 border-orange-800/50';
+                            statusTxt = 'Alerta';
+                          } else if (level >= cityTh.attention) {
+                            statusBadge = 'bg-amber-950 text-amber-400 border-amber-800/50';
+                            statusTxt = 'Atenção';
+                          }
+
+                          return (
+                            <div 
+                              key={city.id}
+                              onClick={() => {
+                                setCentralCitySlug(city.slug);
+                                setCentralSimLevel(Number((city.current_level || 19).toFixed(2)));
+                              }}
+                              className={`p-4 rounded-xl border transition-all cursor-pointer ${
+                                centralCitySlug === city.slug
+                                  ? 'bg-slate-800/80 border-cyan-500/80 shadow-lg ring-1 ring-cyan-500/50'
+                                  : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-bold text-white text-sm">{city.name}</span>
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusBadge}`}>
+                                  {statusTxt}
+                                </span>
+                              </div>
+                              <div className="flex items-baseline justify-between">
+                                <div>
+                                  <span className="text-2xl font-black text-cyan-400">{level.toFixed(2)}</span>
+                                  <span className="text-xs text-slate-400 ml-1">m</span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-xs font-bold text-amber-400">{affectedNow.length}</span>
+                                  <span className="text-[11px] text-slate-400 block">moradores na cota</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* SIMULADOR MANUAL DE COTA DE RISCO */}
+                    <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-6 space-y-6">
+                      <div className="border-b border-slate-800 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                            <Sliders className="w-4 h-4 text-cyan-400" />
+                            Simulador Manual de Disparo de Alerta por Cota
+                          </h3>
+                          <p className="text-xs text-slate-400 mt-1">
+                            Ajuste a cota do rio para simular a quantidade exata de moradores que receberão o aviso de emergência.
+                          </p>
+                        </div>
+                        <span className="px-3 py-1 rounded-full bg-cyan-950 border border-cyan-800 text-cyan-300 text-xs font-semibold">
+                          Cidade Selecionada: {currentCityName}
+                        </span>
+                      </div>
+
+                      <form onSubmit={handleSimulateHydrologicalAlert} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-300 uppercase mb-2">
+                              Cidade para Simulação
+                            </label>
+                            <select
+                              value={centralCitySlug}
+                              onChange={(e) => {
+                                setCentralCitySlug(e.target.value);
+                                const selectedC = citiesList.find(c => c.slug === e.target.value);
+                                setCentralSimLevel(Number((selectedC?.current_level || 19).toFixed(2)));
+                              }}
+                              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
+                            >
+                              {citiesList.map(c => (
+                                <option key={c.id} value={c.slug}>{c.name}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-300 uppercase mb-2">
+                              Cota / Nível do Rio Simulado (Metros)
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="40"
+                                value={centralSimLevel}
+                                onChange={(e) => setCentralSimLevel(Number(e.target.value))}
+                                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white font-mono font-bold focus:outline-none focus:border-cyan-500"
+                                required
+                              />
+                              <span className="text-slate-400 font-bold text-sm">m</span>
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-300 uppercase mb-2">
+                              Status Mapeado
+                            </label>
+                            <div className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-bold flex items-center gap-2">
+                              {currentSimStatus === 'inundação' && <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />}
+                              {currentSimStatus === 'alerta' && <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />}
+                              {currentSimStatus === 'atenção' && <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />}
+                              <span className="capitalize text-white">{currentSimStatus}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* RESULTADO DA SIMULAÇÃO */}
+                        <div className="bg-slate-900/90 border border-cyan-900/60 rounded-2xl p-5 space-y-4">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                            <span className="text-xs font-bold text-cyan-300 uppercase tracking-wider flex items-center gap-1.5">
+                              <Users className="w-4 h-4 text-cyan-400" />
+                              Resultado da Simulação para {currentCityName} na Cota {Number(centralSimLevel).toFixed(2)}m
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="px-3 py-1 rounded-xl bg-amber-950 border border-amber-800 text-amber-300 text-xs font-bold">
+                                {impactedAtSimLevel.length} morador(es) alertados
+                              </span>
+                              <span className="px-3 py-1 rounded-xl bg-slate-800 text-slate-400 text-xs font-semibold">
+                                {safeAtSimLevel.length} preservados (&gt; {Number(centralSimLevel).toFixed(2)}m)
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* PAINEL DE MORADORES QUE RECEBERIAM O AVISO */}
+                          <div className="space-y-2">
+                            <h4 className="text-xs font-semibold text-slate-300">
+                              Moradores que RECEBERÃO o alerta (Cota de residência ≤ {Number(centralSimLevel).toFixed(2)}m):
+                            </h4>
+                            {impactedAtSimLevel.length === 0 ? (
+                              <p className="text-xs text-slate-500 italic bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                Nenhum morador cadastrado possui cota de risco atingida no nível de {Number(centralSimLevel).toFixed(2)}m nesta cidade.
+                              </p>
+                            ) : (
+                              <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                                {impactedAtSimLevel.map(sub => (
+                                  <div key={sub.id} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-amber-900/40 text-xs">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-bold text-white">{sub.nome_completo || sub.name}</span>
+                                      <span className="text-slate-400">({sub.bairro || sub.neighborhood})</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                      <span className="text-amber-300 font-bold bg-amber-950/80 px-2 py-0.5 rounded border border-amber-800/60">
+                                        Cota: {Number(sub.cota_residencia || 19).toFixed(2)}m
+                                      </span>
+                                      <span className="text-emerald-400 font-mono text-[11px]">{sub.whatsapp || sub.email || 'Cadastrado'}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* MENSAGEM CUSTOMIZADA OPCIONAL */}
+                          <div className="pt-2">
+                            <label className="block text-xs font-semibold text-slate-300 uppercase mb-1.5">
+                              Mensagem Customizada do Alerta (Opcional)
+                            </label>
+                            <input
+                              type="text"
+                              value={centralCustomMessage}
+                              onChange={(e) => setCentralCustomMessage(e.target.value)}
+                              placeholder={`Ex: Defesa Civil informa: Nível do Rio atingiu ${Number(centralSimLevel).toFixed(2)}m em ${currentCityName}. Início de evacuação preventivo.`}
+                              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+                            />
+                          </div>
+                        </div>
+
+                        {centralSuccessMsg && (
+                          <div className="p-4 rounded-xl bg-emerald-950/80 border border-emerald-800 text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                            <span>{centralSuccessMsg}</span>
+                          </div>
+                        )}
+
+                        <div className="flex justify-end">
+                          <button
+                            type="submit"
+                            disabled={centralDispatching}
+                            className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                          >
+                            <Send className="w-4 h-4" />
+                            <span>{centralDispatching ? 'Gravando Simulação...' : 'Registrar / Testar Disparo no Histórico'}</span>
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+
+                    {/* TABELA DE HISTÓRICO DE ALERTAS (alert_history) */}
+                    <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-5 space-y-4">
+                      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-cyan-400" />
+                          <span>Histórico de Alertas Registrados & Auditoria de Envio</span>
+                        </h3>
+                        <span className="text-xs text-slate-400 font-mono">
+                          Total: {alertHistoryList.length} registro(s)
+                        </span>
+                      </div>
+
+                      {alertHistoryList.length === 0 ? (
+                        <div className="p-8 text-center text-slate-500 text-xs italic">
+                          Nenhum histórico de alerta registrado até o momento. Faça uma simulação acima para gravar.
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs text-slate-300">
+                            <thead>
+                              <tr className="border-b border-slate-800 text-slate-400">
+                                <th className="p-3 font-semibold">Cidade</th>
+                                <th className="p-3 font-semibold">Nível / Cota</th>
+                                <th className="p-3 font-semibold">Atingidos</th>
+                                <th className="p-3 font-semibold">Tipo</th>
+                                <th className="p-3 font-semibold">Aprovado Por</th>
+                                <th className="p-3 font-semibold">Data / Hora</th>
+                                <th className="p-3 font-semibold">Status</th>
+                                <th className="p-3 font-semibold text-right">Ações Fila</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800/60">
+                              {alertHistoryList.map((item) => {
+                                const itemDispatches = dispatchesList.filter(d => d.alert_history_id === item.id);
+                                const pendingCount = itemDispatches.filter(d => d.status === 'pendente').length;
+                                const sentCount = itemDispatches.filter(d => d.status === 'enviado').length;
+
+                                return (
+                                  <tr key={item.id} className="hover:bg-slate-800/30">
+                                    <td className="p-3 font-bold text-white">{item.cidade}</td>
+                                    <td className="p-3 font-mono">
+                                      <span className="text-cyan-400 font-bold">{Number(item.nivel_rio).toFixed(2)}m</span>
+                                      <span className="text-slate-500 text-[10px] block">Cota: {Number(item.cota_disparada).toFixed(2)}m</span>
+                                    </td>
+                                    <td className="p-3">
+                                      <span className="px-2 py-0.5 rounded-lg bg-amber-950 border border-amber-800 text-amber-300 font-bold">
+                                        {item.quantidade_usuarios_atingidos} morador(es)
+                                      </span>
+                                    </td>
+                                    <td className="p-3">
+                                      <span className="capitalize font-bold text-slate-200">
+                                        {item.tipo_alerta}
+                                      </span>
+                                    </td>
+                                    <td className="p-3 text-slate-300 text-[11px]">
+                                      {item.aprovado_por ? (
+                                        <div>
+                                          <span className="font-semibold text-emerald-400 flex items-center gap-1">
+                                            <ShieldCheck className="w-3 h-3" /> {item.aprovado_por}
+                                          </span>
+                                          {item.aprovado_em && (
+                                            <span className="text-slate-500 text-[10px] block">
+                                              {new Date(item.aprovado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <span className="text-slate-500 italic">Pendente aprovação</span>
+                                      )}
+                                    </td>
+                                    <td className="p-3 text-slate-400 text-[11px]">
+                                      {new Date(item.criado_em).toLocaleString('pt-BR')}
+                                    </td>
+                                    <td className="p-3">
+                                      {item.enviado ? (
+                                        <span className="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] font-bold">
+                                          Aprovado ({itemDispatches.length} disparos)
+                                        </span>
+                                      ) : (
+                                        <span className="px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-800 text-[10px] font-bold">
+                                          Pendente
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="p-3 text-right">
+                                      <button
+                                        onClick={() => setSelectedHistoryForDispatchModal(item)}
+                                        className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 text-[11px] font-semibold flex items-center gap-1 ml-auto cursor-pointer"
+                                      >
+                                        <Eye className="w-3.5 h-3.5 text-cyan-400" />
+                                        <span>Ver Fila ({itemDispatches.length})</span>
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* PREPARAÇÃO PARA INTEGRAÇÃO FUTURA DE MAPAS - DEFESA CIVIL */}
+                    <div className="bg-[#0F172A] border border-cyan-900/50 rounded-2xl p-5 space-y-3">
+                      <div className="flex items-center gap-2 text-cyan-300 font-bold text-xs uppercase tracking-wider">
+                        <Map className="w-4 h-4 text-cyan-400" />
+                        <span>Preparação de Integração Geográfica com Mapas da Defesa Civil</span>
+                      </div>
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        Estrutura preparada para vincular polígonos de mancha de inundação e bairros atingidos diretamente aos cadastros dos moradores:
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-1 text-xs">
+                        <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                          <span className="text-[10px] text-slate-500 uppercase block font-bold">Entidade Cidade</span>
+                          <span className="font-bold text-white">Cidade (slug / ID)</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                          <span className="text-[10px] text-slate-500 uppercase block font-bold">Métrica Hidrológica</span>
+                          <span className="font-bold text-amber-400">Cota em Metros (m)</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                          <span className="text-[10px] text-slate-500 uppercase block font-bold">Mapeamento Urbano</span>
+                          <span className="font-bold text-cyan-400">Bairro / Polígono Defesa Civil</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                          <span className="text-[10px] text-slate-500 uppercase block font-bold">Beneficiário</span>
+                          <span className="font-bold text-emerald-400">Usuários Cadastrados</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* TAB: REDE DE ALERTAS */}
               {activeTab === 'rede_alertas' && (
@@ -1092,25 +1729,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                   </div>
 
-                  {/* TABELA DE MORADORES CADASTRADOS */}
+                  {/* TABELA DE ALERTAS DE MORADORES */}
                   <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-5 space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
                       <div>
                         <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
                           <Users className="w-4 h-4 text-cyan-400" />
-                          <span>Moradores Cadastrados (Inscritos na Rede)</span>
+                          <span>Alertas de Moradores</span>
                         </h3>
                         <p className="text-xs text-slate-400 mt-1">
-                          Gerencie os contatos dos moradores inscritos para recebimento de alertas hidrológicos.
+                          Inscrições ativas para alertas hidrológicos personalizados por cota e bairro.
                         </p>
                       </div>
 
-                      {/* FILTROS DE PESQUISA */}
+                      {/* FILTROS DE PESQUISA & EXPORTAÇÃO */}
                       <div className="flex flex-wrap items-center gap-2">
+                        {/* FILTRO CIDADE */}
                         <select
                           value={subCityFilter}
                           onChange={(e) => setSubCityFilter(e.target.value)}
-                          className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-200"
+                          className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
                         >
                           <option value="all">Todas as Cidades</option>
                           {citiesList.map(c => (
@@ -1118,23 +1756,48 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           ))}
                         </select>
 
+                        {/* FILTRO COTA DE RISCO */}
                         <select
-                          value={subRiskFilter}
-                          onChange={(e) => setSubRiskFilter(e.target.value as any)}
-                          className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-200"
+                          value={subCotaFilter}
+                          onChange={(e) => setSubCotaFilter(e.target.value)}
+                          className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
                         >
-                          <option value="all">Todas as Categorias</option>
-                          <option value="risk">Sim (Área de Risco)</option>
-                          <option value="info">Apenas Acompanha</option>
+                          <option value="all">Todas as Cotas</option>
+                          <option value="15">Cotas ≤ 15.00m</option>
+                          <option value="18">Cotas ≤ 18.00m</option>
+                          <option value="20">Cotas ≤ 20.00m</option>
+                          <option value="24">Cotas ≤ 24.00m</option>
+                          <option value="30">Cotas ≤ 30.00m</option>
                         </select>
 
+                        {/* FILTRO STATUS */}
+                        <select
+                          value={subStatusFilter}
+                          onChange={(e) => setSubStatusFilter(e.target.value as any)}
+                          className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
+                        >
+                          <option value="all">Todos os Status</option>
+                          <option value="active">Apenas Ativos</option>
+                          <option value="inactive">Apenas Inativos</option>
+                        </select>
+
+                        {/* FILTRO BAIRRO */}
                         <input
                           type="text"
                           value={subNeighborhoodFilter}
                           onChange={(e) => setSubNeighborhoodFilter(e.target.value)}
-                          placeholder="Filtrar por bairro..."
-                          className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500"
+                          placeholder="Filtrar bairro..."
+                          className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 w-28 sm:w-36"
                         />
+
+                        {/* BOTÃO EXPORTAR */}
+                        <button
+                          onClick={handleExportSubscribersCSV}
+                          className="px-3 py-1.5 rounded-xl bg-cyan-950 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Exportar CSV</span>
+                        </button>
                       </div>
                     </div>
 
@@ -1143,63 +1806,60 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <thead>
                           <tr className="border-b border-slate-800 text-slate-400">
                             <th className="p-3 font-semibold">Nome</th>
-                            <th className="p-3 font-semibold">Cidade / Bairro</th>
-                            <th className="p-3 font-semibold">Contatos</th>
-                            <th className="p-3 font-semibold">Área de Risco?</th>
-                            <th className="p-3 font-semibold">Notificações</th>
+                            <th className="p-3 font-semibold">Cidade</th>
+                            <th className="p-3 font-semibold">Bairro</th>
+                            <th className="p-3 font-semibold">WhatsApp / Contatos</th>
+                            <th className="p-3 font-semibold">Cota Cadastrada</th>
+                            <th className="p-3 font-semibold">Data Cadastro</th>
                             <th className="p-3 font-semibold">Status</th>
                             <th className="p-3 font-semibold text-right">Ações</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800/60">
                           {subscribersList
-                            .filter(s => subCityFilter === 'all' || s.city_slug === subCityFilter)
-                            .filter(s => subRiskFilter === 'all' || (subRiskFilter === 'risk' ? s.resides_in_risk_area : !s.resides_in_risk_area))
-                            .filter(s => !subNeighborhoodFilter || s.neighborhood.toLowerCase().includes(subNeighborhoodFilter.toLowerCase()))
+                            .filter(s => subCityFilter === 'all' || (s.cidade || s.city_slug) === subCityFilter)
+                            .filter(s => subCotaFilter === 'all' || Number(s.cota_residencia || 0) <= Number(subCotaFilter))
+                            .filter(s => subStatusFilter === 'all' || (subStatusFilter === 'active' ? (s.receber_alertas ?? s.active) : !(s.receber_alertas ?? s.active)))
+                            .filter(s => !subNeighborhoodFilter || (s.bairro || s.neighborhood || '').toLowerCase().includes(subNeighborhoodFilter.toLowerCase()))
                             .map((sub) => {
-                              const cityName = citiesList.find(c => c.slug === sub.city_slug)?.name || sub.city_slug;
+                              const rawCity = sub.cidade || sub.city_slug || 'lajeado';
+                              const cityName = citiesList.find(c => c.slug === rawCity)?.name || rawCity;
+                              const cotaVal = sub.cota_residencia != null ? Number(sub.cota_residencia) : 19.0;
+                              const isActive = sub.receber_alertas ?? sub.active ?? true;
+                              const createdDate = sub.criado_em || sub.created_at || new Date().toISOString();
+
                               return (
                                 <tr key={sub.id} className="hover:bg-slate-800/30">
-                                  <td className="p-3 font-medium text-white">{sub.name}</td>
-                                  <td className="p-3 text-slate-300">
-                                    <span className="font-semibold">{cityName}</span>
-                                    <span className="text-slate-500 block text-[10px]">{sub.neighborhood}</span>
-                                  </td>
+                                  <td className="p-3 font-medium text-white">{sub.nome_completo || sub.name || 'Morador'}</td>
+                                  <td className="p-3 text-cyan-400 font-semibold">{cityName}</td>
+                                  <td className="p-3 text-slate-300">{sub.bairro || sub.neighborhood || '-'}</td>
                                   <td className="p-3 text-slate-300 space-y-0.5">
-                                    {sub.email && <div className="text-[11px] text-cyan-400">{sub.email}</div>}
-                                    {sub.whatsapp && <div className="text-[11px] text-emerald-400">{sub.whatsapp}</div>}
+                                    {sub.whatsapp && <div className="text-[11px] text-emerald-400 font-mono flex items-center gap-1"><Smartphone className="w-3 h-3 shrink-0" />{sub.whatsapp}</div>}
+                                    {sub.email && <div className="text-[11px] text-cyan-400 flex items-center gap-1"><Mail className="w-3 h-3 shrink-0" />{sub.email}</div>}
                                   </td>
-                                  <td className="p-3">
-                                    {sub.resides_in_risk_area ? (
-                                      <span className="px-2 py-0.5 rounded-full bg-amber-950 border border-amber-800/60 text-amber-300 text-[10px] font-bold">
-                                        Sim (Risco)
-                                      </span>
-                                    ) : (
-                                      <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[10px]">
-                                        Informativo
-                                      </span>
-                                    )}
+                                  <td className="p-3 font-bold text-amber-300">
+                                    <span className="px-2 py-0.5 rounded-lg bg-amber-950/70 border border-amber-800/60">
+                                      {cotaVal.toFixed(2).replace('.', ',')} m
+                                    </span>
                                   </td>
-                                  <td className="p-3 text-slate-400 text-[10px]">
-                                    {sub.receive_attention && <span className="mr-1 text-amber-400">Atenção</span>}
-                                    {sub.receive_alert && <span className="mr-1 text-orange-400">Alerta</span>}
-                                    {sub.receive_flood && <span className="text-rose-400">Inundação</span>}
+                                  <td className="p-3 text-slate-400 text-[11px]">
+                                    {new Date(createdDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                                   </td>
                                   <td className="p-3">
                                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                      sub.active
+                                      isActive
                                         ? 'bg-emerald-950 text-emerald-400 border border-emerald-800/60'
                                         : 'bg-rose-950 text-rose-400 border border-rose-800/60'
                                     }`}>
-                                      {sub.active ? 'Ativo' : 'Inativo'}
+                                      {isActive ? 'Ativo' : 'Inativo'}
                                     </span>
                                   </td>
                                   <td className="p-3 text-right space-x-2">
                                     <button
-                                      onClick={() => handleToggleSubActive(sub.id, sub.active)}
+                                      onClick={() => handleToggleSubActive(sub.id, isActive)}
                                       className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] transition-all cursor-pointer"
                                     >
-                                      {sub.active ? 'Desativar' : 'Ativar'}
+                                      {isActive ? 'Desativar' : 'Ativar'}
                                     </button>
                                     <button
                                       onClick={() => handleDeleteSub(sub.id)}
@@ -2322,6 +2982,122 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </main>
           </div>
         )}
+
+        {/* MODAL AUDITORIA DA FILA MULTICANAL */}
+        {selectedHistoryForDispatchModal && (() => {
+          const itemDispatches = dispatchesList.filter(d => d.alert_history_id === selectedHistoryForDispatchModal.id);
+          const pending = itemDispatches.filter(d => d.status === 'pendente');
+          const sent = itemDispatches.filter(d => d.status === 'enviado');
+
+          return (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-[#0F172A] border border-cyan-800 rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+                <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900">
+                  <div className="flex items-center gap-2 text-cyan-400 font-bold text-sm">
+                    <SendHorizontal className="w-5 h-5" />
+                    <span>Fila de Envio Multicanal — {selectedHistoryForDispatchModal.cidade} ({selectedHistoryForDispatchModal.tipo_alerta.toUpperCase()})</span>
+                  </div>
+                  <button
+                    onClick={() => setSelectedHistoryForDispatchModal(null)}
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="p-5 overflow-y-auto space-y-4 flex-1 text-xs">
+                  <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl space-y-1">
+                    <p className="text-slate-300 font-mono"><strong className="text-white">Mensagem:</strong> {selectedHistoryForDispatchModal.mensagem}</p>
+                    <div className="flex flex-wrap gap-3 text-[11px] text-slate-400 pt-1">
+                      <span><strong>Nível:</strong> {Number(selectedHistoryForDispatchModal.nivel_rio).toFixed(2)}m</span>
+                      <span><strong>Cota:</strong> {Number(selectedHistoryForDispatchModal.cota_disparada).toFixed(2)}m</span>
+                      <span><strong>Aprovado por:</strong> {selectedHistoryForDispatchModal.aprovado_por || 'Sistema'}</span>
+                      <span><strong>Criado em:</strong> {new Date(selectedHistoryForDispatchModal.criado_em).toLocaleString('pt-BR')}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-1 rounded-full bg-amber-950 text-amber-300 border border-amber-800 font-bold text-[10px]">
+                        Pendente: {pending.length}
+                      </span>
+                      <span className="px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold text-[10px]">
+                        Enviados: {sent.length}
+                      </span>
+                      <span className="text-slate-400 font-mono text-[11px]">Total: {itemDispatches.length} destinatários</span>
+                    </div>
+
+                    {pending.length > 0 && (
+                      <button
+                        onClick={async () => {
+                          await handleProcessQueue(selectedHistoryForDispatchModal.id);
+                        }}
+                        disabled={isProcessingQueue}
+                        className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs uppercase flex items-center gap-1.5"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isProcessingQueue ? 'animate-spin' : ''}`} />
+                        <span>Processar Fila deste Alerta</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {itemDispatches.length === 0 ? (
+                    <div className="p-6 text-center text-slate-500 italic bg-slate-900/50 rounded-xl">
+                      Nenhum envio registrado para este alerta.
+                    </div>
+                  ) : (
+                    <div className="border border-slate-800 rounded-xl overflow-hidden">
+                      <table className="w-full text-left text-slate-300 text-xs">
+                        <thead className="bg-slate-900 text-slate-400 font-semibold border-b border-slate-800">
+                          <tr>
+                            <th className="p-2.5">Morador / Destino</th>
+                            <th className="p-2.5">Canal</th>
+                            <th className="p-2.5">Tentativa</th>
+                            <th className="p-2.5">Enviado Em</th>
+                            <th className="p-2.5 text-right">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/60 bg-slate-950">
+                          {itemDispatches.map(disp => (
+                            <tr key={disp.id} className="hover:bg-slate-900/60">
+                              <td className="p-2.5 font-medium text-white">
+                                <div>{disp.subscriber_name || 'Morador'}</div>
+                                <div className="text-[10px] text-slate-400 font-mono">{disp.destino}</div>
+                              </td>
+                              <td className="p-2.5">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${disp.canal === 'whatsapp' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-blue-950 text-blue-400 border border-blue-800'}`}>
+                                  {disp.canal}
+                                </span>
+                              </td>
+                              <td className="p-2.5 font-mono text-slate-400">#{disp.tentativa}</td>
+                              <td className="p-2.5 text-[11px] text-slate-400">
+                                {disp.enviado_em ? new Date(disp.enviado_em).toLocaleString('pt-BR') : '-'}
+                              </td>
+                              <td className="p-2.5 text-right">
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${disp.status === 'enviado' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-amber-950 text-amber-300 border border-amber-800'}`}>
+                                  {disp.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4 border-t border-slate-800 bg-slate-900 flex justify-end">
+                  <button
+                    onClick={() => setSelectedHistoryForDispatchModal(null)}
+                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold"
+                  >
+                    Fechar
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
       </div>
     </div>

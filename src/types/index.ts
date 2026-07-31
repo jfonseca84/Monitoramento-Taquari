@@ -173,17 +173,26 @@ export interface AdminUser {
 
 export interface AlertSubscriber {
   id: string;
-  created_at: string;
-  name: string;
+  nome_completo: string;
   email?: string;
   whatsapp?: string;
-  city_slug: string;
-  neighborhood: string;
-  resides_in_risk_area: boolean;
-  receive_attention: boolean;
-  receive_alert: boolean;
-  receive_flood: boolean;
-  active: boolean;
+  cidade: string;
+  bairro: string;
+  cota_residencia: number;
+  receber_alertas: boolean;
+  criado_em?: string;
+  atualizado_em?: string;
+
+  // Aliases for compatibility
+  name?: string;
+  city_slug?: string;
+  neighborhood?: string;
+  resides_in_risk_area?: boolean;
+  receive_attention?: boolean;
+  receive_alert?: boolean;
+  receive_flood?: boolean;
+  active?: boolean;
+  created_at?: string;
 }
 
 export interface AlertNotification {
@@ -197,6 +206,38 @@ export interface AlertNotification {
   sent_at: string;
   confirmed_at?: string;
   subscriber_name?: string;
+}
+
+export interface AlertHistoryItem {
+  id: string;
+  cidade: string;
+  nivel_rio: number;
+  cota_disparada: number;
+  quantidade_usuarios_atingidos: number;
+  mensagem: string;
+  tipo_alerta: 'atenção' | 'alerta' | 'inundação';
+  enviado: boolean;
+  criado_em: string;
+  aprovado_por?: string;
+  aprovado_em?: string;
+}
+
+export type DispatchChannel = 'whatsapp' | 'email' | 'sms' | 'push';
+export type DispatchStatus = 'pendente' | 'enviado' | 'erro';
+
+export interface AlertDispatchItem {
+  id: string;
+  alert_history_id: string;
+  subscriber_id: string;
+  subscriber_name?: string;
+  canal: DispatchChannel;
+  destino: string;
+  mensagem: string;
+  status: DispatchStatus;
+  tentativa: number;
+  enviado_em?: string;
+  erro_detalhe?: string;
+  criado_em: string;
 }
 
 export interface AlertStats {
