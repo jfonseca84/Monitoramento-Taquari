@@ -55,16 +55,6 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
 
   return (
     <div className="flex flex-col gap-5 shrink-0">
-      
-      {/* BOTÃO RECEBER ALERTAS (POSICIONADO ACIMA DE COTAS DE NÍVEL) */}
-      <button
-        type="button"
-        onClick={onOpenAlertSignup}
-        className="w-full bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 hover:from-amber-400 hover:via-orange-400 hover:to-rose-500 text-white font-extrabold py-3.5 px-4 rounded-2xl shadow-xl shadow-orange-950/30 border border-amber-300/40 flex items-center justify-center gap-2.5 transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer text-xs uppercase tracking-wider group"
-      >
-        <Bell className="w-4 h-4 text-amber-100 group-hover:scale-110 transition-transform animate-bounce" />
-        <span>Receber Alertas do Rio</span>
-      </button>
 
       {/* COTA DE INUNDAÇÃO CARD */}
       <div className="dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-2xl p-5 shadow-xl relative overflow-hidden transition-colors">
@@ -126,6 +116,16 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
           </div>
         </div>
       </div>
+
+      {/* BOTÃO SUBTIL 'CADASTRO DE ALERTA PARA ÁREAS DE RISCO' (POSICIONADO ABAIXO DE COTAS DE NÍVEL) */}
+      <button
+        type="button"
+        onClick={onOpenAlertSignup}
+        className="w-full bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 border border-cyan-500/40 hover:border-cyan-400 py-2 px-2.5 rounded-full flex items-center justify-center gap-1.5 transition-all cursor-pointer text-[10px] sm:text-[11px] font-bold uppercase tracking-normal group shadow-sm text-center leading-tight"
+      >
+        <ShieldAlert className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform shrink-0" />
+        <span>CADASTRO DE ALERTA PARA ÁREAS DE RISCO</span>
+      </button>
 
       {/* SHARE CARD */}
       <div className="dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-2xl p-5 shadow-xl transition-colors">
