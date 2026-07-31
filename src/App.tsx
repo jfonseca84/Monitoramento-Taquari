@@ -90,7 +90,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B132B] text-slate-100 font-sans selection:bg-cyan-500 selection:text-white flex flex-col justify-between">
+    <div className="min-h-screen bg-[#0B132B] text-slate-100 font-sans selection:bg-cyan-500 selection:text-white flex flex-col justify-between notranslate" translate="no">
       
       {/* HEADER */}
       <Header

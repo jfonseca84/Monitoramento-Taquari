@@ -66,7 +66,7 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
             }`}
           >
-            Vale Taquari
+            Vale do Taquari
           </button>
           <button
             onClick={() => setActiveBasin('guaiba')}
@@ -76,7 +76,7 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
             }`}
           >
-            Bacia Guaíba
+            Bacia do Guaíba
           </button>
         </div>
 
@@ -101,8 +101,8 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
                 <div className="flex items-center gap-2 min-w-0 pr-2">
                   <StatusDot status={city.status_level} size="md" />
                   <div className="flex flex-col items-start min-w-0 truncate">
-                    <span className="font-semibold truncate w-full text-left">{city.name}</span>
-                    {city.river && <span className="text-[10px] text-slate-400 truncate w-full text-left">{city.river}</span>}
+                    <span className="font-semibold truncate w-full text-left notranslate" translate="no">{city.name}</span>
+                    {city.river && <span className="text-[10px] text-slate-400 truncate w-full text-left notranslate" translate="no">{city.river}</span>}
                   </div>
                 </div>
 
