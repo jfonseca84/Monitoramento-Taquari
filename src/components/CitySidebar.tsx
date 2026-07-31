@@ -19,7 +19,7 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
 }) => {
   const [activeBasin, setActiveBasin] = useState<'taquari' | 'guaiba'>('taquari');
 
-  const thresholds = getCityThresholds(selectedCity, selectedCity.flood_level);
+  const thresholds = getCityThresholds(selectedCity);
   const normalVal = thresholds.normal;
   const attentionVal = thresholds.attention;
   const alertVal = thresholds.alert;

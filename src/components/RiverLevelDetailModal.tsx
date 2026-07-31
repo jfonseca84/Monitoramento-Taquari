@@ -37,7 +37,7 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
   if (!isOpen) return null;
 
   const currentLevel = Number(selectedCity.current_level) || 3.12;
-  const thresholds = getCityThresholds(selectedCity, selectedCity.flood_level);
+  const thresholds = getCityThresholds(selectedCity);
   const floodLevel = thresholds.flood;
   const alertLevel = thresholds.alert;
   const attentionLevel = thresholds.attention;

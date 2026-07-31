@@ -352,7 +352,7 @@ export async function fetchCities(): Promise<City[]> {
       matchedDbCityKeys.add(nameKey);
 
       const latestMeasurement = latestRiverLevelsMap.get(dbCity.id);
-      const thresholds = getCityThresholds(dbCity.slug || dbCity.id, dbCity.flood_level);
+      const thresholds = getCityThresholds(dbCity);
       const normal_level = Number(dbCity.normal_level ?? thresholds.normal) || 3.0;
       const attention_level = Number(dbCity.attention_level ?? thresholds.attention) || 3.0;
       const alert_level = Number(dbCity.alert_level ?? thresholds.alert) || 6.0;
@@ -764,7 +764,7 @@ export async function fetchCityHistory(cityId: string, timeframe: string) {
           .limit(48);
 
         if (levels && levels.length > 0) {
-          const thresholds = getCityThresholds(city.slug, city.flood_level);
+          const thresholds = getCityThresholds(city);
           return levels.map((l) => {
             const dateObj = new Date(l.recorded_at);
             const timeStr = !isNaN(dateObj.getTime())

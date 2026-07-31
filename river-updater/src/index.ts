@@ -887,9 +887,9 @@ async function runSync() {
         const rateInMeters = typeof stPayload.rate === 'number' ? Number((stPayload.rate / 100).toFixed(2)) : 0.00;
         const trend = stPayload.trend || (rateInMeters > 0.005 ? 'subindo' : rateInMeters < -0.005 ? 'descendo' : 'estavel');
 
-        const floodThreshold = targetCity.flood_level || 8.50;
-        const alertThreshold = targetCity.alert_level || 6.00;
-        const attentionThreshold = targetCity.attention_level || 3.00;
+        const floodThreshold = Number(targetCity.flood_level) || 10.00;
+        const alertThreshold = Number(targetCity.alert_level) || 8.00;
+        const attentionThreshold = Number(targetCity.attention_level) || 6.00;
 
         let statusLevel: 'normal' | 'atencao' | 'alerta' | 'inundacao' = stPayload.status || 'normal';
         if (currentLevel >= floodThreshold) statusLevel = 'inundacao';
@@ -912,11 +912,7 @@ async function runSync() {
               updated_at: new Date().toISOString(),
               river: targetCity.river,
               basin: targetCity.basin,
-              source_origin: sourceOrigin,
-              normal_level: targetCity.normal_level,
-              attention_level: targetCity.attention_level,
-              alert_level: targetCity.alert_level,
-              flood_level: targetCity.flood_level
+              source_origin: sourceOrigin
             })
             .eq('id', cityId);
 

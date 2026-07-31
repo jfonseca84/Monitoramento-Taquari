@@ -12,7 +12,7 @@ interface StatsPanelProps {
 export const StatsPanel: React.FC<StatsPanelProps> = ({ selectedCity, onOpenDetailModal }) => {
   const [copied, setCopied] = useState(false);
 
-  const thresholds = getCityThresholds(selectedCity, selectedCity.flood_level);
+  const thresholds = getCityThresholds(selectedCity);
 
   const normalVal = thresholds.normal;
   const attentionVal = thresholds.attention;

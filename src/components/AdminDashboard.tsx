@@ -839,7 +839,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
                 { id: 'patrocinadores', label: 'Patrocinadores', icon: Award },
                 { id: 'cidades', label: 'Cidades', icon: Building2 },
-                { id: 'cotas', label: 'Cotas Hidrológicas', icon: Sliders },
+                { id: 'cotas', label: 'Cotas Oficiais', icon: Sliders },
                 { id: 'cameras', label: 'Câmeras', icon: Camera },
                 { id: 'noticias', label: 'Notícias', icon: Newspaper },
                 { id: 'alertas', label: 'Alertas', icon: Bell },
@@ -910,7 +910,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <div>
                       <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
                         <Sliders className="w-4 h-4 text-cyan-400" />
-                        <span>Cotas Hidrológicas das Cidades (17 Cidades Oficiais)</span>
+                        <span>Cotas Oficiais das Cidades (17 Cidades Oficiais)</span>
                       </h3>
                       <p className="text-xs text-slate-400 mt-1">
                         Gerencie os limiares operacionais de Normalidade, Atenção, Alerta e Inundação diretamente no Supabase. Os valores do banco de dados são a fonte única e soberana do portal.
