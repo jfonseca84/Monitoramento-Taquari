@@ -1,18 +1,22 @@
 import React from 'react';
-import { Waves, Lock, Moon, Shield, Radio } from 'lucide-react';
+import { Waves, Lock, Moon, Sun, Radio } from 'lucide-react';
 
 interface HeaderProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onOpenAdmin: () => void;
   isSyncing?: boolean;
+  theme?: 'dark' | 'light';
+  onToggleTheme?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   activeTab,
   setActiveTab,
   onOpenAdmin,
-  isSyncing = false
+  isSyncing = false,
+  theme = 'dark',
+  onToggleTheme
 }) => {
   const navItems = [
     { id: 'inicio', label: 'INÍCIO' },
@@ -28,7 +32,7 @@ export const Header: React.FC<HeaderProps> = ({
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-[#0B132B]/95 backdrop-blur-md border-b border-slate-800/80 px-4 lg:px-8 py-3">
+    <header className="sticky top-0 z-40 dark:bg-[#0B132B]/95 bg-white/95 backdrop-blur-md dark:border-slate-800/80 border-slate-200 px-4 lg:px-8 py-3 shadow-sm transition-colors border-b">
       <div className="max-w-[1600px] mx-auto flex items-center justify-between">
         
         {/* LOGO */}
@@ -41,16 +45,16 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold tracking-tight text-white font-sans">
+              <h1 className="text-xl font-bold tracking-tight dark:text-white text-slate-900 font-sans">
                 RIO TAQUARI
               </h1>
               {isSyncing && (
-                <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-400 border border-cyan-800 animate-pulse">
+                <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full dark:bg-cyan-950/80 bg-cyan-100 dark:text-cyan-400 text-cyan-800 dark:border-cyan-800 border-cyan-300 animate-pulse">
                   <Radio className="w-2.5 h-2.5" /> SYNC
                 </span>
               )}
             </div>
-            <p className="text-[11px] font-medium tracking-widest text-cyan-400 uppercase">
+            <p className="text-[11px] font-medium tracking-widest text-cyan-600 dark:text-cyan-400 uppercase">
               MONITORAMENTO HIDROLÓGICO
             </p>
           </div>
@@ -66,8 +70,8 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => setActiveTab(item.id)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wider transition-all duration-200 ${
                   isActive
-                    ? 'text-cyan-400 bg-cyan-950/60 border border-cyan-800/60 shadow-sm'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
+                    ? 'dark:text-cyan-400 text-cyan-700 dark:bg-cyan-950/60 bg-cyan-50 dark:border-cyan-800/60 border-cyan-300 shadow-sm border'
+                    : 'dark:text-slate-300 text-slate-600 dark:hover:text-white hover:text-slate-900 dark:hover:bg-slate-800/50 hover:bg-slate-100 border border-transparent'
                 }`}
               >
                 {item.label}
@@ -79,33 +83,38 @@ export const Header: React.FC<HeaderProps> = ({
         {/* ACTIONS */}
         <div className="flex items-center gap-3">
           <button 
-            title="Alternar Tema"
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+            onClick={onToggleTheme}
+            title={theme === 'dark' ? "Mudar para Modo Claro" : "Mudar para Modo Escuro"}
+            className="p-2 dark:text-slate-300 text-slate-600 dark:hover:text-white hover:text-slate-900 dark:hover:bg-slate-800 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
           >
-            <Moon className="w-4 h-4" />
+            {theme === 'dark' ? (
+              <Sun className="w-4 h-4 text-amber-400" />
+            ) : (
+              <Moon className="w-4 h-4 text-slate-700" />
+            )}
           </button>
 
           <button
             onClick={onOpenAdmin}
-            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-slate-200 hover:text-white text-xs font-medium px-3.5 py-2 rounded-lg border border-slate-700/80 transition-all shadow-sm"
+            className="flex items-center gap-2 dark:bg-slate-900 bg-slate-100 dark:hover:bg-slate-800 hover:bg-slate-200 dark:text-slate-200 text-slate-800 dark:hover:text-white hover:text-black text-xs font-medium px-3.5 py-2 rounded-lg dark:border-slate-700/80 border-slate-300 transition-all shadow-sm cursor-pointer"
           >
             <span>ÁREA ADMIN</span>
-            <Lock className="w-3.5 h-3.5 text-cyan-400" />
+            <Lock className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
           </button>
         </div>
 
       </div>
 
       {/* MOBILE NAVIGATION BAR */}
-      <div className="flex xl:hidden overflow-x-auto no-scrollbar gap-2 mt-3 pt-2 border-t border-slate-800/60">
+      <div className="flex xl:hidden overflow-x-auto no-scrollbar gap-2 mt-3 pt-2 dark:border-slate-800/60 border-slate-200 border-t">
         {navItems.map((item) => (
           <button
             key={item.id}
             onClick={() => setActiveTab(item.id)}
             className={`whitespace-nowrap px-3 py-1 rounded-md text-[11px] font-medium ${
               activeTab === item.id
-                ? 'text-cyan-400 bg-cyan-950/80 border border-cyan-800'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'dark:text-cyan-400 text-cyan-700 dark:bg-cyan-950/80 bg-cyan-50 dark:border-cyan-800 border-cyan-300 border'
+                : 'dark:text-slate-400 text-slate-600 dark:hover:text-slate-200 hover:text-slate-900'
             }`}
           >
             {item.label}

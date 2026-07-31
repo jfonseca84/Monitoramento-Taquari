@@ -146,29 +146,29 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   };
 
   return (
-    <div className="bg-[#0F172A]/90 border border-slate-800 rounded-3xl p-5 shadow-2xl flex flex-col justify-between relative overflow-hidden h-[480px]">
+    <div className="dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-3xl p-5 shadow-2xl flex flex-col justify-between relative overflow-hidden h-[480px] transition-colors">
       
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 z-10 shrink-0">
-        <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-cyan-400 shrink-0" />
+        <h3 className="text-xs font-bold dark:text-slate-300 text-slate-700 tracking-wider uppercase flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-cyan-500 dark:text-cyan-400 shrink-0" />
           <span>MAPA HIDROLÓGICO REGIONAL</span>
         </h3>
 
         {/* SATELLITE / DARK MAP SWITCH */}
-        <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-[10px] font-bold self-start sm:self-auto">
+        <div className="flex items-center dark:bg-slate-900 bg-slate-100 dark:border-slate-800 border-slate-200 border rounded-lg p-0.5 text-[10px] font-bold self-start sm:self-auto">
           <button
             onClick={() => setMapType('sat')}
-            className={`px-2.5 py-1 rounded-md transition-all ${
-              mapType === 'sat' ? 'bg-cyan-950 text-cyan-300 border border-cyan-800 shadow-sm' : 'text-slate-400 hover:text-slate-200'
+            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+              mapType === 'sat' ? 'dark:bg-cyan-950 bg-cyan-100 text-cyan-800 dark:text-cyan-300 dark:border-cyan-800 border-cyan-300 border shadow-sm' : 'dark:text-slate-400 text-slate-600 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
             Satélite
           </button>
           <button
             onClick={() => setMapType('dark')}
-            className={`px-2.5 py-1 rounded-md transition-all ${
-              mapType === 'dark' ? 'bg-cyan-950 text-cyan-300 border border-cyan-800 shadow-sm' : 'text-slate-400 hover:text-slate-200'
+            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+              mapType === 'dark' ? 'dark:bg-cyan-950 bg-cyan-100 text-cyan-800 dark:text-cyan-300 dark:border-cyan-800 border-cyan-300 border shadow-sm' : 'dark:text-slate-400 text-slate-600 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
             Mapa Escuro
@@ -177,7 +177,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       </div>
 
       {/* LEAFLET MAP CONTAINER */}
-      <div className="relative w-full h-full rounded-2xl overflow-hidden border border-slate-800 bg-[#070F22] grow z-0">
+      <div className="relative w-full h-full rounded-2xl overflow-hidden dark:border-slate-800 border-slate-300 border dark:bg-[#070F22] bg-slate-100 grow z-0">
         <div ref={mapContainerRef} className="w-full h-full z-0" />
 
         {/* MAP CONTROLS OVERLAY */}
@@ -185,23 +185,23 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           <button 
             onClick={handleRecenter}
             title="Recentrar no Vale do Taquari"
-            className="w-8 h-8 bg-slate-900/90 hover:bg-slate-800 text-slate-200 rounded-lg flex items-center justify-center border border-slate-700 shadow-lg text-xs transition-colors"
+            className="w-8 h-8 dark:bg-slate-900/90 bg-white/90 hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-200 text-slate-800 rounded-lg flex items-center justify-center dark:border-slate-700 border-slate-300 border shadow-lg text-xs transition-colors cursor-pointer"
           >
-            <Navigation className="w-4 h-4 text-cyan-400" />
+            <Navigation className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
           </button>
           <button 
             onClick={handleZoomIn}
             title="Aumentar Zoom"
-            className="w-8 h-8 bg-slate-900/90 hover:bg-slate-800 text-slate-200 rounded-lg flex items-center justify-center border border-slate-700 shadow-lg text-xs transition-colors"
+            className="w-8 h-8 dark:bg-slate-900/90 bg-white/90 hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-200 text-slate-800 rounded-lg flex items-center justify-center dark:border-slate-700 border-slate-300 border shadow-lg text-xs transition-colors cursor-pointer"
           >
-            <Plus className="w-4 h-4 text-slate-200" />
+            <Plus className="w-4 h-4 dark:text-slate-200 text-slate-800" />
           </button>
           <button 
             onClick={handleZoomOut}
             title="Diminuir Zoom"
-            className="w-8 h-8 bg-slate-900/90 hover:bg-slate-800 text-slate-200 rounded-lg flex items-center justify-center border border-slate-700 shadow-lg text-xs transition-colors"
+            className="w-8 h-8 dark:bg-slate-900/90 bg-white/90 hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-200 text-slate-800 rounded-lg flex items-center justify-center dark:border-slate-700 border-slate-300 border shadow-lg text-xs transition-colors cursor-pointer"
           >
-            <Minus className="w-4 h-4 text-slate-200" />
+            <Minus className="w-4 h-4 dark:text-slate-200 text-slate-800" />
           </button>
         </div>
       </div>

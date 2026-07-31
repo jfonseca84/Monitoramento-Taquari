@@ -31,6 +31,28 @@ export default function App() {
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
+  // Theme State with localStorage persistence
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    const saved = localStorage.getItem('theme');
+    return (saved === 'light' || saved === 'dark') ? saved : 'dark';
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+      root.classList.remove('light');
+    } else {
+      root.classList.add('light');
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
   // Modals
   const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
   const [isCameraModalOpen, setIsCameraModalOpen] = useState<boolean>(false);
@@ -90,7 +112,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B132B] text-slate-100 font-sans selection:bg-cyan-500 selection:text-white flex flex-col justify-between notranslate" translate="no">
+    <div className="min-h-screen dark:bg-[#0B132B] bg-slate-100 dark:text-slate-100 text-slate-900 font-sans selection:bg-cyan-500 selection:text-white flex flex-col justify-between notranslate transition-colors duration-300" translate="no">
       
       {/* HEADER */}
       <Header
@@ -98,6 +120,8 @@ export default function App() {
         setActiveTab={setActiveTab}
         onOpenAdmin={() => setIsAdminOpen(true)}
         isSyncing={isSyncing}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
       {/* EMERGENCY ALERT BANNER IF ACTIVE */}
@@ -226,43 +250,43 @@ export default function App() {
       {/* INFO MODAL ("ENTENDA OS NÍVEIS") */}
       {isInfoModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#0F172A] border border-slate-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative animate-fade-in">
+          <div className="dark:bg-[#0F172A] bg-white dark:border-slate-700 border-slate-200 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative animate-fade-in">
             <button
               onClick={() => setIsInfoModalOpen(false)}
-              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white bg-slate-800 rounded-full"
+              className="absolute top-4 right-4 p-2 dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900 dark:bg-slate-800 bg-slate-100 rounded-full cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
 
-            <h3 className="text-base font-bold text-white mb-3">
+            <h3 className="text-base font-bold dark:text-white text-slate-900 mb-3">
               Cotas Hidrológicas de Referência (Rio Taquari)
             </h3>
 
-            <div className="space-y-3 text-xs text-slate-300">
-              <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-800">
-                <span className="font-bold text-emerald-400">🟢 Normal (até 3,00 m):</span>
-                <p className="mt-1 text-slate-300">Calha do rio operando em estado de vazão regular, sem risco às populações ribeirinhas.</p>
+            <div className="space-y-3 text-xs dark:text-slate-300 text-slate-700">
+              <div className="p-3 rounded-xl bg-emerald-950/60 dark:border-emerald-800 border-emerald-300 border">
+                <span className="font-bold text-emerald-600 dark:text-emerald-400">🟢 Normal (até 3,00 m):</span>
+                <p className="mt-1 dark:text-slate-300 text-slate-700">Calha do rio operando em estado de vazão regular, sem risco às populações ribeirinhas.</p>
               </div>
 
-              <div className="p-3 rounded-xl bg-amber-950/60 border border-amber-800">
-                <span className="font-bold text-amber-300">🟡 Atenção (3,00 m – 6,00 m):</span>
-                <p className="mt-1 text-slate-300">Início do estado de vigilância. As equipes municipais monitoram a taxa de elevação por hora.</p>
+              <div className="p-3 rounded-xl bg-amber-950/60 dark:border-amber-800 border-amber-300 border">
+                <span className="font-bold text-amber-600 dark:text-amber-300">🟡 Atenção (3,00 m – 6,00 m):</span>
+                <p className="mt-1 dark:text-slate-300 text-slate-700">Início do estado de vigilância. As equipes municipais monitoram a taxa de elevação por hora.</p>
               </div>
 
-              <div className="p-3 rounded-xl bg-orange-950/60 border border-orange-800">
-                <span className="font-bold text-orange-400">🟠 Alerta (6,00 m – 8,50 m):</span>
-                <p className="mt-1 text-slate-300">Risco iminente de extravasamento em cotas baixas. Moradores devem preparar remoção.</p>
+              <div className="p-3 rounded-xl bg-orange-950/60 dark:border-orange-800 border-orange-300 border">
+                <span className="font-bold text-orange-600 dark:text-orange-400">🟠 Alerta (6,00 m – 8,50 m):</span>
+                <p className="mt-1 dark:text-slate-300 text-slate-700">Risco iminente de extravasamento em cotas baixas. Moradores devem preparar remoção.</p>
               </div>
 
-              <div className="p-3 rounded-xl bg-red-950/60 border border-red-800">
-                <span className="font-bold text-red-400">🔴 Inundação (acima de 8,50 m):</span>
-                <p className="mt-1 text-slate-300">Atingimento de áreas urbanas habitadas. Ativação total do plano de emergência da Defesa Civil.</p>
+              <div className="p-3 rounded-xl bg-red-950/60 dark:border-red-800 border-red-300 border">
+                <span className="font-bold text-red-600 dark:text-red-400">🔴 Inundação (acima de 8,50 m):</span>
+                <p className="mt-1 dark:text-slate-300 text-slate-700">Atingimento de áreas urbanas habitadas. Ativação total do plano de emergência da Defesa Civil.</p>
               </div>
             </div>
 
             <button
               onClick={() => setIsInfoModalOpen(false)}
-              className="w-full mt-5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold py-2.5 rounded-xl transition-colors"
+              className="w-full mt-5 dark:bg-slate-800 bg-slate-100 dark:hover:bg-slate-700 hover:bg-slate-200 dark:text-white text-slate-900 text-xs font-bold py-2.5 rounded-xl transition-colors cursor-pointer"
             >
               Entendido
             </button>

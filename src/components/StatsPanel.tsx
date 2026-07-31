@@ -52,49 +52,49 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ selectedCity, onOpenDeta
     <div className="flex flex-col gap-5 shrink-0">
       
       {/* COTA DE INUNDAÇÃO CARD */}
-      <div className="bg-[#0F172A]/90 border border-slate-800 rounded-2xl p-5 shadow-xl relative overflow-hidden">
-        <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-800/80">
+      <div className="dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-2xl p-5 shadow-xl relative overflow-hidden transition-colors">
+        <div className="flex items-center justify-between mb-4 pb-2 dark:border-slate-800/80 border-slate-200 border-b">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-red-400" />
-            <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase">
+            <AlertTriangle className="w-4 h-4 text-red-500 dark:text-red-400" />
+            <h3 className="text-xs font-bold dark:text-slate-200 text-slate-800 tracking-wider uppercase">
               COTAS DE NÍVEL
             </h3>
           </div>
-          <span className="text-[10px] text-cyan-300 font-semibold px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-800">
+          <span className="text-[10px] text-cyan-700 dark:text-cyan-300 font-semibold px-2 py-0.5 rounded dark:bg-cyan-950/60 bg-cyan-50 border dark:border-cyan-800 border-cyan-200">
             {selectedCity.name}
           </span>
         </div>
 
         <div className="flex flex-col gap-3 text-xs">
           {/* NÍVEL NORMAL */}
-          <div className="flex items-center justify-between pb-2.5 border-b border-slate-800/80">
+          <div className="flex items-center justify-between pb-2.5 dark:border-slate-800/80 border-slate-200 border-b">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-              <span className="text-slate-300 font-medium">Nível normal</span>
+              <span className="dark:text-slate-300 text-slate-700 font-medium">Nível normal</span>
             </div>
-            <span className="font-mono font-bold text-emerald-400 text-sm">
+            <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-sm">
               {normalVal.toFixed(2).replace('.', ',')} m
             </span>
           </div>
 
           {/* COTA ATENÇÃO */}
-          <div className="flex items-center justify-between pb-2.5 border-b border-slate-800/80">
+          <div className="flex items-center justify-between pb-2.5 dark:border-slate-800/80 border-slate-200 border-b">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-              <span className="text-slate-300 font-medium">Cota atenção</span>
+              <span className="dark:text-slate-300 text-slate-700 font-medium">Cota atenção</span>
             </div>
-            <span className="font-mono font-bold text-amber-300 text-sm">
+            <span className="font-mono font-bold text-amber-600 dark:text-amber-300 text-sm">
               {attentionVal.toFixed(2).replace('.', ',')} m
             </span>
           </div>
 
           {/* COTA ALERTA */}
-          <div className="flex items-center justify-between pb-2.5 border-b border-slate-800/80">
+          <div className="flex items-center justify-between pb-2.5 dark:border-slate-800/80 border-slate-200 border-b">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-orange-400" />
-              <span className="text-slate-300 font-medium">Cota alerta</span>
+              <span className="dark:text-slate-300 text-slate-700 font-medium">Cota alerta</span>
             </div>
-            <span className="font-mono font-bold text-orange-400 text-sm">
+            <span className="font-mono font-bold text-orange-600 dark:text-orange-400 text-sm">
               {alertVal.toFixed(2).replace('.', ',')} m
             </span>
           </div>
@@ -103,9 +103,9 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ selectedCity, onOpenDeta
           <div className="flex items-center justify-between pt-0.5">
             <div className="flex items-center gap-2">
               <StatusDot status="inundacao" size="md" />
-              <span className="text-slate-200 font-bold">Cota inundação</span>
+              <span className="dark:text-slate-200 text-slate-800 font-bold">Cota inundação</span>
             </div>
-            <span className="font-mono font-extrabold text-red-400 text-base">
+            <span className="font-mono font-extrabold text-red-600 dark:text-red-400 text-base">
               {floodVal.toFixed(2).replace('.', ',')} m
             </span>
           </div>
@@ -113,8 +113,8 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ selectedCity, onOpenDeta
       </div>
 
       {/* SHARE CARD */}
-      <div className="bg-[#0F172A]/90 border border-slate-800 rounded-2xl p-5 shadow-xl">
-        <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase mb-3.5">
+      <div className="dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-2xl p-5 shadow-xl transition-colors">
+        <h3 className="text-xs font-bold dark:text-slate-300 text-slate-700 tracking-wider uppercase mb-3.5">
           COMPARTILHAR NÍVEL ATUAL
         </h3>
 

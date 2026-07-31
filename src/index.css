@@ -1,6 +1,24 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+html.dark {
+  color-scheme: dark;
+  background-color: #0B132B;
+  color: #f1f5f9;
+}
+
+html.light {
+  color-scheme: light;
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+body {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
 /* Custom Scrollbar Styling */
 ::-webkit-scrollbar {
   width: 6px;

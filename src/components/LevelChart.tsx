@@ -75,11 +75,11 @@ export const LevelChart: React.FC<LevelChartProps> = ({
       }
 
       return (
-        <div className="bg-[#0F172A] border border-slate-700 p-3 rounded-xl shadow-2xl text-xs font-sans">
-          <p className="text-slate-400 mb-1 font-mono">Horário: <span className="text-white font-semibold">{label}</span></p>
+        <div className="dark:bg-[#0F172A] bg-white dark:border-slate-700 border-slate-300 p-3 rounded-xl shadow-2xl text-xs font-sans">
+          <p className="dark:text-slate-400 text-slate-600 mb-1 font-mono">Horário: <span className="dark:text-white text-slate-900 font-semibold">{label}</span></p>
           <div className="flex items-center gap-2 my-1">
-            <span className="text-slate-300">Nível do Rio:</span>
-            <span className="text-cyan-400 font-mono font-bold text-sm">
+            <span className="dark:text-slate-300 text-slate-700">Nível do Rio:</span>
+            <span className="text-cyan-600 dark:text-cyan-400 font-mono font-bold text-sm">
               {levelVal.toFixed(2).replace('.', ',')} m
             </span>
           </div>
@@ -93,29 +93,29 @@ export const LevelChart: React.FC<LevelChartProps> = ({
   };
 
   return (
-    <div className="bg-[#0F172A]/90 border border-slate-800 rounded-3xl p-5 lg:p-6 shadow-2xl flex flex-col justify-between">
+    <div className="dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-3xl p-5 lg:p-6 shadow-2xl flex flex-col justify-between transition-colors">
       
       {/* HEADER & PERIOD SELECTOR */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase">
+          <h3 className="text-xs font-bold dark:text-slate-400 text-slate-500 tracking-wider uppercase">
             HISTÓRICO DE LEITURAS DA ESTAÇÃO
           </h3>
-          <p className="text-sm font-bold text-white mt-0.5">
+          <p className="text-sm font-bold dark:text-white text-slate-900 mt-0.5">
             Evolução do Nível ({selectedCity.name})
           </p>
         </div>
 
         {/* TIMEFRAME BUTTONS */}
-        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar bg-slate-900/80 p-1 rounded-xl border border-slate-800">
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar dark:bg-slate-900/80 bg-slate-100 p-1 rounded-xl dark:border-slate-800 border-slate-200 border">
           {timeframes.map((tf) => (
             <button
               key={tf.id}
               onClick={() => setTimeframe(tf.id)}
-              className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+              className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
                 timeframe === tf.id
-                  ? 'bg-[#1E293B] text-cyan-400 border border-cyan-800 shadow-md'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'dark:bg-[#1E293B] bg-white text-cyan-700 dark:text-cyan-400 dark:border-cyan-800 border-cyan-300 border shadow-md'
+                  : 'dark:text-slate-400 text-slate-600 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
               {tf.label}
@@ -213,7 +213,7 @@ export const LevelChart: React.FC<LevelChartProps> = ({
       </div>
 
       {/* CHART THRESHOLDS LEGEND AT BOTTOM */}
-      <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-4 pt-3 border-t border-slate-800/80 text-[11px] font-medium text-slate-300">
+      <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-4 pt-3 dark:border-slate-800/80 border-slate-200 border-t text-[11px] font-medium dark:text-slate-300 text-slate-700">
         <div className="flex items-center gap-1.5">
           <span className="w-3 h-0.5 bg-red-500 rounded-full" />
           <span>Inundação ({floodLevel.toFixed(2).replace('.', ',')}m)</span>
