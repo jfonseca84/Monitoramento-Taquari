@@ -32,10 +32,14 @@ ALTER TABLE public.river_levels ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sync_logs ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Service role write stations" ON public.stations;
+DROP POLICY IF EXISTS "Admin write stations" ON public.stations;
 CREATE POLICY "Service role write stations" ON public.stations FOR ALL USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
 
 DROP POLICY IF EXISTS "Service role write river_levels" ON public.river_levels;
+DROP POLICY IF EXISTS "Admin write river levels" ON public.river_levels;
+DROP POLICY IF EXISTS "Admin write river_levels" ON public.river_levels;
 CREATE POLICY "Service role write river_levels" ON public.river_levels FOR ALL USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
 
 DROP POLICY IF EXISTS "Service role write sync_logs" ON public.sync_logs;
+DROP POLICY IF EXISTS "Admin write sync_logs" ON public.sync_logs;
 CREATE POLICY "Service role write sync_logs" ON public.sync_logs FOR ALL USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');

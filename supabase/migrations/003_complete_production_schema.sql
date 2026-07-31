@@ -222,6 +222,9 @@ CREATE POLICY "Public read cameras" ON public.cameras FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Public read news" ON public.news;
 CREATE POLICY "Public read news" ON public.news FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Public read gallery" ON public.gallery;
+CREATE POLICY "Public read gallery" ON public.gallery FOR SELECT USING (true);
+
 DROP POLICY IF EXISTS "Public read alerts" ON public.alerts;
 CREATE POLICY "Public read alerts" ON public.alerts FOR SELECT USING (true);
 
@@ -250,6 +253,12 @@ CREATE POLICY "Admin write cameras" ON public.cameras FOR ALL USING (auth.role()
 
 DROP POLICY IF EXISTS "Admin write news" ON public.news;
 CREATE POLICY "Admin write news" ON public.news FOR ALL USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
+
+DROP POLICY IF EXISTS "Admin write gallery" ON public.gallery;
+CREATE POLICY "Admin write gallery" ON public.gallery FOR ALL USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
+
+DROP POLICY IF EXISTS "Admin write logs" ON public.logs;
+CREATE POLICY "Admin write logs" ON public.logs FOR ALL USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
 
 DROP POLICY IF EXISTS "Admin write alerts" ON public.alerts;
 CREATE POLICY "Admin write alerts" ON public.alerts FOR ALL USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');

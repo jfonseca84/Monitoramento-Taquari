@@ -173,22 +173,48 @@ ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.logs ENABLE ROW LEVEL SECURITY;
 
 -- RLS POLICIES (Public read, Authenticated admin write)
+DROP POLICY IF EXISTS "Public read cities" ON public.cities;
 CREATE POLICY "Public read cities" ON public.cities FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read stations" ON public.stations;
 CREATE POLICY "Public read stations" ON public.stations FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read river levels" ON public.river_levels;
 CREATE POLICY "Public read river levels" ON public.river_levels FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read alerts" ON public.alerts;
 CREATE POLICY "Public read alerts" ON public.alerts FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read news" ON public.news;
 CREATE POLICY "Public read news" ON public.news FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read gallery" ON public.gallery;
 CREATE POLICY "Public read gallery" ON public.gallery FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read settings" ON public.settings;
 CREATE POLICY "Public read settings" ON public.settings FOR SELECT USING (true);
 
 -- Admin write policies
-CREATE POLICY "Admin write cities" ON public.cities FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Admin write stations" ON public.stations FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Admin write river levels" ON public.river_levels FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Admin write alerts" ON public.alerts FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Admin write news" ON public.news FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Admin write settings" ON public.settings FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Admin write logs" ON public.logs FOR ALL USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Admin write cities" ON public.cities;
+CREATE POLICY "Admin write cities" ON public.cities FOR ALL USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
+
+DROP POLICY IF EXISTS "Admin write stations" ON public.stations;
+CREATE POLICY "Admin write stations" ON public.stations FOR ALL USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
+
+DROP POLICY IF EXISTS "Admin write river levels" ON public.river_levels;
+CREATE POLICY "Admin write river levels" ON public.river_levels FOR ALL USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
+
+DROP POLICY IF EXISTS "Admin write alerts" ON public.alerts;
+CREATE POLICY "Admin write alerts" ON public.alerts FOR ALL USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
+
+DROP POLICY IF EXISTS "Admin write news" ON public.news;
+CREATE POLICY "Admin write news" ON public.news FOR ALL USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
+
+DROP POLICY IF EXISTS "Admin write settings" ON public.settings;
+CREATE POLICY "Admin write settings" ON public.settings FOR ALL USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
+
+DROP POLICY IF EXISTS "Admin write logs" ON public.logs;
+CREATE POLICY "Admin write logs" ON public.logs FOR ALL USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
 
 -- INITIAL SEED DATA
 INSERT INTO public.cities (id, name, slug, description, image, camera_image, camera_url, latitude, longitude, active)

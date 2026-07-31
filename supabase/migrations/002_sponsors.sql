@@ -9,3 +9,13 @@ CREATE TABLE IF NOT EXISTS public.sponsors (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Enable RLS and create safe policies
+ALTER TABLE public.sponsors ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public read sponsors" ON public.sponsors;
+CREATE POLICY "Public read sponsors" ON public.sponsors FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Admin write sponsors" ON public.sponsors;
+CREATE POLICY "Admin write sponsors" ON public.sponsors FOR ALL USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
+
