@@ -31,18 +31,9 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
   // Strict list of allowed Bacia do Guaíba cities
   const GUAIBA_SLUGS = ['portoalegre', 'saoleopoldo', 'gravatai', 'montenegro', 'saosebastiaodocai', 'taquari', 'taquara', 'cachoeiradosul', 'donafrancisca', 'feliz'];
 
-  // Filter cities by official classification and exclude hidden/removed cities like cruzeirodosul
-  const taquariCities = cities.filter((c) => 
-    c.slug !== 'cruzeirodosul' && (
-      TAQUARI_SLUGS.includes(c.slug) || 
-      (c.basin === 'taquari' && !GUAIBA_SLUGS.includes(c.slug))
-    )
-  );
-  
-  const guaibaCities = cities.filter((c) => 
-    GUAIBA_SLUGS.includes(c.slug) || 
-    (c.basin === 'guaiba' && !TAQUARI_SLUGS.includes(c.slug))
-  );
+  // Filter cities strictly by official classification catalog
+  const taquariCities = cities.filter((c) => TAQUARI_SLUGS.includes(c.slug));
+  const guaibaCities = cities.filter((c) => GUAIBA_SLUGS.includes(c.slug));
 
   // Get current list according to active tab
   let displayedCities = taquariCities;

@@ -32,11 +32,6 @@ export const CITY_THRESHOLDS: Record<string, { normal: number; attention: number
   '10000000000040008000000000000005': { normal: 13.00, attention: 15.00, alert: 17.00, flood: 19.00 },
   estrela: { normal: 13.00, attention: 15.00, alert: 17.00, flood: 19.00 },
 
-  // Cruzeiro do Sul
-  '10000000-0000-4000-8000-000000000006': { normal: 13.00, attention: 15.00, alert: 17.00, flood: 19.00 },
-  '10000000000040008000000000000006': { normal: 13.00, attention: 15.00, alert: 17.00, flood: 19.00 },
-  cruzeirodosul: { normal: 13.00, attention: 15.00, alert: 17.00, flood: 19.00 },
-
   // Bom Retiro do Sul
   '10000000-0000-4000-8000-000000000007': { normal: 13.00, attention: 15.00, alert: 17.00, flood: 19.00 },
   '10000000000040008000000000000007': { normal: 13.00, attention: 15.00, alert: 17.00, flood: 19.00 },
@@ -81,11 +76,6 @@ export const CITY_THRESHOLDS: Record<string, { normal: number; attention: number
   '10000000-0000-4000-8000-000000000015': { normal: 4.00, attention: 5.50, alert: 6.50, flood: 7.50 },
   '10000000000040008000000000000015': { normal: 4.00, attention: 5.50, alert: 6.50, flood: 7.50 },
   donafrancisca: { normal: 4.00, attention: 5.50, alert: 6.50, flood: 7.50 },
-
-  // Rio Pardo
-  '10000000-0000-4000-8000-000000000016': { normal: 6.50, attention: 8.50, alert: 10.50, flood: 12.50 },
-  '10000000000040008000000000000016': { normal: 6.50, attention: 8.50, alert: 10.50, flood: 12.50 },
-  riopardo: { normal: 6.50, attention: 8.50, alert: 10.50, flood: 12.50 },
 
   // Montenegro
   '10000000-0000-4000-8000-000000000017': { normal: 4.50, attention: 6.00, alert: 7.00, flood: 8.00 },
@@ -660,8 +650,8 @@ export const INITIAL_ALERTS: AlertItem[] = [
   },
   {
     id: 'alert-2',
-    city_id: 'arroio-do-meio',
-    city_name: 'Arroio do Meio',
+    city_id: 'encantado',
+    city_name: 'Encantado',
     title: 'Atenção na foz do Rio Forqueta',
     description: 'Subida constante acompanhando o fluxo montante de Muçum.',
     level: 'atencao',

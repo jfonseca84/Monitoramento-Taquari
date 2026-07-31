@@ -187,10 +187,6 @@ const CITY_ALIASES: Record<string, string> = {
   'estrela': 'estrela',
   'estrelataquari': 'estrela',
 
-  // Cruzeiro do Sul
-  'cruzeirodosul': 'cruzeirodosul',
-  'cruzeiro': 'cruzeirodosul',
-
   // Bom Retiro do Sul
   'bomretirodosul': 'bomretirodosul',
   'bomretiro': 'bomretirodosul',
@@ -219,10 +215,7 @@ const CITY_ALIASES: Record<string, string> = {
   'cachoeiradosul': 'cachoeiradosul',
 
   // Dona Francisca
-  'donafrancisca': 'donafrancisca',
-
-  // Rio Pardo
-  'riopardo': 'riopardo',
+  'donafrancisca': 'donafrancisca'
 };
 
 interface OfficialCityMatch {
@@ -513,10 +506,22 @@ async function syncAndCleanSupabaseTables(): Promise<{
     if (c.slug) citiesBySlugInDb.set(c.slug, c);
   }
 
-  // Consolidar duplicatas (por exemplo, se existirem linhas com slugs ou ids legados)
+  const officialSlugsSet = new Set(OFFICIAL_CATALOG_CITIES.map(c => c.slug));
+
+  // Consolidar duplicatas e remover do banco qualquer cidade fora do catálogo oficial de 17 cidades
   for (const dbRow of allCitiesInDb) {
-    const matchResult = findOfficialCityMatch(dbRow.slug || dbRow.name || dbRow.id);
-    if (matchResult) {
+    if (!officialSlugsSet.has(dbRow.slug)) {
+      const matchResult = findOfficialCityMatch(dbRow.slug || dbRow.name || dbRow.id);
+      if (!matchResult) {
+        console.warn(`[river-updater] Removendo cidade fora do catálogo oficial do banco: "${dbRow.name}" (${dbRow.slug})`);
+        await supabase.from('river_levels').delete().eq('city_id', dbRow.id);
+        await supabase.from('stations').delete().eq('city_id', dbRow.id);
+        await supabase.from('cities').delete().eq('id', dbRow.id);
+        audit.duplicateCitiesRemoved++;
+        audit.duplicateCitiesDetails.push(`Removida cidade fora do catálogo oficial: "${dbRow.name}" (${dbRow.slug})`);
+        continue;
+      }
+
       const officialCatalog = matchResult.city;
       const officialDbCity = citiesBySlugInDb.get(officialCatalog.slug);
       const officialId = officialDbCity ? officialDbCity.id : officialCatalog.id;
@@ -524,7 +529,6 @@ async function syncAndCleanSupabaseTables(): Promise<{
       if (dbRow.id !== officialId && isValidUuid(officialId) && isValidUuid(dbRow.id)) {
         console.warn(`[river-updater] Remapeando registros da cidade duplicada: "${dbRow.name}" (${dbRow.id}) -> "${officialCatalog.name}" (${officialId})`);
 
-        // Atualiza `stations` que apontavam para o ID duplicado
         const { data: stData } = await supabase
           .from('stations')
           .update({ city_id: officialId })
@@ -533,7 +537,6 @@ async function syncAndCleanSupabaseTables(): Promise<{
 
         if (stData) audit.relinkedRecordsCount += stData.length;
 
-        // Atualiza `river_levels` que apontavam para o ID duplicado
         const { data: rlData } = await supabase
           .from('river_levels')
           .update({ city_id: officialId })
@@ -542,16 +545,9 @@ async function syncAndCleanSupabaseTables(): Promise<{
 
         if (rlData) audit.relinkedRecordsCount += rlData.length;
 
-        // Remove a linha duplicada da tabela `cities`
-        if (dbRow.slug !== officialCatalog.slug) {
-          await supabase
-            .from('cities')
-            .delete()
-            .eq('id', dbRow.id);
-
-          audit.duplicateCitiesRemoved++;
-          audit.duplicateCitiesDetails.push(`Removida cidade duplicada "${dbRow.name}" (${dbRow.id}) -> Vinculada a "${officialCatalog.name}" (${officialId})`);
-        }
+        await supabase.from('cities').delete().eq('id', dbRow.id);
+        audit.duplicateCitiesRemoved++;
+        audit.duplicateCitiesDetails.push(`Removida cidade duplicada/antiga "${dbRow.name}" (${dbRow.id}) -> Vinculada a "${officialCatalog.name}" (${officialId})`);
       }
     }
   }
