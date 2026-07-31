@@ -25,10 +25,22 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
   const alertVal = thresholds.alert;
   const floodVal = thresholds.flood;
 
-  // Group cities by basin
-  const taquariCities = cities.filter((c) => c.basin === 'taquari' || c.river?.toLowerCase().includes('taquari') || c.river?.toLowerCase().includes('santa tereza'));
-  const guaibaCities = cities.filter((c) => c.basin === 'guaiba' || (!c.basin && !c.river?.toLowerCase().includes('taquari')));
-  const uruguaiCities = cities.filter((c) => c.basin === 'uruguai' || c.river?.toLowerCase().includes('uruguai'));
+  // Group cities strictly by official basin catalog classification
+  const taquariCities = cities.filter((c) => 
+    c.basin === 'taquari' || 
+    ['santatereza', 'mucum', 'encantado', 'rocasales', 'lajeado', 'estrela', 'cruzeirodosul', 'bomretirodosul'].includes(c.slug) ||
+    (c.river?.toLowerCase().includes('taquari') && c.basin !== 'guaiba')
+  );
+  
+  const guaibaCities = cities.filter((c) => 
+    c.basin === 'guaiba' || 
+    ['portoalegre', 'saoleopoldo', 'taquara', 'feliz', 'saosebastiaodocai', 'gravatai', 'cachoeiradosul', 'donafrancisca', 'riopardo'].includes(c.slug)
+  );
+
+  const uruguaiCities = cities.filter((c) => 
+    c.basin === 'uruguai' || 
+    c.river?.toLowerCase().includes('uruguai')
+  );
 
   // Get current list according to tab
   let displayedCities = taquariCities;
@@ -88,34 +100,11 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
           </button>
         </div>
 
-        {/* SOURCES ATTRIBUTION NOTICE FOR NON-TAQUARI */}
-        {activeBasin === 'guaiba' && (
-          <div className="mb-2 px-2 py-1 bg-blue-950/40 border border-blue-800/50 rounded-lg flex items-center justify-between text-[10px] text-blue-300">
-            <span>Fonte: <strong>nivelguaiba.com.br</strong></span>
-            <a
-              href="https://nivelguaiba.com.br"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline flex items-center gap-0.5 text-cyan-400"
-            >
-              Acessar <ExternalLink className="w-2.5 h-2.5" />
-            </a>
-          </div>
-        )}
-
-        {activeBasin === 'uruguai' && (
-          <div className="mb-2 px-2 py-1 bg-blue-950/40 border border-blue-800/50 rounded-lg flex items-center justify-between text-[10px] text-blue-300">
-            <span>Fonte: <strong>niveluruguay.com.br</strong></span>
-            <a
-              href="https://niveluruguay.com.br"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline flex items-center gap-0.5 text-cyan-400"
-            >
-              Acessar <ExternalLink className="w-2.5 h-2.5" />
-            </a>
-          </div>
-        )}
+        {/* SOURCES ATTRIBUTION NOTICE */}
+        <div className="mb-2 px-2.5 py-1.5 bg-slate-900/60 border border-slate-800 rounded-lg flex items-center justify-between text-[10px] text-slate-300">
+          <span>Telemetria: <strong>Multi-Fonte Oficial</strong></span>
+          <span className="text-[9px] text-cyan-400 font-mono">2 fontes ativas</span>
+        </div>
 
         {/* CITY / STATION BUTTONS */}
         <div className="flex flex-col gap-1.5 p-0.5">

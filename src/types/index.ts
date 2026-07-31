@@ -18,6 +18,7 @@ export interface City {
   station_id?: string;
   river?: string;
   basin?: string; // 'taquari' | 'guaiba' | 'uruguai'
+  source_origin?: string; // Origem da coleta (ex: niveldosrios.guerreirosdohumaita.com.br ou nivelguaiba.com.br)
   current_level?: number;
   trend?: LevelTrend;
   rate_of_change?: number; // m/h
@@ -56,6 +57,9 @@ export interface RiverLevelReading {
   rate_of_change: number;
   recorded_at: string;
   created_at?: string;
+  source_origin?: string;
+  basin?: string;
+  river_name?: string;
 }
 
 export interface ChartDataPoint {
