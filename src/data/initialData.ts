@@ -26,7 +26,8 @@ export const CITY_THRESHOLDS: Record<string, { normal: number; attention: number
 };
 
 export function getCityThresholds(slugOrId: string, stationFlood?: number) {
-  const key = slugOrId.toLowerCase().replace(/[\s-]/g, '');
+  if (!slugOrId) return { normal: 3.00, attention: 3.00, alert: 6.00, flood: 8.50 };
+  const key = slugOrId.toLowerCase().replace(/[^a-z0-9]/g, '');
   if (CITY_THRESHOLDS[key]) {
     return CITY_THRESHOLDS[key];
   }
@@ -37,6 +38,17 @@ export function getCityThresholds(slugOrId: string, stationFlood?: number) {
     alert: Math.max(2, Math.round((flood * 0.88) * 100) / 100),
     flood: flood
   };
+}
+
+export function calculateStatusLevel(
+  currentLevel: number,
+  thresholds: { normal: number; attention: number; alert: number; flood: number }
+): LevelStatus {
+  const level = Number(currentLevel) || 0;
+  if (level >= thresholds.flood) return 'inundacao';
+  if (level >= thresholds.alert) return 'alerta';
+  if (level >= thresholds.attention) return 'atencao';
+  return 'normal';
 }
 
 export const INITIAL_CITIES: City[] = [

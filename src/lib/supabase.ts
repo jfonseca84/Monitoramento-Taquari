@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { City, Station, NewsItem, AlertItem, SystemLog, Sponsor, LevelTrend, LevelStatus } from '../types';
-import { INITIAL_CITIES, INITIAL_STATIONS, INITIAL_NEWS, INITIAL_ALERTS, INITIAL_LOGS, INITIAL_SPONSORS, generateHistoryForCity, getCityThresholds } from '../data/initialData';
+import { INITIAL_CITIES, INITIAL_STATIONS, INITIAL_NEWS, INITIAL_ALERTS, INITIAL_LOGS, INITIAL_SPONSORS, generateHistoryForCity, getCityThresholds, calculateStatusLevel } from '../data/initialData';
 import { BRASILIA_TIMEZONE, getBrasiliaLastUpdatedString, getBrasiliaTimeString } from './dateUtils';
 
 const getEnvVar = (key: string): string => {
@@ -217,36 +217,187 @@ export async function uploadStorageImage(
 // ==========================================
 // CITIES QUERY & MUTATIONS
 // ==========================================
+function normalizeCityKey(str?: string): string {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
 export async function fetchCities(): Promise<City[]> {
+  let dbCities: any[] = [];
+  let latestRiverLevelsMap = new Map<string, any>();
+
   if (isSupabaseConfigured && supabase) {
     try {
-      const { data, error } = await supabase
+      // 1. Fetch cities from Supabase
+      const { data: cData, error: cError } = await supabase
         .from('cities')
         .select('*')
-        .order('ordem', { ascending: true })
-        .order('name', { ascending: true });
+        .order('ordem', { ascending: true });
 
-      if (!error && data && data.length > 0) {
-        return data.map((c: any) => {
-          const rawLastUpdated = c.updated_at || c.last_updated;
-          return {
-            ...c,
-            last_updated: rawLastUpdated && rawLastUpdated !== 'Atualizando...'
-              ? getBrasiliaLastUpdatedString(rawLastUpdated)
-              : getBrasiliaLastUpdatedString()
-          };
-        }) as City[];
+      if (!cError && cData) {
+        dbCities = cData;
+      }
+
+      // 2. Fetch recent river_levels measurements for the latest readings
+      const { data: rData, error: rError } = await supabase
+        .from('river_levels')
+        .select('*')
+        .order('recorded_at', { ascending: false })
+        .limit(300);
+
+      if (!rError && rData && rData.length > 0) {
+        for (const row of rData) {
+          if (row.city_id && !latestRiverLevelsMap.has(row.city_id)) {
+            latestRiverLevelsMap.set(row.city_id, row);
+          }
+        }
       }
     } catch (e) {
-      console.warn('Supabase fetchCities failed, falling back to localStore:', e);
+      console.warn('Supabase fetchCities failed, falling back to catalog merge:', e);
     }
   }
-  return localStore.getCities().map((c) => ({
-    ...c,
-    last_updated: c.last_updated && c.last_updated !== 'Atualizando...'
-      ? getBrasiliaLastUpdatedString(c.last_updated)
-      : getBrasiliaLastUpdatedString()
-  }));
+
+  // Index DB cities by normalized keys (slug, id, name)
+  const dbCityMap = new Map<string, any>();
+  for (const c of dbCities) {
+    if (c.slug) dbCityMap.set(normalizeCityKey(c.slug), c);
+    if (c.id) dbCityMap.set(normalizeCityKey(c.id), c);
+    if (c.name) dbCityMap.set(normalizeCityKey(c.name), c);
+  }
+
+  const matchedDbCityKeys = new Set<string>();
+
+  // Map each city in INITIAL_CITIES (preserving official names, order, images, thresholds)
+  const mergedCities: City[] = INITIAL_CITIES.map((initCity, index) => {
+    const slugKey = normalizeCityKey(initCity.slug);
+    const idKey = normalizeCityKey(initCity.id);
+    const nameKey = normalizeCityKey(initCity.name);
+
+    const dbCity = dbCityMap.get(slugKey) || dbCityMap.get(idKey) || dbCityMap.get(nameKey);
+
+    if (dbCity) {
+      if (dbCity.slug) matchedDbCityKeys.add(normalizeCityKey(dbCity.slug));
+      if (dbCity.id) matchedDbCityKeys.add(normalizeCityKey(dbCity.id));
+      if (dbCity.name) matchedDbCityKeys.add(normalizeCityKey(dbCity.name));
+    }
+
+    const cityDbId = dbCity?.id || initCity.id;
+    const latestMeasurement = latestRiverLevelsMap.get(cityDbId) || latestRiverLevelsMap.get(initCity.id);
+
+    // Official Thresholds
+    const thresholds = getCityThresholds(initCity.slug || initCity.id, initCity.flood_level);
+    const normal_level = Number(initCity.normal_level ?? dbCity?.normal_level ?? thresholds.normal) || 3.0;
+    const attention_level = Number(initCity.attention_level ?? dbCity?.attention_level ?? thresholds.attention) || 3.0;
+    const alert_level = Number(initCity.alert_level ?? dbCity?.alert_level ?? thresholds.alert) || 6.0;
+    const flood_level = Number(initCity.flood_level ?? dbCity?.flood_level ?? thresholds.flood) || 8.5;
+
+    // Real-time Telemetry
+    const rawLevel = latestMeasurement?.level ?? dbCity?.current_level ?? initCity.current_level;
+    const current_level = typeof rawLevel === 'number' && !isNaN(rawLevel) ? rawLevel : (Number(rawLevel) || 3.12);
+
+    const rawRate = latestMeasurement?.rate_of_change ?? dbCity?.rate_of_change ?? initCity.rate_of_change;
+    const rate_of_change = typeof rawRate === 'number' && !isNaN(rawRate) ? rawRate : (Number(rawRate) || 0);
+
+    const trend = (latestMeasurement?.trend || dbCity?.trend || initCity.trend || 'estavel') as LevelTrend;
+
+    const rawLastUpdated = latestMeasurement?.recorded_at || dbCity?.updated_at || dbCity?.last_updated || initCity.last_updated;
+    const last_updated = rawLastUpdated && rawLastUpdated !== 'Atualizando...'
+      ? getBrasiliaLastUpdatedString(rawLastUpdated)
+      : getBrasiliaLastUpdatedString();
+
+    const status_level = calculateStatusLevel(current_level, { normal: normal_level, attention: attention_level, alert: alert_level, flood: flood_level });
+
+    return {
+      ...initCity,
+      id: cityDbId,
+      name: initCity.name, // ALWAYS keep official catalog display name!
+      slug: initCity.slug,
+      river: initCity.river || dbCity?.river || 'Rio Taquari',
+      basin: initCity.basin || dbCity?.basin || 'taquari',
+      description: initCity.description || dbCity?.description || '',
+      image: initCity.image || dbCity?.image || '',
+      camera_image: initCity.camera_image || dbCity?.camera_image || '',
+      camera_url: initCity.camera_url || dbCity?.camera_url || '',
+      latitude: Number(initCity.latitude || dbCity?.latitude) || -29.4678,
+      longitude: Number(initCity.longitude || dbCity?.longitude) || -51.9614,
+      active: dbCity?.active !== false,
+      ordem: index,
+      station_id: dbCity?.station_id || initCity.station_id,
+      current_level,
+      rate_of_change,
+      trend,
+      status_level,
+      last_updated,
+      updated_at: rawLastUpdated,
+      normal_level,
+      attention_level,
+      alert_level,
+      flood_level
+    };
+  });
+
+  // Append any extra DB cities that were not in INITIAL_CITIES
+  let extraCount = 0;
+  for (const dbCity of dbCities) {
+    const slugKey = normalizeCityKey(dbCity.slug);
+    const idKey = normalizeCityKey(dbCity.id);
+    const nameKey = normalizeCityKey(dbCity.name);
+
+    if (!matchedDbCityKeys.has(slugKey) && !matchedDbCityKeys.has(idKey) && !matchedDbCityKeys.has(nameKey)) {
+      matchedDbCityKeys.add(slugKey);
+      matchedDbCityKeys.add(idKey);
+      matchedDbCityKeys.add(nameKey);
+
+      const latestMeasurement = latestRiverLevelsMap.get(dbCity.id);
+      const thresholds = getCityThresholds(dbCity.slug || dbCity.id, dbCity.flood_level);
+      const normal_level = Number(dbCity.normal_level ?? thresholds.normal) || 3.0;
+      const attention_level = Number(dbCity.attention_level ?? thresholds.attention) || 3.0;
+      const alert_level = Number(dbCity.alert_level ?? thresholds.alert) || 6.0;
+      const flood_level = Number(dbCity.flood_level ?? thresholds.flood) || 8.5;
+
+      const rawLevel = latestMeasurement?.level ?? dbCity.current_level;
+      const current_level = typeof rawLevel === 'number' && !isNaN(rawLevel) ? rawLevel : (Number(rawLevel) || 3.0);
+      const rawRate = latestMeasurement?.rate_of_change ?? dbCity.rate_of_change;
+      const rate_of_change = typeof rawRate === 'number' && !isNaN(rawRate) ? rawRate : (Number(rawRate) || 0);
+      const trend = (latestMeasurement?.trend || dbCity.trend || 'estavel') as LevelTrend;
+      const rawLastUpdated = latestMeasurement?.recorded_at || dbCity.updated_at || dbCity.last_updated;
+      const status_level = calculateStatusLevel(current_level, { normal: normal_level, attention: attention_level, alert: alert_level, flood: flood_level });
+
+      mergedCities.push({
+        id: dbCity.id,
+        name: dbCity.name || 'Nova Estação',
+        slug: dbCity.slug || dbCity.id,
+        river: dbCity.river || 'Rio Taquari',
+        basin: dbCity.basin || 'taquari',
+        description: dbCity.description || 'Estação de monitoramento hidrológico.',
+        image: dbCity.image || 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80',
+        camera_image: dbCity.camera_image || 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80',
+        camera_url: dbCity.camera_url || '',
+        latitude: Number(dbCity.latitude) || -29.4678,
+        longitude: Number(dbCity.longitude) || -51.9614,
+        active: dbCity.active !== false,
+        ordem: 100 + extraCount,
+        station_id: dbCity.station_id,
+        current_level,
+        rate_of_change,
+        trend,
+        status_level,
+        last_updated: getBrasiliaLastUpdatedString(rawLastUpdated),
+        updated_at: rawLastUpdated,
+        normal_level,
+        attention_level,
+        alert_level,
+        flood_level
+      });
+      extraCount++;
+    }
+  }
+
+  return mergedCities;
 }
 
 
@@ -604,7 +755,7 @@ export async function fetchRiverLevels(cityId: string, limit: number = 50) {
 export async function fetchCityHistory(cityId: string, timeframe: string) {
   if (isSupabaseConfigured && supabase) {
     try {
-      const { data: city } = await supabase.from('cities').select('*').or(`id.eq.${cityId},slug.eq.${cityId}`).single();
+      const { data: city } = await supabase.from('cities').select('*').or(`id.eq.${cityId},slug.eq.${cityId}`).limit(1).maybeSingle();
       if (city) {
         const { data: levels } = await supabase
           .from('river_levels')

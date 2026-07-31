@@ -36,14 +36,15 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const currentLevel = selectedCity.current_level ?? 22.79;
+  const currentLevel = Number(selectedCity.current_level) || 3.12;
   const thresholds = getCityThresholds(selectedCity.slug || selectedCity.id, selectedCity.flood_level);
-  const floodLevel = selectedCity.flood_level ?? thresholds.flood;
-  const alertLevel = selectedCity.alert_level ?? thresholds.alert;
-  const attentionLevel = selectedCity.attention_level ?? thresholds.attention;
+  const floodLevel = Number(selectedCity.flood_level) || thresholds.flood;
+  const alertLevel = Number(selectedCity.alert_level) || thresholds.alert;
+  const attentionLevel = Number(selectedCity.attention_level) || thresholds.attention;
 
   // Calculate occupation percentage relative to flood level
-  const occupationPercent = Math.min(100, Math.max(0, Math.round((currentLevel / floodLevel) * 100)));
+  const safeFloodLevel = floodLevel > 0 ? floodLevel : 10.0;
+  const occupationPercent = Math.min(100, Math.max(0, Math.round((currentLevel / safeFloodLevel) * 100)));
 
   // Calculate difference from flood level
   const marginDiff = currentLevel - floodLevel;
@@ -57,12 +58,14 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
   const floodLevelStr = floodLevel.toFixed(2).replace('.', ',');
 
   // Trend rate formatted
-  const rateChange = selectedCity.rate_of_change !== undefined ? selectedCity.rate_of_change : (selectedCity.trend === 'subindo' ? 0.05 : -0.13);
+  const rateChange = typeof selectedCity.rate_of_change === 'number' && !isNaN(selectedCity.rate_of_change) ? selectedCity.rate_of_change : (selectedCity.trend === 'subindo' ? 0.05 : -0.13);
   const rateCmHour = (rateChange * 100).toFixed(1);
   const trendFormatted = `${rateChange >= 0 ? '+' : ''}${rateCmHour} cm/h`;
 
   // Min & Max in history
-  const levelsInSeries = chartData.map((d) => d.level);
+  const levelsInSeries = (chartData || [])
+    .map((d) => Number(d.level))
+    .filter((lvl) => typeof lvl === 'number' && !isNaN(lvl));
   const minSeries = levelsInSeries.length > 0 ? Math.min(...levelsInSeries) : currentLevel * 0.8;
   const maxSeries = levelsInSeries.length > 0 ? Math.max(...levelsInSeries) : currentLevel * 1.05;
   const minSeriesStr = minSeries.toFixed(2).replace('.', ',');

@@ -23,9 +23,9 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({
   const riverName = rawRiverName.toLowerCase().startsWith('rio ')
     ? rawRiverName.slice(4).trim()
     : rawRiverName;
-  const floodQuota = selectedCity.flood_level !== undefined ? selectedCity.flood_level.toFixed(2).replace('.', ',') : '19,00';
-  const alertQuota = selectedCity.alert_level !== undefined ? selectedCity.alert_level.toFixed(2).replace('.', ',') : '17,00';
-  const attentionQuota = selectedCity.attention_level !== undefined ? selectedCity.attention_level.toFixed(2).replace('.', ',') : '15,00';
+  const floodQuota = typeof selectedCity.flood_level === 'number' && !isNaN(selectedCity.flood_level) ? selectedCity.flood_level.toFixed(2).replace('.', ',') : '19,00';
+  const alertQuota = typeof selectedCity.alert_level === 'number' && !isNaN(selectedCity.alert_level) ? selectedCity.alert_level.toFixed(2).replace('.', ',') : '17,00';
+  const attentionQuota = typeof selectedCity.attention_level === 'number' && !isNaN(selectedCity.attention_level) ? selectedCity.attention_level.toFixed(2).replace('.', ',') : '15,00';
 
   const getStatusStyle = (status?: LevelStatus) => {
     switch (status) {
@@ -58,13 +58,13 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({
 
   const statusStyle = getStatusStyle(selectedCity.status_level);
 
-  const formattedLevel = selectedCity.current_level !== undefined
+  const formattedLevel = typeof selectedCity.current_level === 'number' && !isNaN(selectedCity.current_level)
     ? selectedCity.current_level.toFixed(2).replace('.', ',')
-    : '23,80';
+    : '0,00';
 
-  const rateOfChangeCm = selectedCity.rate_of_change !== undefined
+  const rateOfChangeCm = typeof selectedCity.rate_of_change === 'number' && !isNaN(selectedCity.rate_of_change)
     ? Math.abs(selectedCity.rate_of_change * 100).toFixed(0)
-    : '45';
+    : '0';
 
   const isUp = selectedCity.trend === 'subindo';
   const isDown = selectedCity.trend === 'descendo';

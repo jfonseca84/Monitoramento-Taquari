@@ -14,12 +14,13 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ selectedCity, onOpenDeta
 
   const thresholds = getCityThresholds(selectedCity.slug || selectedCity.id, selectedCity.flood_level);
 
-  const normalVal = selectedCity.normal_level ?? thresholds.normal;
-  const attentionVal = selectedCity.attention_level ?? thresholds.attention;
-  const alertVal = selectedCity.alert_level ?? thresholds.alert;
-  const floodVal = selectedCity.flood_level ?? thresholds.flood;
+  const normalVal = Number(selectedCity?.normal_level) || thresholds.normal;
+  const attentionVal = Number(selectedCity?.attention_level) || thresholds.attention;
+  const alertVal = Number(selectedCity?.alert_level) || thresholds.alert;
+  const floodVal = Number(selectedCity?.flood_level) || thresholds.flood;
 
-  const currentLevelStr = (selectedCity.current_level || 3.12).toFixed(2).replace('.', ',');
+  const currentLevelVal = Number(selectedCity?.current_level) || 3.12;
+  const currentLevelStr = currentLevelVal.toFixed(2).replace('.', ',');
 
   const handleShareWhatsApp = () => {
     const text = encodeURIComponent(

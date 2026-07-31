@@ -23,6 +23,7 @@ export interface City {
   rate_of_change?: number; // m/h
   status_level?: LevelStatus;
   last_updated?: string;
+  updated_at?: string;
   normal_level?: number;
   attention_level?: number;
   alert_level?: number;

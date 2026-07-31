@@ -121,7 +121,7 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
         <div className="flex flex-col gap-1.5 p-0.5">
           {displayedCities.map((city) => {
             const isSelected = selectedCity.id === city.id || selectedCity.slug === city.slug;
-            const levelFormatted = city.current_level !== undefined
+            const levelFormatted = typeof city.current_level === 'number' && !isNaN(city.current_level)
               ? `${city.current_level.toFixed(2).replace('.', ',')} m`
               : '-- m';
 

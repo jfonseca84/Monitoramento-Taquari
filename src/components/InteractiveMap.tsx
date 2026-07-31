@@ -88,7 +88,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       if (!city.latitude || !city.longitude) return;
 
       const isSelected = selectedCity.id === city.id || selectedCity.slug === city.slug;
-      const levelFormatted = city.current_level !== undefined ? `${city.current_level.toFixed(2).replace('.', ',')}m` : '--';
+      const levelFormatted = typeof city.current_level === 'number' && !isNaN(city.current_level)
+        ? `${city.current_level.toFixed(2).replace('.', ',')}m`
+        : '--';
 
       let statusBg = '#10B981'; // normal green
       if (city.status_level === 'inundacao') statusBg = '#EF4444'; // red

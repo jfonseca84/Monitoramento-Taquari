@@ -34,18 +34,25 @@ export const LevelChart: React.FC<LevelChartProps> = ({
     { id: 'all', label: 'TODO PERÍODO' }
   ];
 
-  const currentLevel = selectedCity.current_level || 3.12;
+  const currentLevel = Number(selectedCity?.current_level) || 3.12;
 
-  const thresholds = getCityThresholds(selectedCity.slug || selectedCity.id, selectedCity.flood_level);
-  const floodLevel = selectedCity.flood_level ?? thresholds.flood;
-  const alertLevel = selectedCity.alert_level ?? thresholds.alert;
-  const attentionLevel = selectedCity.attention_level ?? thresholds.attention;
-  const normalLevel = selectedCity.normal_level ?? thresholds.normal;
+  const thresholds = getCityThresholds(selectedCity?.slug || selectedCity?.id || 'lajeado', selectedCity?.flood_level);
+  const floodLevel = Number(selectedCity?.flood_level) || thresholds.flood;
+  const alertLevel = Number(selectedCity?.alert_level) || thresholds.alert;
+  const attentionLevel = Number(selectedCity?.attention_level) || thresholds.attention;
+  const normalLevel = Number(selectedCity?.normal_level) || thresholds.normal;
 
-  const maxDataLevel = Math.max(...chartData.map((d) => d.level), currentLevel, floodLevel);
-  const minDataLevel = Math.min(...chartData.map((d) => d.level), currentLevel, normalLevel);
-  const yMin = Math.max(0, Math.floor(minDataLevel - 1));
-  const yMax = Math.ceil(maxDataLevel + 2);
+  const validLevels = (chartData || [])
+    .map((d) => Number(d?.level))
+    .filter((lvl) => typeof lvl === 'number' && !isNaN(lvl));
+
+  const maxDataLevel = validLevels.length > 0 ? Math.max(...validLevels, currentLevel, floodLevel) : Math.max(currentLevel, floodLevel);
+  const minDataLevel = validLevels.length > 0 ? Math.min(...validLevels, currentLevel, normalLevel) : Math.min(currentLevel, normalLevel);
+
+  const calcYMin = Math.max(0, Math.floor(minDataLevel - 1));
+  const calcYMax = Math.ceil(maxDataLevel + 2);
+  const yMin = isFinite(calcYMin) ? calcYMin : 0;
+  const yMax = isFinite(calcYMax) ? calcYMax : 20;
 
   // Custom Dark Tooltip
   const CustomTooltip = ({ active, payload, label }: any) => {
