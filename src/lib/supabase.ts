@@ -288,12 +288,12 @@ export async function fetchCities(): Promise<City[]> {
     const cityDbId = dbCity?.id || initCity.id;
     const latestMeasurement = latestRiverLevelsMap.get(cityDbId) || latestRiverLevelsMap.get(initCity.id);
 
-    // Official Thresholds
-    const thresholds = getCityThresholds(initCity.slug || initCity.id, initCity.flood_level);
-    const normal_level = Number(initCity.normal_level ?? dbCity?.normal_level ?? thresholds.normal) || 3.0;
-    const attention_level = Number(initCity.attention_level ?? dbCity?.attention_level ?? thresholds.attention) || 3.0;
-    const alert_level = Number(initCity.alert_level ?? dbCity?.alert_level ?? thresholds.alert) || 6.0;
-    const flood_level = Number(initCity.flood_level ?? dbCity?.flood_level ?? thresholds.flood) || 8.5;
+    // Official Thresholds - always prioritize official catalog quotas
+    const thresholds = getCityThresholds(initCity.slug || initCity.id || initCity.name, initCity.flood_level);
+    const normal_level = Number(thresholds.normal ?? initCity.normal_level ?? dbCity?.normal_level) || 3.0;
+    const attention_level = Number(thresholds.attention ?? initCity.attention_level ?? dbCity?.attention_level) || 3.0;
+    const alert_level = Number(thresholds.alert ?? initCity.alert_level ?? dbCity?.alert_level) || 6.0;
+    const flood_level = Number(thresholds.flood ?? initCity.flood_level ?? dbCity?.flood_level) || 8.5;
 
     // Real-time Telemetry
     const rawLevel = latestMeasurement?.level ?? dbCity?.current_level ?? initCity.current_level;

@@ -37,10 +37,10 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
   if (!isOpen) return null;
 
   const currentLevel = Number(selectedCity.current_level) || 3.12;
-  const thresholds = getCityThresholds(selectedCity.slug || selectedCity.id, selectedCity.flood_level);
-  const floodLevel = Number(selectedCity.flood_level) || thresholds.flood;
-  const alertLevel = Number(selectedCity.alert_level) || thresholds.alert;
-  const attentionLevel = Number(selectedCity.attention_level) || thresholds.attention;
+  const thresholds = getCityThresholds(selectedCity, selectedCity.flood_level);
+  const floodLevel = thresholds.flood;
+  const alertLevel = thresholds.alert;
+  const attentionLevel = thresholds.attention;
 
   // Calculate occupation percentage relative to flood level
   const safeFloodLevel = floodLevel > 0 ? floodLevel : 10.0;

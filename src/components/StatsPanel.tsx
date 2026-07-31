@@ -12,12 +12,12 @@ interface StatsPanelProps {
 export const StatsPanel: React.FC<StatsPanelProps> = ({ selectedCity, onOpenDetailModal }) => {
   const [copied, setCopied] = useState(false);
 
-  const thresholds = getCityThresholds(selectedCity.slug || selectedCity.id, selectedCity.flood_level);
+  const thresholds = getCityThresholds(selectedCity, selectedCity.flood_level);
 
-  const normalVal = Number(selectedCity?.normal_level) || thresholds.normal;
-  const attentionVal = Number(selectedCity?.attention_level) || thresholds.attention;
-  const alertVal = Number(selectedCity?.alert_level) || thresholds.alert;
-  const floodVal = Number(selectedCity?.flood_level) || thresholds.flood;
+  const normalVal = thresholds.normal;
+  const attentionVal = thresholds.attention;
+  const alertVal = thresholds.alert;
+  const floodVal = thresholds.flood;
 
   const currentLevelVal = Number(selectedCity?.current_level) || 3.12;
   const currentLevelStr = currentLevelVal.toFixed(2).replace('.', ',');

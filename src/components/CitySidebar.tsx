@@ -19,11 +19,11 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
 }) => {
   const [activeBasin, setActiveBasin] = useState<'taquari' | 'guaiba' | 'uruguai' | 'all'>('taquari');
 
-  const thresholds = getCityThresholds(selectedCity.slug || selectedCity.id, selectedCity.flood_level);
-  const normalVal = selectedCity.normal_level ?? thresholds.normal;
-  const attentionVal = selectedCity.attention_level ?? thresholds.attention;
-  const alertVal = selectedCity.alert_level ?? thresholds.alert;
-  const floodVal = selectedCity.flood_level ?? thresholds.flood;
+  const thresholds = getCityThresholds(selectedCity, selectedCity.flood_level);
+  const normalVal = thresholds.normal;
+  const attentionVal = thresholds.attention;
+  const alertVal = thresholds.alert;
+  const floodVal = thresholds.flood;
 
   // Group cities by basin
   const taquariCities = cities.filter((c) => c.basin === 'taquari' || c.river?.toLowerCase().includes('taquari') || c.river?.toLowerCase().includes('santa tereza'));

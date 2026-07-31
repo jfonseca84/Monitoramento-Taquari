@@ -36,11 +36,11 @@ export const LevelChart: React.FC<LevelChartProps> = ({
 
   const currentLevel = Number(selectedCity?.current_level) || 3.12;
 
-  const thresholds = getCityThresholds(selectedCity?.slug || selectedCity?.id || 'lajeado', selectedCity?.flood_level);
-  const floodLevel = Number(selectedCity?.flood_level) || thresholds.flood;
-  const alertLevel = Number(selectedCity?.alert_level) || thresholds.alert;
-  const attentionLevel = Number(selectedCity?.attention_level) || thresholds.attention;
-  const normalLevel = Number(selectedCity?.normal_level) || thresholds.normal;
+  const thresholds = getCityThresholds(selectedCity, selectedCity?.flood_level);
+  const floodLevel = thresholds.flood;
+  const alertLevel = thresholds.alert;
+  const attentionLevel = thresholds.attention;
+  const normalLevel = thresholds.normal;
 
   const validLevels = (chartData || [])
     .map((d) => Number(d?.level))

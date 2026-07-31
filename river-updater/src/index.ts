@@ -711,7 +711,7 @@ async function runSync() {
         const recordedAt = stPayload.ts ? new Date(stPayload.ts).toISOString() : new Date().toISOString();
 
         if (isSupabaseRealConfigured && supabase) {
-          // Atualiza registro na tabela `cities` usando o UUID correto (cityId)
+          // Atualiza registro na tabela `cities` usando o UUID correto (cityId) e mantendo cotas oficiais
           const { error: cityUpdateError } = await supabase
             .from('cities')
             .update({
@@ -720,7 +720,11 @@ async function runSync() {
               rate_of_change: rateInMeters,
               status_level: statusLevel,
               last_updated: lastUpdatedText,
-              updated_at: new Date().toISOString()
+              updated_at: new Date().toISOString(),
+              normal_level: targetCity.normal_level,
+              attention_level: targetCity.attention_level,
+              alert_level: targetCity.alert_level,
+              flood_level: targetCity.flood_level
             })
             .eq('id', cityId);
 
