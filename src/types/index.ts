@@ -162,3 +162,12 @@ export interface Sponsor {
   updated_at?: string;
 }
 
+export interface AdminUser {
+  id: string;
+  user_id: string;
+  nome: string;
+  email: string;
+  nivel_acesso: 'administrador' | 'editor';
+  criado_em?: string;
+}
+

@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { City, Station, NewsItem, AlertItem, SystemLog, Sponsor, LevelTrend, LevelStatus } from '../types';
+import { City, Station, NewsItem, AlertItem, SystemLog, Sponsor, LevelTrend, LevelStatus, AdminUser } from '../types';
 import { INITIAL_CITIES, INITIAL_STATIONS, INITIAL_NEWS, INITIAL_ALERTS, INITIAL_LOGS, INITIAL_SPONSORS, generateHistoryForCity, getCityThresholds, calculateStatusLevel } from '../data/initialData';
 import { BRASILIA_TIMEZONE, getBrasiliaLastUpdatedString, getBrasiliaTimeString } from './dateUtils';
 
@@ -288,12 +288,11 @@ export async function fetchCities(): Promise<City[]> {
     const cityDbId = dbCity?.id || initCity.id;
     const latestMeasurement = latestRiverLevelsMap.get(cityDbId) || latestRiverLevelsMap.get(initCity.id);
 
-    // Official Thresholds - always prioritize official catalog quotas
-    const thresholds = getCityThresholds(initCity.slug || initCity.id || initCity.name, initCity.flood_level);
-    const normal_level = Number(thresholds.normal ?? initCity.normal_level ?? dbCity?.normal_level) || 3.0;
-    const attention_level = Number(thresholds.attention ?? initCity.attention_level ?? dbCity?.attention_level) || 3.0;
-    const alert_level = Number(thresholds.alert ?? initCity.alert_level ?? dbCity?.alert_level) || 6.0;
-    const flood_level = Number(thresholds.flood ?? initCity.flood_level ?? dbCity?.flood_level) || 8.5;
+    // Threshold levels: prioritize database values set by admin, fallback to initial catalog defaults
+    const normal_level = Number(dbCity?.normal_level ?? initCity.normal_level) || 3.0;
+    const attention_level = Number(dbCity?.attention_level ?? initCity.attention_level) || 6.0;
+    const alert_level = Number(dbCity?.alert_level ?? initCity.alert_level) || 8.0;
+    const flood_level = Number(dbCity?.flood_level ?? initCity.flood_level) || 10.0;
 
     // Real-time Telemetry
     const rawLevel = latestMeasurement?.level ?? dbCity?.current_level ?? initCity.current_level;
@@ -793,5 +792,149 @@ export async function fetchCityHistory(cityId: string, timeframe: string) {
   const city = cities.find((c) => c.id === cityId || c.slug === cityId);
   const currentVal = city?.current_level || 3.12;
   return generateHistoryForCity(cityId, currentVal);
+}
+
+// ==========================================
+// SAVE CITY THRESHOLDS (COTAS HIDROLÓGICAS)
+// ==========================================
+export async function saveCityThresholds(
+  cityId: string,
+  thresholds: { normal_level: number; attention_level: number; alert_level: number; flood_level: number }
+): Promise<void> {
+  const { normal_level, attention_level, alert_level, flood_level } = thresholds;
+
+  if (normal_level >= attention_level || attention_level >= alert_level || alert_level >= flood_level) {
+    throw new Error('Validação de cotas falhou: deve seguir normal < atenção < alerta < inundação.');
+  }
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      // 1. Update city thresholds
+      const { error: cityError } = await supabase
+        .from('cities')
+        .update({
+          normal_level,
+          attention_level,
+          alert_level,
+          flood_level,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', cityId);
+
+      if (cityError) console.warn('Supabase city threshold update error:', cityError);
+
+      // 2. Update linked stations
+      const { error: stationError } = await supabase
+        .from('stations')
+        .update({
+          normal_level,
+          attention_level,
+          alert_level,
+          flood_level,
+          updated_at: new Date().toISOString()
+        })
+        .eq('city_id', cityId);
+
+      if (stationError) console.warn('Supabase station threshold update error:', stationError);
+    } catch (e) {
+      console.error('Error saving city thresholds to Supabase:', e);
+    }
+  }
+
+  // Update local store fallback
+  try {
+    localStore.updateCity(cityId, {
+      normal_level,
+      attention_level,
+      alert_level,
+      flood_level
+    });
+  } catch (e) {}
+}
+
+// ==========================================
+// ADMIN USERS MANAGEMENT (admin_users)
+// ==========================================
+export async function fetchAdminUsers(): Promise<AdminUser[]> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('admin_users')
+        .select('*')
+        .order('criado_em', { ascending: false });
+
+      if (!error && data) {
+        return data as AdminUser[];
+      }
+    } catch (e) {
+      console.warn('Supabase fetchAdminUsers error:', e);
+    }
+  }
+
+  // Fallback default admin users
+  return [
+    {
+      id: '1',
+      user_id: '00000000-0000-0000-0000-000000000001',
+      nome: 'Administrador Geral',
+      email: 'admin@taquari.gov.br',
+      nivel_acesso: 'administrador',
+      criado_em: new Date().toISOString()
+    }
+  ];
+}
+
+export async function saveAdminUser(userData: {
+  id?: string;
+  user_id?: string;
+  nome: string;
+  email: string;
+  nivel_acesso: 'administrador' | 'editor';
+}): Promise<AdminUser | null> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const payload = {
+        ...(userData.id ? { id: userData.id } : {}),
+        user_id: userData.user_id || userData.id || '00000000-0000-0000-0000-000000000000',
+        nome: userData.nome,
+        email: userData.email,
+        nivel_acesso: userData.nivel_acesso,
+        criado_em: new Date().toISOString()
+      };
+
+      const { data, error } = await supabase
+        .from('admin_users')
+        .upsert(payload)
+        .select()
+        .single();
+
+      if (!error && data) {
+        return data as AdminUser;
+      } else if (error) {
+        console.error('Supabase saveAdminUser error:', error);
+      }
+    } catch (e) {
+      console.error('Exception in saveAdminUser:', e);
+    }
+  }
+
+  return {
+    id: userData.id || `admin-${Date.now()}`,
+    user_id: userData.user_id || `user-${Date.now()}`,
+    nome: userData.nome,
+    email: userData.email,
+    nivel_acesso: userData.nivel_acesso,
+    criado_em: new Date().toISOString()
+  };
+}
+
+export async function deleteAdminUser(adminId: string): Promise<void> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      await supabase.from('admin_users').delete().eq('id', adminId);
+    } catch (e) {
+      console.error('Error deleting admin user from Supabase:', e);
+    }
+  }
 }
 

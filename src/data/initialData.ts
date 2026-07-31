@@ -1,126 +1,35 @@
 import { City, Station, NewsItem, AlertItem, SystemLog, LevelStatus, Sponsor } from '../types';
 import { getBrasiliaLastUpdatedString } from '../lib/dateUtils';
 
-export const CITY_THRESHOLDS: Record<string, { normal: number; attention: number; alert: number; flood: number }> = {
-  // Santa Tereza
-  '10000000-0000-4000-8000-000000000000': { normal: 4.00, attention: 6.00, alert: 8.00, flood: 10.00 },
-  '10000000000040008000000000000000': { normal: 4.00, attention: 6.00, alert: 8.00, flood: 10.00 },
-  santatereza: { normal: 4.00, attention: 6.00, alert: 8.00, flood: 10.00 },
-
-  // Muçum
-  '10000000-0000-4000-8000-000000000001': { normal: 12.00, attention: 14.00, alert: 16.00, flood: 18.00 },
-  '10000000000040008000000000000001': { normal: 12.00, attention: 14.00, alert: 16.00, flood: 18.00 },
-  mucum: { normal: 12.00, attention: 14.00, alert: 16.00, flood: 18.00 },
-
-  // Encantado
-  '10000000-0000-4000-8000-000000000002': { normal: 6.00, attention: 8.00, alert: 10.00, flood: 12.00 },
-  '10000000000040008000000000000002': { normal: 6.00, attention: 8.00, alert: 10.00, flood: 12.00 },
-  encantado: { normal: 6.00, attention: 8.00, alert: 10.00, flood: 12.00 },
-
-  // Roca Sales
-  '10000000-0000-4000-8000-000000000003': { normal: 12.00, attention: 14.00, alert: 16.00, flood: 18.00 },
-  '10000000000040008000000000000003': { normal: 12.00, attention: 14.00, alert: 16.00, flood: 18.00 },
-  rocasales: { normal: 12.00, attention: 14.00, alert: 16.00, flood: 18.00 },
-
-  // Lajeado
-  '10000000-0000-4000-8000-000000000004': { normal: 13.00, attention: 15.00, alert: 17.00, flood: 19.00 },
-  '10000000000040008000000000000004': { normal: 13.00, attention: 15.00, alert: 17.00, flood: 19.00 },
-  lajeado: { normal: 13.00, attention: 15.00, alert: 17.00, flood: 19.00 },
-
-  // Estrela
-  '10000000-0000-4000-8000-000000000005': { normal: 13.00, attention: 15.00, alert: 17.00, flood: 19.00 },
-  '10000000000040008000000000000005': { normal: 13.00, attention: 15.00, alert: 17.00, flood: 19.00 },
-  estrela: { normal: 13.00, attention: 15.00, alert: 17.00, flood: 19.00 },
-
-  // Bom Retiro do Sul
-  '10000000-0000-4000-8000-000000000007': { normal: 13.00, attention: 15.00, alert: 17.00, flood: 19.00 },
-  '10000000000040008000000000000007': { normal: 13.00, attention: 15.00, alert: 17.00, flood: 19.00 },
-  bomretirodosul: { normal: 13.00, attention: 15.00, alert: 17.00, flood: 19.00 },
-
-  // Porto Alegre
-  '10000000-0000-4000-8000-000000000008': { normal: 1.50, attention: 2.10, alert: 2.50, flood: 3.00 },
-  '10000000000040008000000000000008': { normal: 1.50, attention: 2.10, alert: 2.50, flood: 3.00 },
-  portoalegre: { normal: 1.50, attention: 2.10, alert: 2.50, flood: 3.00 },
-
-  // São Leopoldo
-  '10000000-0000-4000-8000-000000000009': { normal: 2.50, attention: 3.20, alert: 3.80, flood: 4.50 },
-  '10000000000040008000000000000009': { normal: 2.50, attention: 3.20, alert: 3.80, flood: 4.50 },
-  saoleopoldo: { normal: 2.50, attention: 3.20, alert: 3.80, flood: 4.50 },
-
-  // Taquara
-  '10000000-0000-4000-8000-000000000010': { normal: 3.00, attention: 4.00, alert: 5.00, flood: 6.00 },
-  '10000000000040008000000000000010': { normal: 3.00, attention: 4.00, alert: 5.00, flood: 6.00 },
-  taquara: { normal: 3.00, attention: 4.00, alert: 5.00, flood: 6.00 },
-
-  // Feliz
-  '10000000-0000-4000-8000-000000000011': { normal: 4.50, attention: 6.00, alert: 7.50, flood: 9.00 },
-  '10000000000040008000000000000011': { normal: 4.50, attention: 6.00, alert: 7.50, flood: 9.00 },
-  feliz: { normal: 4.50, attention: 6.00, alert: 7.50, flood: 9.00 },
-
-  // São Sebastião do Caí
-  '10000000-0000-4000-8000-000000000012': { normal: 5.50, attention: 7.00, alert: 8.50, flood: 10.00 },
-  '10000000000040008000000000000012': { normal: 5.50, attention: 7.00, alert: 8.50, flood: 10.00 },
-  saosebastiaodocai: { normal: 5.50, attention: 7.00, alert: 8.50, flood: 10.00 },
-
-  // Gravataí
-  '10000000-0000-4000-8000-000000000013': { normal: 2.50, attention: 3.25, alert: 4.00, flood: 4.75 },
-  '10000000000040008000000000000013': { normal: 2.50, attention: 3.25, alert: 4.00, flood: 4.75 },
-  gravatai: { normal: 2.50, attention: 3.25, alert: 4.00, flood: 4.75 },
-
-  // Cachoeira do Sul
-  '10000000-0000-4000-8000-000000000014': { normal: 12.00, attention: 14.00, alert: 16.00, flood: 18.00 },
-  '10000000000040008000000000000014': { normal: 12.00, attention: 14.00, alert: 16.00, flood: 18.00 },
-  cachoeiradosul: { normal: 12.00, attention: 14.00, alert: 16.00, flood: 18.00 },
-
-  // Dona Francisca
-  '10000000-0000-4000-8000-000000000015': { normal: 4.00, attention: 5.50, alert: 6.50, flood: 7.50 },
-  '10000000000040008000000000000015': { normal: 4.00, attention: 5.50, alert: 6.50, flood: 7.50 },
-  donafrancisca: { normal: 4.00, attention: 5.50, alert: 6.50, flood: 7.50 },
-
-  // Montenegro
-  '10000000-0000-4000-8000-000000000017': { normal: 4.50, attention: 6.00, alert: 7.00, flood: 8.00 },
-  '10000000000040008000000000000017': { normal: 4.50, attention: 6.00, alert: 7.00, flood: 8.00 },
-  montenegro: { normal: 4.50, attention: 6.00, alert: 7.00, flood: 8.00 },
-
-  // Taquari
-  '10000000-0000-4000-8000-000000000018': { normal: 5.00, attention: 7.00, alert: 9.00, flood: 11.00 },
-  '10000000000040008000000000000018': { normal: 5.00, attention: 7.00, alert: 9.00, flood: 11.00 },
-  taquari: { normal: 5.00, attention: 7.00, alert: 9.00, flood: 11.00 }
-};
-
 export function getCityThresholds(slugOrIdOrCity: any, stationFlood?: number) {
   if (!slugOrIdOrCity) return { normal: 3.00, attention: 3.00, alert: 6.00, flood: 8.50 };
 
   if (typeof slugOrIdOrCity === 'object') {
     const city = slugOrIdOrCity;
-    if (city.id && CITY_THRESHOLDS[city.id.toLowerCase()]) {
-      return CITY_THRESHOLDS[city.id.toLowerCase()];
-    }
-    if (city.slug && CITY_THRESHOLDS[city.slug.toLowerCase()]) {
-      return CITY_THRESHOLDS[city.slug.toLowerCase()];
-    }
-    if (city.name) {
-      const normName = city.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
-      if (CITY_THRESHOLDS[normName]) return CITY_THRESHOLDS[normName];
-    }
-    if (typeof city.flood_level === 'number' && city.flood_level > 0 && typeof city.attention_level === 'number' && city.attention_level > 0) {
+    if (typeof city.flood_level === 'number' && city.flood_level > 0) {
       return {
-        normal: city.normal_level ?? 3.00,
-        attention: city.attention_level,
-        alert: city.alert_level,
-        flood: city.flood_level
+        normal: Number(city.normal_level ?? 3.00),
+        attention: Number(city.attention_level ?? 6.00),
+        alert: Number(city.alert_level ?? 8.00),
+        flood: Number(city.flood_level ?? 10.00)
       };
     }
   }
 
-  const raw = String(slugOrIdOrCity).trim().toLowerCase();
-  if (CITY_THRESHOLDS[raw]) {
-    return CITY_THRESHOLDS[raw];
-  }
+  const searchKey = String(slugOrIdOrCity).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+  const found = INITIAL_CITIES.find(c => 
+    c.id.toLowerCase() === searchKey || 
+    c.slug.toLowerCase() === searchKey || 
+    c.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '') === searchKey
+  );
 
-  const key = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
-  if (CITY_THRESHOLDS[key]) {
-    return CITY_THRESHOLDS[key];
+  if (found) {
+    return {
+      normal: Number(found.normal_level ?? 3.00),
+      attention: Number(found.attention_level ?? 6.00),
+      alert: Number(found.alert_level ?? 8.00),
+      flood: Number(found.flood_level ?? 10.00)
+    };
   }
 
   const flood = stationFlood || 10.00;

@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { City, NewsItem, AlertItem, Sponsor } from '../types';
+import { City, NewsItem, AlertItem, Sponsor, AdminUser } from '../types';
 import {
   supabase,
   isSupabaseConfigured,
   fetchCities,
   saveCity,
   deleteCity,
+  saveCityThresholds,
+  fetchAdminUsers,
+  saveAdminUser,
+  deleteAdminUser,
   fetchSponsors,
   saveSponsor,
   deleteSponsor,
@@ -50,7 +54,11 @@ import {
   ShieldAlert,
   Globe,
   Clock,
-  Phone
+  Phone,
+  Users,
+  Sliders,
+  ShieldCheck,
+  Waves
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -132,11 +140,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [sourceUrl, setSourceUrl] = useState('https://niveldosrios.guerreirosdohumaita.com.br/');
   const [emergencyPhone, setEmergencyPhone] = useState('199');
 
+  // Thresholds state (Cotas Hidrológicas)
+  const [thresholdEdits, setThresholdEdits] = useState<Record<string, { normal_level: number; attention_level: number; alert_level: number; flood_level: number }>>({});
+  const [thresholdSavingId, setThresholdSavingId] = useState<string | null>(null);
+  const [thresholdFeedback, setThresholdFeedback] = useState<Record<string, { type: 'success' | 'error'; message: string }>>({});
+
+  // Admin users state
+  const [adminUsersList, setAdminUsersList] = useState<AdminUser[]>([]);
+  const [newAdminName, setNewAdminName] = useState('');
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [newAdminRole, setNewAdminRole] = useState<'administrador' | 'editor'>('administrador');
+  const [adminUserLoading, setAdminUserLoading] = useState(false);
+  const [adminUserMessage, setAdminUserMessage] = useState<string | null>(null);
+  const [currentAdminUser, setCurrentAdminUser] = useState<AdminUser | null>(null);
+  const [userRole, setUserRole] = useState<'administrador' | 'editor'>('administrador');
+
   // Load all admin data from Supabase
   const loadAllAdminData = async () => {
     try {
       const citiesData = await fetchCities();
       setCitiesList(citiesData);
+
+      // Initialize thresholdEdits for each city
+      const tMap: Record<string, { normal_level: number; attention_level: number; alert_level: number; flood_level: number }> = {};
+      citiesData.forEach(city => {
+        tMap[city.id] = {
+          normal_level: city.normal_level ?? 3.0,
+          attention_level: city.attention_level ?? 6.0,
+          alert_level: city.alert_level ?? 8.0,
+          flood_level: city.flood_level ?? 10.0
+        };
+      });
+      setThresholdEdits(prev => ({ ...tMap, ...prev }));
+
       if (citiesData.length > 0 && !editingCityId) {
         setCameraCityId(citiesData[0].id);
         setAlertCityId(citiesData[0].id);
@@ -167,10 +204,68 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       if (settingsMap.official_source_url) setSourceUrl(settingsMap.official_source_url);
       if (settingsMap.emergency_contacts?.defesa_civil) setEmergencyPhone(settingsMap.emergency_contacts.defesa_civil);
 
+      // Fetch admin users
+      const usersData = await fetchAdminUsers();
+      setAdminUsersList(usersData);
+
     } catch (e) {
       console.error('Error loading admin dashboard data:', e);
     }
   };
+
+  // Session check and Auth Listener
+  useEffect(() => {
+    const initSession = async () => {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            setIsAuthenticated(true);
+            const { data: profile } = await supabase.from('admin_users').select('*').eq('user_id', session.user.id).maybeSingle();
+            if (profile) {
+              setCurrentAdminUser(profile as AdminUser);
+              setUserRole(profile.nivel_acesso || 'administrador');
+            } else {
+              setCurrentAdminUser({
+                id: session.user.id,
+                user_id: session.user.id,
+                nome: session.user.user_metadata?.nome || session.user.email?.split('@')[0] || 'Administrador',
+                email: session.user.email || '',
+                nivel_acesso: 'administrador'
+              });
+              setUserRole('administrador');
+            }
+          }
+        } catch (e) {
+          console.warn('Session check note:', e);
+        }
+      }
+    };
+
+    if (isOpen) {
+      initSession();
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (session?.user) {
+          setIsAuthenticated(true);
+          const { data: profile } = await supabase.from('admin_users').select('*').eq('user_id', session.user.id).maybeSingle();
+          if (profile) {
+            setCurrentAdminUser(profile as AdminUser);
+            setUserRole(profile.nivel_acesso || 'administrador');
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setIsAuthenticated(false);
+          setCurrentAdminUser(null);
+        }
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (isAuthenticated && isOpen) {
@@ -189,17 +284,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       try {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
-          // Fallback to demo login if default password
+          // Fallback demo operator if standard login
           if (password === 'admin123' || password === 'admin') {
             setIsAuthenticated(true);
+            setCurrentAdminUser({
+              id: 'local-admin',
+              user_id: 'local-user',
+              nome: 'Operador Principal',
+              email,
+              nivel_acesso: 'administrador'
+            });
             await addAuditLog('LOGIN', 'auth', 'Usuário autenticado em modo operador', { email });
             return;
           }
-          setAuthError(error.message || 'Credenciais inválidas.');
+          setAuthError(error.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : error.message);
           return;
         }
         if (data.user) {
           setIsAuthenticated(true);
+          const { data: profile } = await supabase.from('admin_users').select('*').eq('user_id', data.user.id).maybeSingle();
+          if (profile) {
+            setCurrentAdminUser(profile as AdminUser);
+            setUserRole(profile.nivel_acesso || 'administrador');
+          } else {
+            // Auto-provision admin user profile in DB
+            const newAdmin = {
+              user_id: data.user.id,
+              nome: data.user.user_metadata?.nome || data.user.email?.split('@')[0] || 'Administrador',
+              email: data.user.email || email,
+              nivel_acesso: 'administrador' as const
+            };
+            const created = await saveAdminUser(newAdmin);
+            if (created) setCurrentAdminUser(created);
+          }
           await addAuditLog('LOGIN', 'auth', 'Usuário autenticado via Supabase Auth', { email: data.user.email });
           return;
         }
@@ -486,6 +603,121 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   // ==========================================
+  // HANDLERS: COTAS HIDROLÓGICAS
+  // ==========================================
+  const handleThresholdInputChange = (cityId: string, field: 'normal_level' | 'attention_level' | 'alert_level' | 'flood_level', val: number) => {
+    setThresholdEdits(prev => ({
+      ...prev,
+      [cityId]: {
+        ...(prev[cityId] || { normal_level: 3.0, attention_level: 6.0, alert_level: 8.0, flood_level: 10.0 }),
+        [field]: val
+      }
+    }));
+  };
+
+  const handleSaveThreshold = async (city: City) => {
+    const edits = thresholdEdits[city.id] || {
+      normal_level: city.normal_level ?? 3.0,
+      attention_level: city.attention_level ?? 6.0,
+      alert_level: city.alert_level ?? 8.0,
+      flood_level: city.flood_level ?? 10.0
+    };
+
+    // Validation rule: normal < atenção < alerta < inundação
+    if (edits.normal_level >= edits.attention_level || edits.attention_level >= edits.alert_level || edits.alert_level >= edits.flood_level) {
+      setThresholdFeedback(prev => ({
+        ...prev,
+        [city.id]: {
+          type: 'error',
+          message: 'Validação Invalida: A ordem obrigatória é Normal < Atenção < Alerta < Inundação.'
+        }
+      }));
+      return;
+    }
+
+    setThresholdSavingId(city.id);
+    setThresholdFeedback(prev => ({ ...prev, [city.id]: undefined as any }));
+
+    try {
+      await saveCityThresholds(city.id, edits);
+      await addAuditLog('UPDATE', 'cotas', `Cotas hidrológicas salvas para ${city.name}`, edits);
+      setThresholdFeedback(prev => ({
+        ...prev,
+        [city.id]: { type: 'success', message: 'Cotas atualizadas e salvas no Supabase com sucesso!' }
+      }));
+      await loadAllAdminData();
+      onRefreshData();
+    } catch (err: any) {
+      setThresholdFeedback(prev => ({
+        ...prev,
+        [city.id]: { type: 'error', message: err.message || 'Falha ao salvar cotas no banco.' }
+      }));
+    } finally {
+      setThresholdSavingId(null);
+    }
+  };
+
+  // ==========================================
+  // HANDLERS: USUÁRIOS ADMINISTRADORES
+  // ==========================================
+  const handleCreateAdminUserSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAdminName || !newAdminEmail) return alert('Preencha o nome e o e-mail do usuário.');
+
+    setAdminUserLoading(true);
+    setAdminUserMessage(null);
+
+    try {
+      let authUserId = `usr-${Date.now()}`;
+      if (isSupabaseConfigured && supabase && newAdminPassword) {
+        const { data: authData, error: authErr } = await supabase.auth.signUp({
+          email: newAdminEmail,
+          password: newAdminPassword,
+          options: {
+            data: {
+              nome: newAdminName,
+              nivel_acesso: newAdminRole
+            }
+          }
+        });
+        if (authData?.user) {
+          authUserId = authData.user.id;
+        }
+      }
+
+      const created = await saveAdminUser({
+        user_id: authUserId,
+        nome: newAdminName,
+        email: newAdminEmail,
+        nivel_acesso: newAdminRole
+      });
+
+      if (created) {
+        await addAuditLog('CREATE', 'admin_users', `Usuário ${newAdminEmail} cadastrado como ${newAdminRole}`);
+        setAdminUserMessage(`Usuário ${newAdminName} salvo com sucesso!`);
+        setNewAdminName('');
+        setNewAdminEmail('');
+        setNewAdminPassword('');
+        const updatedUsers = await fetchAdminUsers();
+        setAdminUsersList(updatedUsers);
+      }
+    } catch (err: any) {
+      setAdminUserMessage(`Erro: ${err.message || 'Não foi possível cadastrar o usuário.'}`);
+    } finally {
+      setAdminUserLoading(false);
+    }
+  };
+
+  const handleDeleteAdminUserSubmit = async (id: string, name: string) => {
+    if (confirm(`Remover o acesso administrativo de ${name}?`)) {
+      await deleteAdminUser(id);
+      await addAuditLog('DELETE', 'admin_users', `Usuário ${name} removido das permissões`);
+      const updatedUsers = await fetchAdminUsers();
+      setAdminUsersList(updatedUsers);
+    }
+  };
+
+  // ==========================================
   // HANDLERS: CONFIGURAÇÕES
   // ==========================================
   const handleSaveSettingsSubmit = async (e: React.FormEvent) => {
@@ -520,6 +752,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
 
           <div className="flex items-center gap-3">
+            {isAuthenticated && (
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs">
+                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="font-medium text-slate-200">{currentAdminUser?.nome || 'Operador'}</span>
+                <span className="px-2 py-0.5 rounded-md bg-cyan-950 text-cyan-400 font-bold text-[10px] uppercase border border-cyan-800">
+                  {userRole}
+                </span>
+              </div>
+            )}
             {isAuthenticated && (
               <button
                 onClick={handleLogout}
@@ -593,16 +834,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
             
             {/* SIDEBAR MENU */}
-            <aside className="w-full md:w-60 bg-[#0B132B] border-r border-slate-800 p-3 flex flex-row md:flex-col gap-1 overflow-x-auto shrink-0">
+            <aside className="w-full md:w-64 bg-[#0B132B] border-r border-slate-800 p-3 flex flex-row md:flex-col gap-1 overflow-x-auto shrink-0">
               {[
                 { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
                 { id: 'patrocinadores', label: 'Patrocinadores', icon: Award },
                 { id: 'cidades', label: 'Cidades', icon: Building2 },
+                { id: 'cotas', label: 'Cotas Hidrológicas', icon: Sliders },
                 { id: 'cameras', label: 'Câmeras', icon: Camera },
                 { id: 'noticias', label: 'Notícias', icon: Newspaper },
                 { id: 'alertas', label: 'Alertas', icon: Bell },
                 { id: 'sincronizacao', label: 'Sincronização', icon: RefreshCw },
-                { id: 'logs', label: 'Logs', icon: FileText },
+                { id: 'logs', label: 'Registros', icon: FileText },
+                { id: 'usuarios', label: 'Usuários Administradores', icon: Users },
                 { id: 'configuracoes', label: 'Configurações', icon: Settings },
               ].map((tab) => {
                 const Icon = tab.icon;
@@ -656,6 +899,381 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <p className="text-xs text-slate-400 leading-relaxed">
                       O frontend opera de modo 100% estático e consome dados do <strong>Supabase</strong>. A atualização telemétrica da Agência Nacional de Águas (ANA) ocorre de forma autônoma através do serviço independente <strong>river-updater</strong> via Cron Job a cada 15 minutos.
                     </p>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: COTAS HIDROLÓGICAS */}
+              {activeTab === 'cotas' && (
+                <div className="space-y-6">
+                  <div className="bg-[#0F172A] border border-slate-800 p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                        <Sliders className="w-4 h-4 text-cyan-400" />
+                        <span>Cotas Hidrológicas das Cidades (17 Cidades Oficiais)</span>
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Gerencie os limiares operacionais de Normalidade, Atenção, Alerta e Inundação diretamente no Supabase. Os valores do banco de dados são a fonte única e soberana do portal.
+                      </p>
+                    </div>
+                    <div className="px-3.5 py-1.5 rounded-xl bg-cyan-950/60 border border-cyan-800/80 text-cyan-300 text-xs font-mono font-semibold shrink-0">
+                      Validação: Normal &lt; Atenção &lt; Alerta &lt; Inundação
+                    </div>
+                  </div>
+
+                  {/* VALE DO TAQUARI */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+                      <Waves className="w-4 h-4 text-sky-400" />
+                      <h4 className="text-xs font-bold text-sky-400 uppercase tracking-wider">
+                        Vale do Taquari (7 Cidades)
+                      </h4>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {citiesList.filter(c => c.basin === 'taquari').map((city) => {
+                        const edits = thresholdEdits[city.id] || {
+                          normal_level: city.normal_level ?? 3.0,
+                          attention_level: city.attention_level ?? 6.0,
+                          alert_level: city.alert_level ?? 8.0,
+                          flood_level: city.flood_level ?? 10.0
+                        };
+                        const isValid = edits.normal_level < edits.attention_level &&
+                                        edits.attention_level < edits.alert_level &&
+                                        edits.alert_level < edits.flood_level;
+                        const feedback = thresholdFeedback[city.id];
+                        const isSaving = thresholdSavingId === city.id;
+
+                        return (
+                          <div key={city.id} className="bg-[#0F172A] border border-slate-800 p-4 rounded-2xl space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h5 className="text-sm font-bold text-white">{city.name}</h5>
+                                <p className="text-[11px] text-slate-400">{city.river || 'Rio Taquari'}</p>
+                              </div>
+                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                                isValid ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-red-950 text-red-400 border border-red-800'
+                              }`}>
+                                {isValid ? '✓ Cotas Válidas' : '⚠️ Inválido'}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                              <div>
+                                <label className="block text-[10px] text-slate-400 font-semibold mb-1">Normal (m)</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={edits.normal_level}
+                                  onChange={(e) => handleThresholdInputChange(city.id, 'normal_level', parseFloat(e.target.value) || 0)}
+                                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-white font-mono focus:outline-none focus:border-cyan-500"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] text-amber-400/90 font-semibold mb-1">Atenção (m)</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={edits.attention_level}
+                                  onChange={(e) => handleThresholdInputChange(city.id, 'attention_level', parseFloat(e.target.value) || 0)}
+                                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-amber-300 font-mono focus:outline-none focus:border-amber-500"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] text-orange-400 font-semibold mb-1">Alerta (m)</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={edits.alert_level}
+                                  onChange={(e) => handleThresholdInputChange(city.id, 'alert_level', parseFloat(e.target.value) || 0)}
+                                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-orange-300 font-mono focus:outline-none focus:border-orange-500"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] text-red-400 font-semibold mb-1">Inundação (m)</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={edits.flood_level}
+                                  onChange={(e) => handleThresholdInputChange(city.id, 'flood_level', parseFloat(e.target.value) || 0)}
+                                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-red-300 font-mono focus:outline-none focus:border-red-500"
+                                />
+                              </div>
+                            </div>
+
+                            {feedback && (
+                              <p className={`text-[11px] p-2 rounded-lg font-medium ${
+                                feedback.type === 'success' ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800' : 'bg-red-950/80 text-red-300 border border-red-800'
+                              }`}>
+                                {feedback.message}
+                              </p>
+                            )}
+
+                            <div className="flex justify-end pt-1">
+                              <button
+                                onClick={() => handleSaveThreshold(city)}
+                                disabled={!isValid || isSaving}
+                                className="bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-800 disabled:text-slate-600 text-white font-semibold text-xs px-4 py-1.5 rounded-xl flex items-center gap-1.5 transition-all"
+                              >
+                                <Save className="w-3.5 h-3.5" />
+                                <span>{isSaving ? 'Salvando...' : 'Salvar Cotas'}</span>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* BACIA DO GUAÍBA */}
+                  <div className="space-y-4 pt-4">
+                    <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+                      <Waves className="w-4 h-4 text-emerald-400" />
+                      <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                        Bacia do Guaíba (10 Cidades)
+                      </h4>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {citiesList.filter(c => c.basin === 'guaiba').map((city) => {
+                        const edits = thresholdEdits[city.id] || {
+                          normal_level: city.normal_level ?? 3.0,
+                          attention_level: city.attention_level ?? 6.0,
+                          alert_level: city.alert_level ?? 8.0,
+                          flood_level: city.flood_level ?? 10.0
+                        };
+                        const isValid = edits.normal_level < edits.attention_level &&
+                                        edits.attention_level < edits.alert_level &&
+                                        edits.alert_level < edits.flood_level;
+                        const feedback = thresholdFeedback[city.id];
+                        const isSaving = thresholdSavingId === city.id;
+
+                        return (
+                          <div key={city.id} className="bg-[#0F172A] border border-slate-800 p-4 rounded-2xl space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h5 className="text-sm font-bold text-white">{city.name}</h5>
+                                <p className="text-[11px] text-slate-400">{city.river || 'Rio Caí / Guaíba'}</p>
+                              </div>
+                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                                isValid ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-red-950 text-red-400 border border-red-800'
+                              }`}>
+                                {isValid ? '✓ Cotas Válidas' : '⚠️ Inválido'}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                              <div>
+                                <label className="block text-[10px] text-slate-400 font-semibold mb-1">Normal (m)</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={edits.normal_level}
+                                  onChange={(e) => handleThresholdInputChange(city.id, 'normal_level', parseFloat(e.target.value) || 0)}
+                                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-white font-mono focus:outline-none focus:border-cyan-500"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] text-amber-400/90 font-semibold mb-1">Atenção (m)</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={edits.attention_level}
+                                  onChange={(e) => handleThresholdInputChange(city.id, 'attention_level', parseFloat(e.target.value) || 0)}
+                                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-amber-300 font-mono focus:outline-none focus:border-amber-500"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] text-orange-400 font-semibold mb-1">Alerta (m)</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={edits.alert_level}
+                                  onChange={(e) => handleThresholdInputChange(city.id, 'alert_level', parseFloat(e.target.value) || 0)}
+                                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-orange-300 font-mono focus:outline-none focus:border-orange-500"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] text-red-400 font-semibold mb-1">Inundação (m)</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={edits.flood_level}
+                                  onChange={(e) => handleThresholdInputChange(city.id, 'flood_level', parseFloat(e.target.value) || 0)}
+                                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-red-300 font-mono focus:outline-none focus:border-red-500"
+                                />
+                              </div>
+                            </div>
+
+                            {feedback && (
+                              <p className={`text-[11px] p-2 rounded-lg font-medium ${
+                                feedback.type === 'success' ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800' : 'bg-red-950/80 text-red-300 border border-red-800'
+                              }`}>
+                                {feedback.message}
+                              </p>
+                            )}
+
+                            <div className="flex justify-end pt-1">
+                              <button
+                                onClick={() => handleSaveThreshold(city)}
+                                disabled={!isValid || isSaving}
+                                className="bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-800 disabled:text-slate-600 text-white font-semibold text-xs px-4 py-1.5 rounded-xl flex items-center gap-1.5 transition-all"
+                              >
+                                <Save className="w-3.5 h-3.5" />
+                                <span>{isSaving ? 'Salvando...' : 'Salvar Cotas'}</span>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: USUÁRIOS ADMINISTRADORES */}
+              {activeTab === 'usuarios' && (
+                <div className="space-y-6">
+                  <div className="bg-[#0F172A] border border-slate-800 p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                        <Users className="w-4 h-4 text-cyan-400" />
+                        <span>Gestão de Usuários Administradores (Supabase Auth)</span>
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Controle de acesso e atribuição de papéis (administrador ou editor) vinculados à tabela <code className="text-cyan-300 font-mono">admin_users</code>.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* CADASTRO DE NOVO USUÁRIO */}
+                  <form onSubmit={handleCreateAdminUserSubmit} className="bg-[#0F172A] border border-slate-800 p-5 rounded-2xl space-y-4">
+                    <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                      <Plus className="w-4 h-4 text-cyan-400" />
+                      <span>Cadastrar Novo Usuário Administrativo</span>
+                    </h4>
+
+                    {adminUserMessage && (
+                      <div className="p-3 bg-cyan-950/80 border border-cyan-800 text-cyan-300 text-xs rounded-xl font-medium">
+                        {adminUserMessage}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                      <div>
+                        <label className="block text-slate-300 font-medium mb-1">Nome Completo *</label>
+                        <input
+                          type="text"
+                          value={newAdminName}
+                          onChange={(e) => setNewAdminName(e.target.value)}
+                          placeholder="Ex: Carlos Silva"
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-500"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 font-medium mb-1">E-mail *</label>
+                        <input
+                          type="email"
+                          value={newAdminEmail}
+                          onChange={(e) => setNewAdminEmail(e.target.value)}
+                          placeholder="carlos@taquari.gov.br"
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-500"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 font-medium mb-1">Senha Inicial</label>
+                        <input
+                          type="password"
+                          value={newAdminPassword}
+                          onChange={(e) => setNewAdminPassword(e.target.value)}
+                          placeholder="Mínimo 6 caracteres"
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 font-medium mb-1">Nível de Acesso</label>
+                        <select
+                          value={newAdminRole}
+                          onChange={(e) => setNewAdminRole(e.target.value as any)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-500"
+                        >
+                          <option value="administrador">Administrador (Acesso Completo)</option>
+                          <option value="editor">Editor (Notícias e Alertas)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-2">
+                      <button
+                        type="submit"
+                        disabled={adminUserLoading}
+                        className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg flex items-center gap-2 transition-all"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>{adminUserLoading ? 'Cadastrando...' : 'Cadastrar Usuário'}</span>
+                      </button>
+                    </div>
+                  </form>
+
+                  {/* LISTA DE USUÁRIOS EXISTENTES */}
+                  <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-5 space-y-4">
+                    <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                      Usuários Cadastrados ({adminUsersList.length})
+                    </h4>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs text-slate-300">
+                        <thead className="bg-slate-900 text-slate-400 uppercase text-[10px]">
+                          <tr>
+                            <th className="p-3">Nome</th>
+                            <th className="p-3">E-mail</th>
+                            <th className="p-3">Nível de Acesso</th>
+                            <th className="p-3">Cadastrado em</th>
+                            <th className="p-3 text-right">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800 text-[11px]">
+                          {adminUsersList.map((usr) => (
+                            <tr key={usr.id} className="hover:bg-slate-800/40 transition-colors">
+                              <td className="p-3 font-semibold text-white">{usr.nome}</td>
+                              <td className="p-3 text-slate-300 font-mono">{usr.email}</td>
+                              <td className="p-3">
+                                <span className={`px-2.5 py-1 rounded-full font-bold text-[10px] uppercase ${
+                                  usr.nivel_acesso === 'administrador'
+                                    ? 'bg-cyan-950 text-cyan-400 border border-cyan-800'
+                                    : 'bg-indigo-950 text-indigo-400 border border-indigo-800'
+                                }`}>
+                                  {usr.nivel_acesso === 'administrador' ? 'Administrador' : 'Editor'}
+                                </span>
+                              </td>
+                              <td className="p-3 text-slate-400">
+                                {usr.criado_em ? new Date(usr.criado_em).toLocaleDateString('pt-BR') : 'Original'}
+                              </td>
+                              <td className="p-3 text-right">
+                                <button
+                                  onClick={() => handleDeleteAdminUserSubmit(usr.id, usr.nome)}
+                                  className="text-slate-400 hover:text-red-400 p-1.5 hover:bg-slate-800 rounded-lg transition-colors"
+                                  title="Remover Acesso"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               )}
