@@ -598,6 +598,68 @@ async function syncAndCleanSupabaseTables(): Promise<{
 }
 
 /**
+ * Busca medições diretamente dos endpoints reais de estações do nivelguaiba.com.br ({slug}.json)
+ */
+export async function fetchFromNivelGuaiba(baseUrl: string = 'https://nivelguaiba.com.br', catalogCities: DBCity[] = OFFICIAL_CATALOG_CITIES): Promise<StationPayload[]> {
+  const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+  const results: StationPayload[] = [];
+
+  for (const city of catalogCities) {
+    const fetchSlug = city.slug === 'estrela' ? 'lajeado' : city.slug;
+    const jsonUrl = `${cleanBaseUrl}/${fetchSlug}.json`;
+    try {
+      const response = await fetchWithRetry(jsonUrl, {
+        headers: {
+          'User-Agent': 'RioTaquariHydrologicalUpdater/3.0 (NivelGuaibaSync)',
+          'Accept': 'application/json'
+        }
+      }, 2, 800);
+
+      const data: Record<string, number> = await response.json();
+      const keys = Object.keys(data);
+      if (keys.length === 0) continue;
+
+      const lastKey = keys[keys.length - 1];
+      const latestLevel = Number(data[lastKey]);
+
+      if (isNaN(latestLevel)) continue;
+
+      let prevLevel = latestLevel;
+      if (keys.length > 1) {
+        const lookbackIdx = Math.max(0, keys.length - 5);
+        const lookbackVal = Number(data[keys[lookbackIdx]]);
+        if (!isNaN(lookbackVal)) prevLevel = lookbackVal;
+      }
+
+      const rate = Number((latestLevel - prevLevel).toFixed(2));
+      let trend: 'subindo' | 'descendo' | 'estavel' = 'estavel';
+      if (rate > 0.01) trend = 'subindo';
+      else if (rate < -0.01) trend = 'descendo';
+
+      let tsIso = new Date().toISOString();
+      if (lastKey) {
+        const parsed = new Date(lastKey.replace(' ', 'T'));
+        if (!isNaN(parsed.getTime())) tsIso = parsed.toISOString();
+      }
+
+      results.push({
+        city: city.name,
+        slug: city.slug,
+        level: latestLevel,
+        rate,
+        trend,
+        ts: tsIso,
+        source_origin: 'nivelguaiba.com.br'
+      });
+    } catch (err: any) {
+      console.warn(`[river-updater] [nivelguaiba.com.br] Falha ao carregar endpoint ${jsonUrl}: ${err.message}`);
+    }
+  }
+
+  return results;
+}
+
+/**
  * Processo Principal de Sincronização Hidrológica
  */
 async function runSync() {
@@ -648,6 +710,13 @@ async function runSync() {
     console.log(`[river-updater] 2. Consultando simultaneamente ${DATA_SOURCES.length} fontes oficiais...`);
     const fetchPromises = DATA_SOURCES.map(async (source) => {
       try {
+        if (source.name.includes('nivelguaiba') || source.url.includes('nivelguaiba')) {
+          console.log(`[river-updater] Consultando fonte [${source.name}] via endpoints de estação ({slug}.json)...`);
+          const items = await fetchFromNivelGuaiba(source.url, dbCities);
+          console.log(`[river-updater] Fonte [${source.name}] retornou ${items.length} medições de estações.`);
+          return items;
+        }
+
         const endpoint = `${source.url}/api/stations`;
         console.log(`[river-updater] Consultando [${source.name}]: ${endpoint}`);
         const response = await fetchWithRetry(endpoint, {
