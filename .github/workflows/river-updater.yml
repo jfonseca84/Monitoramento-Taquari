@@ -1,3 +1,4 @@
+# Monitoramento automático do Rio Taquari - execução a cada 15 minutos
 name: River Updater Telemetry Sync
 
 on:
