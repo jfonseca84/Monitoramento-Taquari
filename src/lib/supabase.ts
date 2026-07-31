@@ -677,7 +677,7 @@ export async function addAuditLog(action: string, entity: string, message: strin
       const user = (await supabase.auth.getUser())?.data?.user;
       await supabase.from('audit_logs').insert({
         user_id: user?.id,
-        user_email: user?.email || 'admin@taquari.gov.br',
+        user_email: user?.email || 'sistema',
         action,
         entity,
         message,

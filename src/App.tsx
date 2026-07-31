@@ -53,11 +53,46 @@ export default function App() {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  // Modals
-  const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
+  // Modals & Admin Route Handling
+  const [isAdminOpen, setIsAdminOpen] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.location.pathname === '/admin' || window.location.hash === '#admin';
+    }
+    return false;
+  });
   const [isCameraModalOpen, setIsCameraModalOpen] = useState<boolean>(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState<boolean>(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (window.location.pathname === '/admin' || window.location.hash === '#admin') {
+        setIsAdminOpen(true);
+      } else {
+        setIsAdminOpen(false);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const openAdmin = () => {
+    setIsAdminOpen(true);
+    if (window.location.pathname !== '/admin') {
+      try {
+        window.history.pushState({}, '', '/admin');
+      } catch (e) {}
+    }
+  };
+
+  const closeAdmin = () => {
+    setIsAdminOpen(false);
+    if (window.location.pathname === '/admin' || window.location.hash === '#admin') {
+      try {
+        window.history.pushState({}, '', '/');
+      } catch (e) {}
+    }
+  };
 
   // Load Data
   const loadData = async () => {
@@ -118,7 +153,7 @@ export default function App() {
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onOpenAdmin={() => setIsAdminOpen(true)}
+        onOpenAdmin={openAdmin}
         isSyncing={isSyncing}
         theme={theme}
         onToggleTheme={toggleTheme}
@@ -226,7 +261,7 @@ export default function App() {
       {/* ADMINISTRATIVE DASHBOARD MODAL */}
       <AdminDashboard
         isOpen={isAdminOpen}
-        onClose={() => setIsAdminOpen(false)}
+        onClose={closeAdmin}
         cities={cities}
         onRefreshData={loadData}
       />

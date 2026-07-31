@@ -76,9 +76,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onRefreshData
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [email, setEmail] = useState('admin@taquari.gov.br');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
 
   // Operational state
@@ -220,27 +221,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const initSession = async () => {
       if (isSupabaseConfigured && supabase) {
         try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user) {
-            setIsAuthenticated(true);
-            const { data: profile } = await supabase.from('admin_users').select('*').eq('user_id', session.user.id).maybeSingle();
-            if (profile) {
-              setCurrentAdminUser(profile as AdminUser);
-              setUserRole(profile.nivel_acesso || 'administrador');
-            } else {
-              setCurrentAdminUser({
-                id: session.user.id,
-                user_id: session.user.id,
-                nome: session.user.user_metadata?.nome || session.user.email?.split('@')[0] || 'Administrador',
-                email: session.user.email || '',
-                nivel_acesso: 'administrador'
-              });
-              setUserRole('administrador');
-            }
+          const { data: { session }, error } = await supabase.auth.getSession();
+          if (error || !session?.user) {
+            setIsAuthenticated(false);
+            setCurrentAdminUser(null);
+            return;
+          }
+
+          setIsAuthenticated(true);
+          const { data: profile } = await supabase.from('admin_users').select('*').eq('user_id', session.user.id).maybeSingle();
+          if (profile) {
+            setCurrentAdminUser(profile as AdminUser);
+            setUserRole(profile.nivel_acesso || 'administrador');
+          } else {
+            setCurrentAdminUser({
+              id: session.user.id,
+              user_id: session.user.id,
+              nome: session.user.user_metadata?.nome || session.user.email?.split('@')[0] || 'Administrador',
+              email: session.user.email || '',
+              nivel_acesso: 'administrador'
+            });
+            setUserRole('administrador');
           }
         } catch (e) {
           console.warn('Session check note:', e);
+          setIsAuthenticated(false);
+          setCurrentAdminUser(null);
         }
+      } else {
+        setIsAuthenticated(false);
+        setCurrentAdminUser(null);
       }
     };
 
@@ -250,16 +260,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     if (isSupabaseConfigured && supabase) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if (session?.user) {
+        if (event === 'SIGNED_OUT' || !session?.user) {
+          setIsAuthenticated(false);
+          setCurrentAdminUser(null);
+        } else if (session?.user && isOpen) {
           setIsAuthenticated(true);
           const { data: profile } = await supabase.from('admin_users').select('*').eq('user_id', session.user.id).maybeSingle();
           if (profile) {
             setCurrentAdminUser(profile as AdminUser);
             setUserRole(profile.nivel_acesso || 'administrador');
           }
-        } else if (event === 'SIGNED_OUT') {
-          setIsAuthenticated(false);
-          setCurrentAdminUser(null);
         }
       });
 
@@ -281,64 +291,66 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
+    setIsLoggingIn(true);
 
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) {
-          // Fallback demo operator if standard login
-          if (password === 'admin123' || password === 'admin') {
-            setIsAuthenticated(true);
-            setCurrentAdminUser({
-              id: 'local-admin',
-              user_id: 'local-user',
-              nome: 'Operador Principal',
-              email,
-              nivel_acesso: 'administrador'
-            });
-            await addAuditLog('LOGIN', 'auth', 'Usuário autenticado em modo operador', { email });
-            return;
-          }
-          setAuthError(error.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : error.message);
-          return;
-        }
-        if (data.user) {
-          setIsAuthenticated(true);
-          const { data: profile } = await supabase.from('admin_users').select('*').eq('user_id', data.user.id).maybeSingle();
-          if (profile) {
-            setCurrentAdminUser(profile as AdminUser);
-            setUserRole(profile.nivel_acesso || 'administrador');
-          } else {
-            // Auto-provision admin user profile in DB
-            const newAdmin = {
-              user_id: data.user.id,
-              nome: data.user.user_metadata?.nome || data.user.email?.split('@')[0] || 'Administrador',
-              email: data.user.email || email,
-              nivel_acesso: 'administrador' as const
-            };
-            const created = await saveAdminUser(newAdmin);
-            if (created) setCurrentAdminUser(created);
-          }
-          await addAuditLog('LOGIN', 'auth', 'Usuário autenticado via Supabase Auth', { email: data.user.email });
-          return;
-        }
-      } catch (err: any) {
-        // Fallback demo login
-      }
+    if (!isSupabaseConfigured || !supabase) {
+      setAuthError('O serviço de autenticação do Supabase não está configurado.');
+      setIsLoggingIn(false);
+      return;
     }
 
-    if (password) {
-      setIsAuthenticated(true);
-      await addAuditLog('LOGIN', 'auth', 'Usuário autenticado no painel administrativo', { email });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (error) {
+        setAuthError(
+          error.message === 'Invalid login credentials'
+            ? 'E-mail ou senha incorretos.'
+            : error.message
+        );
+        setIsLoggingIn(false);
+        return;
+      }
+
+      if (data.user) {
+        setIsAuthenticated(true);
+        const { data: profile } = await supabase.from('admin_users').select('*').eq('user_id', data.user.id).maybeSingle();
+        if (profile) {
+          setCurrentAdminUser(profile as AdminUser);
+          setUserRole(profile.nivel_acesso || 'administrador');
+        } else {
+          const newAdmin = {
+            user_id: data.user.id,
+            nome: data.user.user_metadata?.nome || data.user.email?.split('@')[0] || 'Administrador',
+            email: data.user.email || email,
+            nivel_acesso: 'administrador' as const
+          };
+          const created = await saveAdminUser(newAdmin);
+          if (created) setCurrentAdminUser(created);
+        }
+        await addAuditLog('LOGIN', 'auth', 'Usuário autenticado no painel administrativo', { email: data.user.email });
+      }
+    } catch (err: any) {
+      setAuthError(err.message || 'Erro ao realizar login.');
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
   const handleLogout = async () => {
     if (isSupabaseConfigured && supabase) {
-      await supabase.auth.signOut();
+      try {
+        await supabase.auth.signOut();
+      } catch (e) {
+        console.error('Logout error:', e);
+      }
     }
-    await addAuditLog('LOGOUT', 'auth', 'Sessão encerrada pelo usuário');
+    // Clear any local state
     setIsAuthenticated(false);
+    setCurrentAdminUser(null);
+    setEmail('');
+    setPassword('');
+    setAuthError(null);
+    await addAuditLog('LOGOUT', 'auth', 'Sessão encerrada pelo usuário');
   };
 
   // ==========================================
@@ -832,9 +844,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 <button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-3 rounded-xl shadow-lg transition-all mt-2"
+                  disabled={isLoggingIn}
+                  className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl shadow-lg transition-all mt-2 cursor-pointer"
                 >
-                  Entrar no Painel
+                  {isLoggingIn ? 'Autenticando...' : 'Entrar no Painel'}
                 </button>
               </div>
             </form>
