@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { City, LevelStatus } from '../types';
 import { Info, Video, MapPin } from 'lucide-react';
 import { getBrasiliaDateTimeString } from '../lib/dateUtils';
+import { fetchCamerasByCity } from '../lib/supabase';
 
 interface LiveCameraHeroProps {
   selectedCity: City;
@@ -17,6 +18,34 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({
   onOpenDetailModal
 }) => {
   const [imgLoaded, setImgLoaded] = useState(true);
+  const [heroBgImg, setHeroBgImg] = useState<string>(selectedCity.camera_image || selectedCity.image || '');
+
+  useEffect(() => {
+    let isMounted = true;
+    setHeroBgImg(selectedCity.camera_image || selectedCity.image || '');
+
+    async function loadCityCameraHero() {
+      try {
+        const cams = await fetchCamerasByCity(selectedCity.slug);
+        if (isMounted && cams.length > 0) {
+          const firstCam = cams[0];
+          if (firstCam.url_thumbnail) {
+            setHeroBgImg(firstCam.url_thumbnail);
+          } else if (firstCam.tipo === 'Imagem Estática' && firstCam.url_stream) {
+            setHeroBgImg(firstCam.url_stream);
+          }
+        }
+      } catch (err) {
+        // Fallback to city default image
+      }
+    }
+
+    loadCityCameraHero();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedCity.slug, selectedCity.camera_image, selectedCity.image]);
 
   // Quota values
   const rawRiverName = selectedCity.river || 'Taquari';
@@ -89,7 +118,7 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({
       {/* BACKGROUND CAMERA IMAGE OVERLAY */}
       <div className="absolute inset-0 z-0">
         <img
-          src={selectedCity.camera_image || selectedCity.image}
+          src={heroBgImg || selectedCity.camera_image || selectedCity.image}
           alt={`Câmera ao vivo ${selectedCity.name}`}
           className="w-full h-full object-cover opacity-35 scale-105 transition-transform duration-700"
           onError={() => setImgLoaded(false)}

@@ -248,3 +248,20 @@ export interface AlertStats {
   confirmation_rate: number;
 }
 
+export interface CityCamera {
+  id: string;
+  city_slug: string;
+  nome: string;
+  descricao?: string;
+  url_stream: string;
+  url_thumbnail?: string;
+  tipo: 'MJPEG' | 'HLS' | 'YouTube' | 'RTSP' | 'Imagem Estática' | string;
+  localizacao?: string;
+  latitude?: number;
+  longitude?: number;
+  ordem_exibicao: number;
+  ativo: boolean;
+  criado_em?: string;
+  atualizado_em?: string;
+}
+

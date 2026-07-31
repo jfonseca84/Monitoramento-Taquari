@@ -1,4 +1,4 @@
-import { City, Station, NewsItem, AlertItem, SystemLog, LevelStatus, Sponsor } from '../types';
+import { City, Station, NewsItem, AlertItem, SystemLog, LevelStatus, Sponsor, CityCamera } from '../types';
 import { getBrasiliaLastUpdatedString } from '../lib/dateUtils';
 import { CITY_THRESHOLDS, getCityThresholds, HydrologicalThresholds } from './cityThresholds';
 
@@ -598,4 +598,190 @@ export const INITIAL_SPONSORS: Sponsor[] = Array.from({ length: 20 }, (_, i) => 
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString()
 }));
+
+export const INITIAL_CITY_CAMERAS: CityCamera[] = [
+  // --- LAJEADO (3 CÂMERAS) ---
+  {
+    id: 'cam-lajeado-1',
+    city_slug: 'lajeado',
+    nome: 'Lajeado – Ponte BR-386 (Rio Taquari - Cam 1)',
+    descricao: 'Monitoramento direto do fluxo d\'água e pilares da ponte da BR-386 entre Lajeado e Estrela.',
+    url_stream: 'https://www.youtube.com/embed/LzBIB6nhh5U',
+    url_thumbnail: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80',
+    tipo: 'YouTube',
+    localizacao: 'Lajeado / Estrela - BR-386',
+    latitude: -29.4678,
+    longitude: -51.9614,
+    ordem_exibicao: 1,
+    ativo: true,
+    criado_em: new Date().toISOString(),
+    atualizado_em: new Date().toISOString()
+  },
+  {
+    id: 'cam-lajeado-2',
+    city_slug: 'lajeado',
+    nome: 'Lajeado – Orla do Taquari / Parque do Engenho',
+    descricao: 'Visão do leito do rio e nivelamento próximo às áreas urbanas ribeirinhas de Lajeado.',
+    url_stream: 'https://www.youtube.com/embed/ylO0bn3ot4k',
+    url_thumbnail: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=600&q=80',
+    tipo: 'YouTube',
+    localizacao: 'Lajeado - Orla / Centro',
+    latitude: -29.4620,
+    longitude: -51.9580,
+    ordem_exibicao: 2,
+    ativo: true,
+    criado_em: new Date().toISOString(),
+    atualizado_em: new Date().toISOString()
+  },
+  {
+    id: 'cam-lajeado-3',
+    city_slug: 'lajeado',
+    nome: 'Lajeado – Ponto de Controle de Cheia',
+    descricao: 'Ângulo ampliado de elevação e correnteza do Rio Taquari em tempo real.',
+    url_stream: 'https://www.youtube.com/embed/Tk53sxWvn2g',
+    url_thumbnail: 'https://images.unsplash.com/photo-1511497584788-876761c11969?auto=format&fit=crop&w=600&q=80',
+    tipo: 'YouTube',
+    localizacao: 'Lajeado - Ponto de Controle',
+    latitude: -29.4650,
+    longitude: -51.9600,
+    ordem_exibicao: 3,
+    ativo: true,
+    criado_em: new Date().toISOString(),
+    atualizado_em: new Date().toISOString()
+  },
+
+  // --- PORTO ALEGRE (6 CÂMERAS) ---
+  {
+    id: 'cam-poa-1',
+    city_slug: 'porto-alegre',
+    nome: 'Porto Alegre – Cais Mauá (Guaíba - Cam 1)',
+    descricao: 'Monitoramento do nível do Lago Guaíba no Cais Mauá e pórticos centrais.',
+    url_stream: 'https://www.youtube.com/embed/LzBIB6nhh5U',
+    url_thumbnail: 'https://images.unsplash.com/photo-1511497584788-876761c11969?auto=format&fit=crop&w=600&q=80',
+    tipo: 'YouTube',
+    localizacao: 'Centro Histórico - Cais Mauá',
+    latitude: -30.0277,
+    longitude: -51.2287,
+    ordem_exibicao: 1,
+    ativo: true,
+    criado_em: new Date().toISOString(),
+    atualizado_em: new Date().toISOString()
+  },
+  {
+    id: 'cam-poa-2',
+    city_slug: 'porto-alegre',
+    nome: 'Porto Alegre – Usina do Gasômetro',
+    descricao: 'Visão panorâmica da Orla do Guaíba e Usina do Gasômetro.',
+    url_stream: 'https://www.youtube.com/embed/ylO0bn3ot4k',
+    url_thumbnail: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=600&q=80',
+    tipo: 'YouTube',
+    localizacao: 'Orla do Guaíba - Trecho 1',
+    latitude: -30.0340,
+    longitude: -51.2410,
+    ordem_exibicao: 2,
+    ativo: true,
+    criado_em: new Date().toISOString(),
+    atualizado_em: new Date().toISOString()
+  },
+  {
+    id: 'cam-poa-3',
+    city_slug: 'porto-alegre',
+    nome: 'Porto Alegre – Ilha da Pintada',
+    descricao: 'Acompanhamento do avanço do rio nas Ilhas de Porto Alegre.',
+    url_stream: 'https://www.youtube.com/embed/Tk53sxWvn2g',
+    url_thumbnail: 'https://images.unsplash.com/photo-1426604966848-d7adac402bff?auto=format&fit=crop&w=600&q=80',
+    tipo: 'YouTube',
+    localizacao: 'Arquipélago - Ilha da Pintada',
+    latitude: -30.0200,
+    longitude: -51.2550,
+    ordem_exibicao: 3,
+    ativo: true,
+    criado_em: new Date().toISOString(),
+    atualizado_em: new Date().toISOString()
+  },
+  {
+    id: 'cam-poa-4',
+    city_slug: 'porto-alegre',
+    nome: 'Porto Alegre – Ilha dos Marinheiros',
+    descricao: 'Monitoramento do leito d\'água no arquipélago urbano.',
+    url_stream: 'https://www.youtube.com/embed/7zVgbMDkgio',
+    url_thumbnail: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80',
+    tipo: 'YouTube',
+    localizacao: 'Arquipélago - Ilha dos Marinheiros',
+    latitude: -30.0150,
+    longitude: -51.2600,
+    ordem_exibicao: 4,
+    ativo: true,
+    criado_em: new Date().toISOString(),
+    atualizado_em: new Date().toISOString()
+  },
+  {
+    id: 'cam-poa-5',
+    city_slug: 'porto-alegre',
+    nome: 'Porto Alegre – Ponte do Guaíba (Travessia)',
+    descricao: 'Visão do tráfego e cota da nova ponte sobre o Guaíba na BR-290.',
+    url_stream: 'https://www.youtube.com/embed/AfgJqYFBOjw',
+    url_thumbnail: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80',
+    tipo: 'YouTube',
+    localizacao: 'BR-290 - Ponte do Guaíba',
+    latitude: -30.0050,
+    longitude: -51.2200,
+    ordem_exibicao: 5,
+    ativo: true,
+    criado_em: new Date().toISOString(),
+    atualizado_em: new Date().toISOString()
+  },
+  {
+    id: 'cam-poa-6',
+    city_slug: 'porto-alegre',
+    nome: 'Porto Alegre – Zona Sul / Orla de Ipanema',
+    descricao: 'Visão do comportamento do Guaíba no calçadão de Ipanema.',
+    url_stream: 'https://www.youtube.com/embed/LzBIB6nhh5U',
+    url_thumbnail: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=600&q=80',
+    tipo: 'YouTube',
+    localizacao: 'Zona Sul - Ipanema',
+    latitude: -30.1300,
+    longitude: -51.2400,
+    ordem_exibicao: 6,
+    ativo: true,
+    criado_em: new Date().toISOString(),
+    atualizado_em: new Date().toISOString()
+  },
+
+  // --- MUÇUM (1 CÂMERA) ---
+  {
+    id: 'cam-mucum-1',
+    city_slug: 'mucum',
+    nome: 'Muçum – Ponte do Rio Taquari',
+    descricao: 'Monitoramento da cabeceira e ponte ferroviária do Rio Taquari em Muçum.',
+    url_stream: 'https://www.youtube.com/embed/AfgJqYFBOjw',
+    url_thumbnail: 'https://images.unsplash.com/photo-1426604966848-d7adac402bff?auto=format&fit=crop&w=600&q=80',
+    tipo: 'YouTube',
+    localizacao: 'Muçum - Ponte Central',
+    latitude: -29.1672,
+    longitude: -51.8661,
+    ordem_exibicao: 1,
+    ativo: true,
+    criado_em: new Date().toISOString(),
+    atualizado_em: new Date().toISOString()
+  },
+
+  // --- ESTRELA (1 CÂMERA) ---
+  {
+    id: 'cam-estrela-1',
+    city_slug: 'estrela',
+    nome: 'Estrela – Cais do Porto',
+    descricao: 'Transmissão no Cais do Porto de Estrela, acompanhando a régua física e atracadouro.',
+    url_stream: 'https://www.youtube.com/embed/AfgJqYFBOjw',
+    url_thumbnail: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80',
+    tipo: 'YouTube',
+    localizacao: 'Estrela - Cais do Porto',
+    latitude: -29.5000,
+    longitude: -51.9667,
+    ordem_exibicao: 1,
+    ativo: true,
+    criado_em: new Date().toISOString(),
+    atualizado_em: new Date().toISOString()
+  }
+];
 

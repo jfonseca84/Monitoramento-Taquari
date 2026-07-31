@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import { City, Station, NewsItem, AlertItem, SystemLog, Sponsor, LevelTrend, LevelStatus, AdminUser, AlertSubscriber, AlertNotification, AlertStats, AlertHistoryItem, AlertDispatchItem } from '../types';
-import { INITIAL_CITIES, INITIAL_STATIONS, INITIAL_NEWS, INITIAL_ALERTS, INITIAL_LOGS, INITIAL_SPONSORS, generateHistoryForCity, calculateStatusLevel } from '../data/initialData';
+import { City, Station, NewsItem, AlertItem, SystemLog, Sponsor, LevelTrend, LevelStatus, AdminUser, AlertSubscriber, AlertNotification, AlertStats, AlertHistoryItem, AlertDispatchItem, CityCamera } from '../types';
+import { INITIAL_CITIES, INITIAL_STATIONS, INITIAL_NEWS, INITIAL_ALERTS, INITIAL_LOGS, INITIAL_SPONSORS, INITIAL_CITY_CAMERAS, generateHistoryForCity, calculateStatusLevel } from '../data/initialData';
 import { getCityThresholds } from '../data/cityThresholds';
 import { BRASILIA_TIMEZONE, getBrasiliaLastUpdatedString, getBrasiliaTimeString } from './dateUtils';
 
@@ -279,6 +279,72 @@ class LocalStore {
         localStorage.setItem('taquari_sponsors', JSON.stringify(this.sponsors));
       }
     } catch (e) {}
+  }
+
+  private cameras: CityCamera[] = (() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('taquari_city_cameras');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      }
+    } catch (e) {}
+    return [...INITIAL_CITY_CAMERAS];
+  })();
+
+  private saveCameras() {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('taquari_city_cameras', JSON.stringify(this.cameras));
+      }
+    } catch (e) {}
+  }
+
+  getCamerasByCity(citySlug: string): CityCamera[] {
+    if (!citySlug) return [];
+    return this.cameras
+      .filter((c) => c.city_slug === citySlug && (c.ativo ?? true))
+      .sort((a, b) => (a.ordem_exibicao || 0) - (b.ordem_exibicao || 0));
+  }
+
+  getAllCamerasAdmin(citySlug?: string): CityCamera[] {
+    if (citySlug && citySlug !== 'all') {
+      return this.cameras.filter((c) => c.city_slug === citySlug);
+    }
+    return [...this.cameras];
+  }
+
+  addCamera(cameraData: Omit<CityCamera, 'id'>): CityCamera {
+    const newCamera: CityCamera = {
+      ...cameraData,
+      id: `cam-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      criado_em: new Date().toISOString(),
+      atualizado_em: new Date().toISOString()
+    };
+    this.cameras.push(newCamera);
+    this.saveCameras();
+    return newCamera;
+  }
+
+  updateCamera(id: string, updates: Partial<CityCamera>): CityCamera {
+    const idx = this.cameras.findIndex((c) => c.id === id);
+    if (idx !== -1) {
+      this.cameras[idx] = {
+        ...this.cameras[idx],
+        ...updates,
+        atualizado_em: new Date().toISOString()
+      };
+      this.saveCameras();
+      return { ...this.cameras[idx] };
+    }
+    throw new Error('Camera not found');
+  }
+
+  deleteCamera(id: string): void {
+    this.cameras = this.cameras.filter((c) => c.id !== id);
+    this.saveCameras();
   }
 
   getCities(): City[] {
@@ -734,46 +800,100 @@ export async function deleteSponsor(sponsorId: string): Promise<void> {
 // ==========================================
 // CAMERAS QUERY & MUTATIONS
 // ==========================================
-export async function fetchCameras(cityId?: string): Promise<any[]> {
+export async function fetchCamerasByCity(citySlug: string): Promise<CityCamera[]> {
+  if (!citySlug) return [];
   if (isSupabaseConfigured && supabase) {
     try {
-      let query = supabase.from('cameras').select('*, cities(name, slug)').order('display_order', { ascending: true });
-      if (cityId) query = query.eq('city_id', cityId);
+      const { data, error } = await supabase
+        .from('city_cameras')
+        .select('*')
+        .eq('city_slug', citySlug)
+        .eq('ativo', true)
+        .order('ordem_exibicao', { ascending: true });
+      if (!error && data && data.length > 0) return data as CityCamera[];
+    } catch (e) {
+      console.warn('Supabase fetchCamerasByCity failed:', e);
+    }
+  }
+  return localStore.getCamerasByCity(citySlug);
+}
+
+export async function fetchCameras(citySlug?: string): Promise<CityCamera[]> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      let query = supabase.from('city_cameras').select('*').order('ordem_exibicao', { ascending: true });
+      if (citySlug && citySlug !== 'all') {
+        query = query.eq('city_slug', citySlug);
+      }
       const { data, error } = await query;
-      if (!error && data) return data;
+      if (!error && data) return data as CityCamera[];
     } catch (e) {
       console.warn('Supabase fetchCameras failed:', e);
     }
   }
-  return [];
+  return localStore.getAllCamerasAdmin(citySlug);
 }
 
-export async function saveCamera(cameraData: any): Promise<any> {
+export async function saveCamera(cameraData: Partial<CityCamera>): Promise<CityCamera> {
+  const payload = {
+    city_slug: cameraData.city_slug || 'lajeado',
+    nome: cameraData.nome || 'Nova Câmera',
+    descricao: cameraData.descricao || '',
+    url_stream: cameraData.url_stream || '',
+    url_thumbnail: cameraData.url_thumbnail || '',
+    tipo: cameraData.tipo || 'YouTube',
+    localizacao: cameraData.localizacao || '',
+    latitude: cameraData.latitude !== undefined ? cameraData.latitude : null,
+    longitude: cameraData.longitude !== undefined ? cameraData.longitude : null,
+    ordem_exibicao: Number(cameraData.ordem_exibicao) || 1,
+    ativo: cameraData.ativo ?? true,
+    atualizado_em: new Date().toISOString()
+  };
+
   if (isSupabaseConfigured && supabase) {
-    if (cameraData.id) {
-      const { data, error } = await supabase
-        .from('cameras')
-        .update({ ...cameraData, updated_at: new Date().toISOString() })
-        .eq('id', cameraData.id)
-        .select()
-        .single();
-      if (!error && data) return data;
-    } else {
-      const { data, error } = await supabase
-        .from('cameras')
-        .insert(cameraData)
-        .select()
-        .single();
-      if (!error && data) return data;
+    try {
+      if (cameraData.id) {
+        const { data, error } = await supabase
+          .from('city_cameras')
+          .update(payload)
+          .eq('id', cameraData.id)
+          .select()
+          .single();
+        if (!error && data) {
+          localStore.updateCamera(cameraData.id, data as CityCamera);
+          return data as CityCamera;
+        }
+      } else {
+        const { data, error } = await supabase
+          .from('city_cameras')
+          .insert({ ...payload, criado_em: new Date().toISOString() })
+          .select()
+          .single();
+        if (!error && data) {
+          localStore.addCamera(data as CityCamera);
+          return data as CityCamera;
+        }
+      }
+    } catch (e) {
+      console.warn('Supabase saveCamera exception:', e);
     }
   }
-  return cameraData;
+
+  if (cameraData.id) {
+    return localStore.updateCamera(cameraData.id, cameraData);
+  }
+  return localStore.addCamera(payload as any);
 }
 
 export async function deleteCamera(cameraId: string): Promise<void> {
   if (isSupabaseConfigured && supabase) {
-    await supabase.from('cameras').delete().eq('id', cameraId);
+    try {
+      await supabase.from('city_cameras').delete().eq('id', cameraId);
+    } catch (e) {
+      console.warn('Supabase deleteCamera exception:', e);
+    }
   }
+  localStore.deleteCamera(cameraId);
 }
 
 // ==========================================
@@ -1660,7 +1780,7 @@ export async function dispatchHydrologicalAlert(
 
   for (const sub of affectedSubscribers) {
     const subName = sub.nome_completo || sub.name || 'Morador';
-    const whatsapp = sub.whatsapp || sub.phone;
+    const whatsapp = sub.whatsapp || (sub as any).phone || (sub as any).telefone;
     const email = sub.email;
 
     if (whatsapp) {

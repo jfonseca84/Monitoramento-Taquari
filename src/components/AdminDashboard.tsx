@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { City, NewsItem, AlertItem, Sponsor, AdminUser, AlertSubscriber, AlertNotification, AlertStats, AlertHistoryItem, LevelStatus } from '../types';
+import { City, NewsItem, AlertItem, Sponsor, AdminUser, AlertSubscriber, AlertNotification, AlertStats, AlertHistoryItem, LevelStatus, CityCamera } from '../types';
 import { getCityThresholds } from '../data/cityThresholds';
 import {
   supabase,
@@ -50,6 +50,8 @@ import {
   LayoutDashboard,
   Building2,
   Camera,
+  Video,
+  Pencil,
   Newspaper,
   Bell,
   FileText,
@@ -283,11 +285,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Camera form state
   const [editingCameraId, setEditingCameraId] = useState<string | null>(null);
-  const [cameraCityId, setCameraCityId] = useState('');
+  const [adminCameraCityFilter, setAdminCameraCityFilter] = useState<string>('all');
+  const [cameraCitySlug, setCameraCitySlug] = useState<string>('lajeado');
   const [cameraName, setCameraName] = useState('');
-  const [cameraUrl, setCameraUrl] = useState('');
-  const [cameraOnline, setCameraOnline] = useState<boolean>(true);
+  const [cameraDescricao, setCameraDescricao] = useState('');
+  const [cameraUrlStream, setCameraUrlStream] = useState('');
+  const [cameraUrlThumbnail, setCameraUrlThumbnail] = useState('');
+  const [cameraTipo, setCameraTipo] = useState<string>('YouTube');
+  const [cameraLocalizacao, setCameraLocalizacao] = useState('');
   const [cameraOrder, setCameraOrder] = useState<number>(1);
+  const [cameraAtivo, setCameraAtivo] = useState<boolean>(true);
 
   // News form state
   const [editingNewsId, setEditingNewsId] = useState<string | null>(null);
@@ -346,7 +353,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setThresholdEdits(prev => ({ ...tMap, ...prev }));
 
       if (citiesData.length > 0 && !editingCityId) {
-        setCameraCityId(citiesData[0].id);
+        setCameraCitySlug(citiesData[0].slug || 'lajeado');
         setAlertCityId(citiesData[0].id);
       }
 
@@ -711,38 +718,69 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // ==========================================
   // HANDLERS: CÂMERAS
   // ==========================================
+  const handleEditCameraClick = (cam: CityCamera) => {
+    setEditingCameraId(cam.id);
+    setCameraCitySlug(cam.city_slug || 'lajeado');
+    setCameraName(cam.nome || '');
+    setCameraDescricao(cam.descricao || '');
+    setCameraUrlStream(cam.url_stream || '');
+    setCameraUrlThumbnail(cam.url_thumbnail || '');
+    setCameraTipo(cam.tipo || 'YouTube');
+    setCameraLocalizacao(cam.localizacao || '');
+    setCameraOrder(cam.ordem_exibicao || 1);
+    setCameraAtivo(cam.ativo ?? true);
+  };
+
+  const handleResetCameraForm = () => {
+    setEditingCameraId(null);
+    setCameraCitySlug(citiesList[0]?.slug || 'lajeado');
+    setCameraName('');
+    setCameraDescricao('');
+    setCameraUrlStream('');
+    setCameraUrlThumbnail('');
+    setCameraTipo('YouTube');
+    setCameraLocalizacao('');
+    setCameraOrder(camerasList.length + 1);
+    setCameraAtivo(true);
+  };
+
   const handleSaveCameraSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!cameraName || !cameraUrl) return alert('Preencha o nome e a URL da câmera.');
+    if (!cameraName || !cameraUrlStream) return alert('Preencha o nome e a URL da transmissão.');
 
-    const cameraData = {
+    const cameraData: Partial<CityCamera> = {
       id: editingCameraId || undefined,
-      city_id: cameraCityId || citiesList[0]?.id,
-      name: cameraName,
-      url: cameraUrl,
-      online: cameraOnline,
-      display_order: Number(cameraOrder) || 1
+      city_slug: cameraCitySlug || citiesList[0]?.slug || 'lajeado',
+      nome: cameraName,
+      descricao: cameraDescricao,
+      url_stream: cameraUrlStream,
+      url_thumbnail: cameraUrlThumbnail,
+      tipo: cameraTipo,
+      localizacao: cameraLocalizacao,
+      ordem_exibicao: Number(cameraOrder) || 1,
+      ativo: cameraAtivo
     };
 
     await saveCamera(cameraData);
-    await addAuditLog(editingCameraId ? 'UPDATE' : 'CREATE', 'cameras', `Câmera ${cameraName} salva`);
+    await addAuditLog(editingCameraId ? 'UPDATE' : 'CREATE', 'city_cameras', `Câmera ${cameraName} (${cameraCitySlug}) salva`);
 
-    setEditingCameraId(null);
-    setCameraName('');
-    setCameraUrl('');
-    setCameraOnline(true);
-    setCameraOrder(camerasList.length + 1);
-
+    handleResetCameraForm();
     await loadAllAdminData();
     alert('Câmera salva com sucesso!');
   };
 
   const handleDeleteCamera = async (id: string, name: string) => {
-    if (confirm(`Remover câmera ${name}?`)) {
+    if (confirm(`Remover a câmera "${name}"?`)) {
       await deleteCamera(id);
-      await addAuditLog('DELETE', 'cameras', `Câmera ${name} excluída`);
+      await addAuditLog('DELETE', 'city_cameras', `Câmera ${name} excluída`);
       await loadAllAdminData();
     }
+  };
+
+  const handleToggleCameraAtivo = async (cam: CityCamera) => {
+    await saveCamera({ ...cam, ativo: !cam.ativo });
+    await addAuditLog('UPDATE', 'city_cameras', `Câmera ${cam.nome} ${!cam.ativo ? 'ativada' : 'desativada'}`);
+    await loadAllAdminData();
   };
 
   // ==========================================
@@ -2655,67 +2693,254 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {activeTab === 'cameras' && (
                 <div className="space-y-6">
                   <form onSubmit={handleSaveCameraSubmit} className="bg-[#0F172A] border border-slate-800 p-5 rounded-2xl space-y-4 text-xs">
-                    <h4 className="text-xs font-bold text-slate-200 uppercase">Gestão de Câmeras de Monitoramento</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                      <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                        <Video className="w-4 h-4 text-cyan-400" />
+                        <span>{editingCameraId ? 'Editar Câmera de Monitoramento' : 'Cadastrar Nova Câmera por Cidade'}</span>
+                      </h4>
+                      {editingCameraId && (
+                        <button
+                          type="button"
+                          onClick={handleResetCameraForm}
+                          className="text-cyan-400 hover:underline text-[11px] font-semibold cursor-pointer"
+                        >
+                          + Cancelar edição e criar nova
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-slate-300 mb-1">Cidade Associada</label>
+                        <label className="block text-slate-300 mb-1 font-semibold">Cidade Obrigatoriamente Vinculada</label>
                         <select
-                          value={cameraCityId}
-                          onChange={(e) => setCameraCityId(e.target.value)}
-                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                          value={cameraCitySlug}
+                          onChange={(e) => setCameraCitySlug(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-medium"
+                          required
                         >
                           {citiesList.map((c) => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
+                            <option key={c.id} value={c.slug}>{c.name} ({c.slug})</option>
                           ))}
                         </select>
                       </div>
 
                       <div>
-                        <label className="block text-slate-300 mb-1">Nome da Câmera</label>
+                        <label className="block text-slate-300 mb-1 font-semibold">Nome da Câmera</label>
                         <input
                           type="text"
                           value={cameraName}
                           onChange={(e) => setCameraName(e.target.value)}
-                          placeholder="Ex: Ponte Lajeado - Estrela"
+                          placeholder="Ex: Ponte BR-386 (Lajeado / Estrela)"
                           className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white"
                           required
                         />
                       </div>
 
                       <div>
-                        <label className="block text-slate-300 mb-1">URL da Transmissão (Stream/Embed)</label>
+                        <label className="block text-slate-300 mb-1 font-semibold">URL da Transmissão (Stream/Embed/YouTube)</label>
                         <input
                           type="text"
-                          value={cameraUrl}
-                          onChange={(e) => setCameraUrl(e.target.value)}
-                          placeholder="https://..."
+                          value={cameraUrlStream}
+                          onChange={(e) => setCameraUrlStream(e.target.value)}
+                          placeholder="https://www.youtube.com/embed/... ou stream URL"
                           className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono"
                           required
                         />
                       </div>
+
+                      <div>
+                        <label className="block text-slate-300 mb-1 font-semibold">Tipo de Transmissão</label>
+                        <select
+                          value={cameraTipo}
+                          onChange={(e) => setCameraTipo(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                        >
+                          <option value="YouTube">YouTube Live/Embed</option>
+                          <option value="MJPEG">MJPEG Stream</option>
+                          <option value="HLS">HLS (.m3u8)</option>
+                          <option value="RTSP">RTSP Convertido</option>
+                          <option value="Imagem Estática">Imagem Estática (Foto/Snapshot)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 mb-1 font-semibold">Localização / Ponto de Referência</label>
+                        <input
+                          type="text"
+                          value={cameraLocalizacao}
+                          onChange={(e) => setCameraLocalizacao(e.target.value)}
+                          placeholder="Ex: Orla do Taquari - Bairro Navegantes"
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-slate-300 mb-1 font-semibold">Ordem</label>
+                          <input
+                            type="number"
+                            min={1}
+                            value={cameraOrder}
+                            onChange={(e) => setCameraOrder(Number(e.target.value))}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-slate-300 mb-1 font-semibold">Status</label>
+                          <label className="flex items-center gap-2 mt-2 cursor-pointer text-slate-200">
+                            <input
+                              type="checkbox"
+                              checked={cameraAtivo}
+                              onChange={(e) => setCameraAtivo(e.target.checked)}
+                              className="rounded border-slate-700 bg-slate-900 text-cyan-500 w-4 h-4"
+                            />
+                            <span className="text-xs font-semibold">{cameraAtivo ? 'Ativa' : 'Inativa'}</span>
+                          </label>
+                        </div>
+                      </div>
                     </div>
 
-                    <button type="submit" className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-5 py-2.5 rounded-xl flex items-center gap-2">
-                      <Save className="w-4 h-4" />
-                      <span>Salvar Câmera</span>
-                    </button>
+                    <div>
+                      <label className="block text-slate-300 mb-1 font-semibold">Descrição Detalhada (opcional)</label>
+                      <input
+                        type="text"
+                        value={cameraDescricao}
+                        onChange={(e) => setCameraDescricao(e.target.value)}
+                        placeholder="Acompanhamento direto do avanço das cotas de inundação..."
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-3 pt-2">
+                      <button type="submit" className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-5 py-2.5 rounded-xl flex items-center gap-2 shadow cursor-pointer">
+                        <Save className="w-4 h-4" />
+                        <span>{editingCameraId ? 'Atualizar Câmera' : 'Cadastrar Câmera'}</span>
+                      </button>
+                      {editingCameraId && (
+                        <button
+                          type="button"
+                          onClick={handleResetCameraForm}
+                          className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-4 py-2.5 rounded-xl text-xs cursor-pointer"
+                        >
+                          Cancelar
+                        </button>
+                      )}
+                    </div>
                   </form>
 
-                  <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-5">
-                    <h4 className="text-xs font-bold text-slate-200 uppercase mb-3">Câmeras Ativas ({camerasList.length})</h4>
-                    <div className="divide-y divide-slate-800 text-xs">
-                      {camerasList.map((cam) => (
-                        <div key={cam.id} className="py-2.5 flex items-center justify-between">
-                          <div>
-                            <p className="font-bold text-white">{cam.name}</p>
-                            <p className="text-[11px] text-slate-400 truncate max-w-md">{cam.url}</p>
-                          </div>
-                          <button onClick={() => handleDeleteCamera(cam.id, cam.name)} className="p-1.5 bg-slate-800 text-red-400 rounded-lg">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ))}
+                  {/* LIST OF CAMERAS BY CITY */}
+                  <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-5 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                      <div>
+                        <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                          <Video className="w-4 h-4 text-cyan-400" />
+                          <span>Câmeras Cadastradas por Cidade ({camerasList.length})</span>
+                        </h4>
+                        <p className="text-xs text-slate-400">
+                          Cada cidade exibe estritamente as suas próprias câmeras vinculadas.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-400 font-semibold">Filtrar por Cidade:</span>
+                        <select
+                          value={adminCameraCityFilter}
+                          onChange={(e) => setAdminCameraCityFilter(e.target.value)}
+                          className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-bold"
+                        >
+                          <option value="all">Todas as Cidades</option>
+                          {citiesList.map((c) => (
+                            <option key={c.id} value={c.slug}>{c.name}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
+
+                    {(() => {
+                      const filteredCams = camerasList.filter(cam =>
+                        adminCameraCityFilter === 'all' || cam.city_slug === adminCameraCityFilter
+                      );
+
+                      if (filteredCams.length === 0) {
+                        return (
+                          <div className="p-8 text-center text-slate-500 italic bg-slate-900/50 rounded-xl">
+                            Nenhuma câmera cadastrada para {adminCameraCityFilter === 'all' ? 'o sistema' : `a cidade ${adminCameraCityFilter}`}.
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs text-slate-300">
+                            <thead className="bg-slate-900 text-slate-400 border-b border-slate-800 font-semibold">
+                              <tr>
+                                <th className="p-3">Cidade (slug)</th>
+                                <th className="p-3">Nome da Câmera</th>
+                                <th className="p-3">Tipo / Local</th>
+                                <th className="p-3">URL Stream</th>
+                                <th className="p-3">Ordem</th>
+                                <th className="p-3">Status</th>
+                                <th className="p-3 text-right">Ações</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800/60">
+                              {filteredCams.map((cam) => (
+                                <tr key={cam.id} className="hover:bg-slate-800/30">
+                                  <td className="p-3 font-bold text-cyan-300 uppercase">
+                                    {cam.city_slug}
+                                  </td>
+                                  <td className="p-3 font-bold text-white">
+                                    {cam.nome}
+                                  </td>
+                                  <td className="p-3">
+                                    <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-200 font-mono text-[10px] block w-fit mb-1">
+                                      {cam.tipo || 'YouTube'}
+                                    </span>
+                                    <span className="text-slate-400 text-[11px] block">{cam.localizacao || '-'}</span>
+                                  </td>
+                                  <td className="p-3 text-slate-400 font-mono max-w-xs truncate" title={cam.url_stream}>
+                                    {cam.url_stream}
+                                  </td>
+                                  <td className="p-3 font-mono font-bold text-slate-300">
+                                    #{cam.ordem_exibicao || 1}
+                                  </td>
+                                  <td className="p-3">
+                                    <button
+                                      onClick={() => handleToggleCameraAtivo(cam)}
+                                      className={`px-2.5 py-1 rounded-full text-[10px] font-bold border cursor-pointer ${
+                                        cam.ativo !== false
+                                          ? 'bg-emerald-950 text-emerald-400 border-emerald-800'
+                                          : 'bg-rose-950 text-rose-400 border-rose-800'
+                                      }`}
+                                    >
+                                      {cam.ativo !== false ? 'Ativa' : 'Inativa'}
+                                    </button>
+                                  </td>
+                                  <td className="p-3 text-right">
+                                    <div className="flex items-center justify-end gap-2">
+                                      <button
+                                        onClick={() => handleEditCameraClick(cam)}
+                                        className="p-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-lg cursor-pointer"
+                                        title="Editar câmera"
+                                      >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteCamera(cam.id, cam.nome)}
+                                        className="p-1.5 bg-slate-800 hover:bg-slate-700 text-rose-400 rounded-lg cursor-pointer"
+                                        title="Excluir câmera"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               )}

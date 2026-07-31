@@ -238,7 +238,11 @@ export default function App() {
         ) : activeTab === 'receber-alertas' ? (
           <RiskAlertSignup cities={cities} />
         ) : activeTab === 'cameras' ? (
-          <LiveCamerasView />
+          <LiveCamerasView
+            selectedCity={selectedCity}
+            cities={cities}
+            onSelectCity={(city) => setSelectedCity(city)}
+          />
         ) : activeTab === 'historico' ? (
           <HistoryView
             cities={cities}
@@ -284,7 +288,11 @@ export default function App() {
               <X className="w-5 h-5" />
             </button>
 
-            <LiveCamerasView />
+            <LiveCamerasView
+              selectedCity={selectedCity}
+              cities={cities}
+              onSelectCity={(city) => setSelectedCity(city)}
+            />
           </div>
         </div>
       )}
