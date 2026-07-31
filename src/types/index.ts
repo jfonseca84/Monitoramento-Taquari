@@ -171,3 +171,39 @@ export interface AdminUser {
   criado_em?: string;
 }
 
+export interface AlertSubscriber {
+  id: string;
+  created_at: string;
+  name: string;
+  email?: string;
+  whatsapp?: string;
+  city_slug: string;
+  neighborhood: string;
+  resides_in_risk_area: boolean;
+  receive_attention: boolean;
+  receive_alert: boolean;
+  receive_flood: boolean;
+  active: boolean;
+}
+
+export interface AlertNotification {
+  id: string;
+  subscriber_id: string;
+  city_slug: string;
+  alert_type: 'atencao' | 'alerta' | 'inundacao';
+  river_level: number;
+  message: string;
+  channel: 'email' | 'whatsapp' | 'both';
+  sent_at: string;
+  confirmed_at?: string;
+  subscriber_name?: string;
+}
+
+export interface AlertStats {
+  city_slug: string;
+  city_name: string;
+  sent_count: number;
+  confirmed_count: number;
+  confirmation_rate: number;
+}
+

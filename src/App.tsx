@@ -16,6 +16,7 @@ import { AboutView } from './components/AboutView';
 import { ContactView } from './components/ContactView';
 import { RiverLevelDetailModal } from './components/RiverLevelDetailModal';
 import { LiveCamerasView } from './components/LiveCamerasView';
+import { RiskAlertSignup } from './components/RiskAlertSignup';
 
 import { City, NewsItem, Timeframe, ChartDataPoint, AlertItem } from './types';
 import { fetchCities, fetchNews, fetchCityHistory, fetchAlerts, localStore } from './lib/supabase';
@@ -233,6 +234,8 @@ export default function App() {
             </div>
 
           </div>
+        ) : activeTab === 'receber-alertas' ? (
+          <RiskAlertSignup cities={cities} />
         ) : activeTab === 'cameras' ? (
           <LiveCamerasView />
         ) : activeTab === 'historico' ? (
@@ -242,7 +245,10 @@ export default function App() {
             onSelectCity={(city) => setSelectedCity(city)}
           />
         ) : activeTab === 'alertas' || activeTab === 'defesa-civil' ? (
-          <DefesaCivilView />
+          <div className="space-y-8">
+            <RiskAlertSignup cities={cities} />
+            <DefesaCivilView />
+          </div>
         ) : activeTab === 'prefeituras' ? (
           <PrefeiturasView cities={cities} />
         ) : activeTab === 'sobre' ? (

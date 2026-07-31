@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { City, NewsItem, AlertItem, Sponsor, AdminUser } from '../types';
+import { City, NewsItem, AlertItem, Sponsor, AdminUser, AlertSubscriber, AlertNotification, AlertStats, LevelStatus } from '../types';
 import { getCityThresholds } from '../data/cityThresholds';
 import {
   supabase,
@@ -29,7 +29,13 @@ import {
   fetchSettings,
   saveSetting,
   uploadStorageImage,
-  localStore
+  localStore,
+  fetchAlertSubscribers,
+  toggleSubscriberActive,
+  deleteSubscriber,
+  fetchAlertNotifications,
+  getAlertStats,
+  checkAndTriggerRiverLevelAlerts
 } from '../lib/supabase';
 import {
   X,
@@ -59,7 +65,13 @@ import {
   Users,
   Sliders,
   ShieldCheck,
-  Waves
+  Waves,
+  BellRing,
+  Send,
+  UserCheck,
+  CheckCircle,
+  Search,
+  Filter
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -91,6 +103,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [syncLogsList, setSyncLogsList] = useState<any[]>([]);
   const [auditLogsList, setAuditLogsList] = useState<any[]>([]);
   const [settingsData, setSettingsData] = useState<Record<string, any>>({});
+
+  // Rede de Alertas State
+  const [subscribersList, setSubscribersList] = useState<AlertSubscriber[]>([]);
+  const [notificationsList, setNotificationsList] = useState<AlertNotification[]>([]);
+  const [alertStatsList, setAlertStatsList] = useState<AlertStats[]>([]);
+  
+  // Subscribers Filters
+  const [subCityFilter, setSubCityFilter] = useState<string>('all');
+  const [subNeighborhoodFilter, setSubNeighborhoodFilter] = useState<string>('');
+  const [subRiskFilter, setSubRiskFilter] = useState<'all' | 'risk' | 'info'>('all');
+
+  // Simulator state
+  const [simCitySlug, setSimCitySlug] = useState<string>('lajeado');
+  const [simLevel, setSimLevel] = useState<number>(6.5);
+  const [simStatus, setSimStatus] = useState<LevelStatus>('alerta');
+  const [simMessage, setSimMessage] = useState<string>('');
+  const [simSending, setSimSending] = useState<boolean>(false);
+  const [simResult, setSimResult] = useState<string | null>(null);
 
   // City form state
   const [editingCityId, setEditingCityId] = useState<string | null>(null);
@@ -211,8 +241,55 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const usersData = await fetchAdminUsers();
       setAdminUsersList(usersData);
 
+      // Fetch alert network data
+      const subsData = await fetchAlertSubscribers();
+      setSubscribersList(subsData);
+
+      const notifsData = await fetchAlertNotifications();
+      setNotificationsList(notifsData);
+
+      const statsData = await getAlertStats();
+      setAlertStatsList(statsData);
+
     } catch (e) {
       console.error('Error loading admin dashboard data:', e);
+    }
+  };
+
+  const handleToggleSubActive = async (id: string, currentActive: boolean) => {
+    await toggleSubscriberActive(id, !currentActive);
+    await addAuditLog('UPDATE', 'alert_subscribers', `Inscrito ${id} status alterado para ${!currentActive ? 'ativo' : 'inativo'}`);
+    await loadAllAdminData();
+  };
+
+  const handleDeleteSub = async (id: string) => {
+    if (confirm('Tem certeza que deseja excluir este cadastrado?')) {
+      await deleteSubscriber(id);
+      await addAuditLog('DELETE', 'alert_subscribers', `Inscrito ${id} removido`);
+      await loadAllAdminData();
+    }
+  };
+
+  const handleRunSimulation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSimSending(true);
+    setSimResult(null);
+
+    try {
+      const sentCount = await checkAndTriggerRiverLevelAlerts(
+        simCitySlug,
+        simLevel,
+        'normal',
+        simStatus,
+        simMessage.trim() || undefined
+      );
+      setSimResult(`Alerta simulado com sucesso! ${sentCount} morador(es) cadastrado(s) em área de risco em ${simCitySlug} receberam a notificação.`);
+      await addAuditLog('ALERT_TRIGGER', 'alert_notifications', `Alerta manual simulado para ${simCitySlug} (${simStatus}): ${sentCount} enviados`);
+      await loadAllAdminData();
+    } catch (err: any) {
+      setSimResult(`Erro ao disparar alerta simulado: ${err.message || 'Erro desconhecido'}`);
+    } finally {
+      setSimSending(false);
     }
   };
 
@@ -860,6 +937,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <aside className="w-full md:w-64 bg-[#0B132B] border-r border-slate-800 p-3 flex flex-row md:flex-col gap-1 overflow-x-auto shrink-0">
               {[
                 { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+                { id: 'rede_alertas', label: 'Rede de Alertas', icon: BellRing },
                 { id: 'patrocinadores', label: 'Patrocinadores', icon: Award },
                 { id: 'cidades', label: 'Cidades', icon: Building2 },
                 { id: 'cotas', label: 'Cotas Oficiais', icon: Sliders },
@@ -922,6 +1000,354 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <p className="text-xs text-slate-400 leading-relaxed">
                       O frontend opera de modo 100% estático e consome dados do <strong>Supabase</strong>. A atualização telemétrica da Agência Nacional de Águas (ANA) ocorre de forma autônoma através do serviço independente <strong>river-updater</strong> via Cron Job a cada 15 minutos.
                     </p>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: REDE DE ALERTAS */}
+              {activeTab === 'rede_alertas' && (
+                <div className="space-y-8">
+                  {/* METRIC CARDS */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-[#0F172A] border border-slate-800 p-4 rounded-2xl">
+                      <p className="text-xs text-slate-400">Moradores em Área de Risco</p>
+                      <p className="text-2xl font-bold text-amber-400 mt-1">
+                        {subscribersList.filter(s => s.resides_in_risk_area).length}
+                      </p>
+                      <span className="text-[10px] text-slate-500 mt-1 block">
+                        Total Geral: {subscribersList.length} cadastrados
+                      </span>
+                    </div>
+
+                    <div className="bg-[#0F172A] border border-slate-800 p-4 rounded-2xl">
+                      <p className="text-xs text-slate-400">Total de Alertas Disparados</p>
+                      <p className="text-2xl font-bold text-cyan-400 mt-1">
+                        {notificationsList.length}
+                      </p>
+                      <span className="text-[10px] text-slate-500 mt-1 block">
+                        Registros em alert_notifications
+                      </span>
+                    </div>
+
+                    <div className="bg-[#0F172A] border border-slate-800 p-4 rounded-2xl">
+                      <p className="text-xs text-slate-400">Confirmações de Recebimento</p>
+                      <p className="text-2xl font-bold text-emerald-400 mt-1">
+                        {notificationsList.filter(n => Boolean(n.confirmed_at)).length}
+                      </p>
+                      <span className="text-[10px] text-slate-500 mt-1 block">
+                        Validadas via morador
+                      </span>
+                    </div>
+
+                    <div className="bg-[#0F172A] border border-slate-800 p-4 rounded-2xl">
+                      <p className="text-xs text-slate-400">Taxa Média de Confirmação</p>
+                      <p className="text-2xl font-bold text-indigo-400 mt-1">
+                        {notificationsList.length > 0
+                          ? `${Math.round((notificationsList.filter(n => Boolean(n.confirmed_at)).length / notificationsList.length) * 100)}%`
+                          : '0%'}
+                      </p>
+                      <span className="text-[10px] text-slate-500 mt-1 block">
+                        Eficácia da Rede Comunitária
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* COBERTURA E CONFIRMAÇÃO POR CIDADE */}
+                  <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-5 space-y-4">
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-cyan-400" />
+                      <span>Estatísticas de Alerta por Cidade</span>
+                    </h3>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="border-b border-slate-800 text-slate-400">
+                            <th className="p-3 font-semibold">Cidade</th>
+                            <th className="p-3 font-semibold">Alertas Enviados</th>
+                            <th className="p-3 font-semibold">Confirmações</th>
+                            <th className="p-3 font-semibold">Taxa de Confirmação</th>
+                            <th className="p-3 font-semibold">Progresso</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/60">
+                          {alertStatsList.map((st) => (
+                            <tr key={st.city_slug} className="hover:bg-slate-800/30">
+                              <td className="p-3 font-medium text-white">{st.city_name}</td>
+                              <td className="p-3 text-cyan-400 font-bold">{st.sent_count}</td>
+                              <td className="p-3 text-emerald-400 font-bold">{st.confirmed_count}</td>
+                              <td className="p-3 text-slate-300 font-bold">{st.confirmation_rate}%</td>
+                              <td className="p-3 w-48">
+                                <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                                  <div
+                                    className="bg-emerald-500 h-full transition-all duration-500"
+                                    style={{ width: `${st.confirmation_rate}%` }}
+                                  />
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* TABELA DE MORADORES CADASTRADOS */}
+                  <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-5 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                      <div>
+                        <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                          <Users className="w-4 h-4 text-cyan-400" />
+                          <span>Moradores Cadastrados (Inscritos na Rede)</span>
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-1">
+                          Gerencie os contatos dos moradores inscritos para recebimento de alertas hidrológicos.
+                        </p>
+                      </div>
+
+                      {/* FILTROS DE PESQUISA */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <select
+                          value={subCityFilter}
+                          onChange={(e) => setSubCityFilter(e.target.value)}
+                          className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-200"
+                        >
+                          <option value="all">Todas as Cidades</option>
+                          {citiesList.map(c => (
+                            <option key={c.id || c.slug} value={c.slug}>{c.name}</option>
+                          ))}
+                        </select>
+
+                        <select
+                          value={subRiskFilter}
+                          onChange={(e) => setSubRiskFilter(e.target.value as any)}
+                          className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-200"
+                        >
+                          <option value="all">Todas as Categorias</option>
+                          <option value="risk">Sim (Área de Risco)</option>
+                          <option value="info">Apenas Acompanha</option>
+                        </select>
+
+                        <input
+                          type="text"
+                          value={subNeighborhoodFilter}
+                          onChange={(e) => setSubNeighborhoodFilter(e.target.value)}
+                          placeholder="Filtrar por bairro..."
+                          className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="border-b border-slate-800 text-slate-400">
+                            <th className="p-3 font-semibold">Nome</th>
+                            <th className="p-3 font-semibold">Cidade / Bairro</th>
+                            <th className="p-3 font-semibold">Contatos</th>
+                            <th className="p-3 font-semibold">Área de Risco?</th>
+                            <th className="p-3 font-semibold">Notificações</th>
+                            <th className="p-3 font-semibold">Status</th>
+                            <th className="p-3 font-semibold text-right">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/60">
+                          {subscribersList
+                            .filter(s => subCityFilter === 'all' || s.city_slug === subCityFilter)
+                            .filter(s => subRiskFilter === 'all' || (subRiskFilter === 'risk' ? s.resides_in_risk_area : !s.resides_in_risk_area))
+                            .filter(s => !subNeighborhoodFilter || s.neighborhood.toLowerCase().includes(subNeighborhoodFilter.toLowerCase()))
+                            .map((sub) => {
+                              const cityName = citiesList.find(c => c.slug === sub.city_slug)?.name || sub.city_slug;
+                              return (
+                                <tr key={sub.id} className="hover:bg-slate-800/30">
+                                  <td className="p-3 font-medium text-white">{sub.name}</td>
+                                  <td className="p-3 text-slate-300">
+                                    <span className="font-semibold">{cityName}</span>
+                                    <span className="text-slate-500 block text-[10px]">{sub.neighborhood}</span>
+                                  </td>
+                                  <td className="p-3 text-slate-300 space-y-0.5">
+                                    {sub.email && <div className="text-[11px] text-cyan-400">{sub.email}</div>}
+                                    {sub.whatsapp && <div className="text-[11px] text-emerald-400">{sub.whatsapp}</div>}
+                                  </td>
+                                  <td className="p-3">
+                                    {sub.resides_in_risk_area ? (
+                                      <span className="px-2 py-0.5 rounded-full bg-amber-950 border border-amber-800/60 text-amber-300 text-[10px] font-bold">
+                                        Sim (Risco)
+                                      </span>
+                                    ) : (
+                                      <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[10px]">
+                                        Informativo
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="p-3 text-slate-400 text-[10px]">
+                                    {sub.receive_attention && <span className="mr-1 text-amber-400">Atenção</span>}
+                                    {sub.receive_alert && <span className="mr-1 text-orange-400">Alerta</span>}
+                                    {sub.receive_flood && <span className="text-rose-400">Inundação</span>}
+                                  </td>
+                                  <td className="p-3">
+                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                      sub.active
+                                        ? 'bg-emerald-950 text-emerald-400 border border-emerald-800/60'
+                                        : 'bg-rose-950 text-rose-400 border border-rose-800/60'
+                                    }`}>
+                                      {sub.active ? 'Ativo' : 'Inativo'}
+                                    </span>
+                                  </td>
+                                  <td className="p-3 text-right space-x-2">
+                                    <button
+                                      onClick={() => handleToggleSubActive(sub.id, sub.active)}
+                                      className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] transition-all cursor-pointer"
+                                    >
+                                      {sub.active ? 'Desativar' : 'Ativar'}
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteSub(sub.id)}
+                                      className="px-2 py-1 rounded-lg bg-rose-950/80 hover:bg-rose-900 text-rose-300 text-[10px] transition-all cursor-pointer"
+                                    >
+                                      Excluir
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* HISTÓRICO DE NOTIFICAÇÕES & SIMULADOR DE DISPARO */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* LISTA DE NOTIFICAÇÕES (2 cols) */}
+                    <div className="lg:col-span-2 bg-[#0F172A] border border-slate-800 rounded-2xl p-5 space-y-4">
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                        <Bell className="w-4 h-4 text-cyan-400" />
+                        <span>Histórico de Alertas Disparados</span>
+                      </h3>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead>
+                            <tr className="border-b border-slate-800 text-slate-400">
+                              <th className="p-2.5 font-semibold">Data / Hora</th>
+                              <th className="p-2.5 font-semibold">Cidade</th>
+                              <th className="p-2.5 font-semibold">Tipo</th>
+                              <th className="p-2.5 font-semibold">Nível</th>
+                              <th className="p-2.5 font-semibold">Confirmação</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-800/60">
+                            {notificationsList.map((notif) => (
+                              <tr key={notif.id} className="hover:bg-slate-800/30">
+                                <td className="p-2.5 text-slate-400 text-[11px] whitespace-nowrap">
+                                  {new Date(notif.sent_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
+                                </td>
+                                <td className="p-2.5 text-white font-medium">{notif.city_slug}</td>
+                                <td className="p-2.5">
+                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                    notif.alert_type === 'inundacao'
+                                      ? 'bg-rose-950 text-rose-400'
+                                      : notif.alert_type === 'alerta'
+                                      ? 'bg-orange-950 text-orange-400'
+                                      : 'bg-amber-950 text-amber-400'
+                                  }`}>
+                                    {notif.alert_type}
+                                  </span>
+                                </td>
+                                <td className="p-2.5 text-slate-300 font-bold">{notif.river_level.toFixed(2)}m</td>
+                                <td className="p-2.5">
+                                  {notif.confirmed_at ? (
+                                    <span className="text-emerald-400 font-bold text-[10px] flex items-center gap-1">
+                                      <CheckCircle2 className="w-3.5 h-3.5" /> Confirmado
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-500 text-[10px]">Pendente</span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* SIMULADOR DE ALERTA DE TESTE (1 col) */}
+                    <div className="bg-[#0F172A] border border-amber-800/40 rounded-2xl p-5 space-y-4">
+                      <h3 className="text-sm font-bold text-amber-300 uppercase tracking-wider flex items-center gap-2">
+                        <ShieldAlert className="w-4 h-4 text-amber-400" />
+                        <span>Simulador de Alerta Manual</span>
+                      </h3>
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        Simule um disparo de alerta de emergência para testar o recebimento por moradores cadastrados na cidade selecionada.
+                      </p>
+
+                      <form onSubmit={handleRunSimulation} className="space-y-3">
+                        <div>
+                          <label className="block text-[11px] text-slate-300 font-semibold mb-1">Cidade Alvo</label>
+                          <select
+                            value={simCitySlug}
+                            onChange={(e) => setSimCitySlug(e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                          >
+                            {citiesList.map(c => (
+                              <option key={c.id || c.slug} value={c.slug}>{c.name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[11px] text-slate-300 font-semibold mb-1">Nível do Rio (m)</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={simLevel}
+                              onChange={(e) => setSimLevel(Number(e.target.value))}
+                              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] text-slate-300 font-semibold mb-1">Categoria</label>
+                            <select
+                              value={simStatus}
+                              onChange={(e) => setSimStatus(e.target.value as LevelStatus)}
+                              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                            >
+                              <option value="atencao">Atenção</option>
+                              <option value="alerta">Alerta</option>
+                              <option value="inundacao">Inundação</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] text-slate-300 font-semibold mb-1">Mensagem do Comunicado</label>
+                          <textarea
+                            value={simMessage}
+                            onChange={(e) => setSimMessage(e.target.value)}
+                            placeholder="Deixe em branco para usar a mensagem automática padronizada..."
+                            rows={3}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white placeholder-slate-500"
+                          />
+                        </div>
+
+                        <button
+                          type="submit"
+                          disabled={simSending}
+                          className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold py-2.5 rounded-xl text-xs shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          {simSending ? 'Disparando...' : 'Disparar Alerta de Teste'}
+                        </button>
+                      </form>
+
+                      {simResult && (
+                        <div className="bg-slate-900 border border-slate-700 p-3 rounded-xl text-xs text-amber-200 leading-relaxed">
+                          {simResult}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -1823,7 +2249,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         {auditLogsList.map((log) => (
                           <tr key={log.id}>
                             <td className="p-2.5 text-slate-400 whitespace-nowrap">{new Date(log.created_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</td>
-                            <td className="p-2.5 text-slate-300">{log.user_email || 'admin@taquari.gov.br'}</td>
+                            <td className="p-2.5 text-slate-300">{log.user_email || 'Sistema'}</td>
                             <td className="p-2.5">
                               <span className="px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-400 font-bold text-[9px]">
                                 {log.action}

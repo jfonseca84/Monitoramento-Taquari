@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { City, Station, NewsItem, AlertItem, SystemLog, Sponsor, LevelTrend, LevelStatus, AdminUser } from '../types';
+import { City, Station, NewsItem, AlertItem, SystemLog, Sponsor, LevelTrend, LevelStatus, AdminUser, AlertSubscriber, AlertNotification, AlertStats } from '../types';
 import { INITIAL_CITIES, INITIAL_STATIONS, INITIAL_NEWS, INITIAL_ALERTS, INITIAL_LOGS, INITIAL_SPONSORS, generateHistoryForCity, calculateStatusLevel } from '../data/initialData';
 import { getCityThresholds } from '../data/cityThresholds';
 import { BRASILIA_TIMEZONE, getBrasiliaLastUpdatedString, getBrasiliaTimeString } from './dateUtils';
@@ -40,6 +40,106 @@ class LocalStore {
   private news: NewsItem[] = [...INITIAL_NEWS];
   private alerts: AlertItem[] = [...INITIAL_ALERTS];
   private logs: SystemLog[] = [...INITIAL_LOGS];
+  private subscribers: AlertSubscriber[] = (() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('taquari_subscribers');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      }
+    } catch (e) {}
+    return [];
+  })();
+  private notifications: AlertNotification[] = (() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('taquari_notifications');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      }
+    } catch (e) {}
+    return [];
+  })();
+
+  private saveSubscribers() {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('taquari_subscribers', JSON.stringify(this.subscribers));
+      }
+    } catch (e) {}
+  }
+
+  private saveNotifications() {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('taquari_notifications', JSON.stringify(this.notifications));
+      }
+    } catch (e) {}
+  }
+
+  getSubscribers(citySlug?: string, neighborhood?: string): AlertSubscriber[] {
+    let list = [...this.subscribers];
+    if (citySlug) list = list.filter(s => s.city_slug === citySlug);
+    if (neighborhood) list = list.filter(s => s.neighborhood.toLowerCase().includes(neighborhood.toLowerCase()));
+    return list;
+  }
+
+  addSubscriber(data: Omit<AlertSubscriber, 'id' | 'created_at'>): AlertSubscriber {
+    const newSub: AlertSubscriber = {
+      ...data,
+      id: `sub-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      created_at: new Date().toISOString()
+    };
+    this.subscribers.unshift(newSub);
+    this.saveSubscribers();
+    return newSub;
+  }
+
+  updateSubscriber(id: string, updates: Partial<AlertSubscriber>): AlertSubscriber | null {
+    const idx = this.subscribers.findIndex(s => s.id === id);
+    if (idx !== -1) {
+      this.subscribers[idx] = { ...this.subscribers[idx], ...updates };
+      this.saveSubscribers();
+      return this.subscribers[idx];
+    }
+    return null;
+  }
+
+  deleteSubscriber(id: string): void {
+    this.subscribers = this.subscribers.filter(s => s.id !== id);
+    this.saveSubscribers();
+  }
+
+  getNotifications(citySlug?: string): AlertNotification[] {
+    let list = [...this.notifications];
+    if (citySlug) list = list.filter(n => n.city_slug === citySlug);
+    return list;
+  }
+
+  addNotification(data: Omit<AlertNotification, 'id' | 'sent_at'>): AlertNotification {
+    const newNotif: AlertNotification = {
+      ...data,
+      id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      sent_at: new Date().toISOString()
+    };
+    this.notifications.unshift(newNotif);
+    this.saveNotifications();
+    return newNotif;
+  }
+
+  confirmNotification(notificationId: string): boolean {
+    const notif = this.notifications.find(n => n.id === notificationId);
+    if (notif) {
+      notif.confirmed_at = new Date().toISOString();
+      this.saveNotifications();
+      return true;
+    }
+    return false;
+  }
   private sponsors: Sponsor[] = (() => {
     try {
       if (typeof window !== 'undefined') {
@@ -873,17 +973,8 @@ export async function fetchAdminUsers(): Promise<AdminUser[]> {
     }
   }
 
-  // Fallback default admin users
-  return [
-    {
-      id: '1',
-      user_id: '00000000-0000-0000-0000-000000000001',
-      nome: 'Administrador Geral',
-      email: 'admin@taquari.gov.br',
-      nivel_acesso: 'administrador',
-      criado_em: new Date().toISOString()
-    }
-  ];
+  // Fallback if no data
+  return [];
 }
 
 export async function saveAdminUser(userData: {
@@ -938,5 +1029,226 @@ export async function deleteAdminUser(adminId: string): Promise<void> {
       console.error('Error deleting admin user from Supabase:', e);
     }
   }
+}
+
+// ==========================================
+// PREVENTIVE ALERT SUBSCRIBERS & NOTIFICATIONS
+// ==========================================
+
+export async function subscribeToAlerts(
+  data: Omit<AlertSubscriber, 'id' | 'created_at'>
+): Promise<AlertSubscriber> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data: res, error } = await supabase
+        .from('alert_subscribers')
+        .insert({
+          name: data.name,
+          email: data.email || null,
+          whatsapp: data.whatsapp || null,
+          city_slug: data.city_slug,
+          neighborhood: data.neighborhood,
+          resides_in_risk_area: data.resides_in_risk_area,
+          receive_attention: data.receive_attention,
+          receive_alert: data.receive_alert,
+          receive_flood: data.receive_flood,
+          active: data.active ?? true
+        })
+        .select()
+        .single();
+
+      if (!error && res) {
+        return res as AlertSubscriber;
+      } else if (error) {
+        console.warn('Supabase subscribeToAlerts error, using localStore:', error);
+      }
+    } catch (e) {
+      console.warn('Exception in subscribeToAlerts:', e);
+    }
+  }
+  return localStore.addSubscriber(data);
+}
+
+export async function fetchAlertSubscribers(
+  citySlug?: string,
+  neighborhood?: string
+): Promise<AlertSubscriber[]> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      let query = supabase.from('alert_subscribers').select('*').order('created_at', { ascending: false });
+      if (citySlug) query = query.eq('city_slug', citySlug);
+      if (neighborhood) query = query.ilike('neighborhood', `%${neighborhood}%`);
+
+      const { data, error } = await query;
+      if (!error && data) return data as AlertSubscriber[];
+    } catch (e) {
+      console.warn('Exception in fetchAlertSubscribers:', e);
+    }
+  }
+  return localStore.getSubscribers(citySlug, neighborhood);
+}
+
+export async function toggleSubscriberActive(id: string, active: boolean): Promise<void> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      await supabase.from('alert_subscribers').update({ active }).eq('id', id);
+    } catch (e) {
+      console.warn('Exception in toggleSubscriberActive:', e);
+    }
+  }
+  localStore.updateSubscriber(id, { active });
+}
+
+export async function deleteSubscriber(id: string): Promise<void> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      await supabase.from('alert_subscribers').delete().eq('id', id);
+    } catch (e) {
+      console.warn('Exception in deleteSubscriber:', e);
+    }
+  }
+  localStore.deleteSubscriber(id);
+}
+
+export async function fetchAlertNotifications(citySlug?: string): Promise<AlertNotification[]> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      let query = supabase.from('alert_notifications').select('*, alert_subscribers(name)').order('sent_at', { ascending: false });
+      if (citySlug) query = query.eq('city_slug', citySlug);
+
+      const { data, error } = await query;
+      if (!error && data) {
+        return data.map((n: any) => ({
+          ...n,
+          subscriber_name: n.alert_subscribers?.name || 'Morador'
+        })) as AlertNotification[];
+      }
+    } catch (e) {
+      console.warn('Exception in fetchAlertNotifications:', e);
+    }
+  }
+  return localStore.getNotifications(citySlug);
+}
+
+export async function confirmAlertNotification(notificationId: string): Promise<boolean> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const now = new Date().toISOString();
+      const { error } = await supabase
+        .from('alert_notifications')
+        .update({ confirmed_at: now })
+        .eq('id', notificationId);
+      if (!error) return true;
+    } catch (e) {
+      console.warn('Exception in confirmAlertNotification:', e);
+    }
+  }
+  return localStore.confirmNotification(notificationId);
+}
+
+export async function getAlertStats(): Promise<AlertStats[]> {
+  const cities = await fetchCities();
+  const notifications = await fetchAlertNotifications();
+
+  return cities.map(city => {
+    const cityNotifs = notifications.filter(n => n.city_slug === city.slug);
+    const sent_count = cityNotifs.length;
+    const confirmed_count = cityNotifs.filter(n => Boolean(n.confirmed_at)).length;
+    const confirmation_rate = sent_count > 0 ? Math.round((confirmed_count / sent_count) * 100) : 0;
+
+    return {
+      city_slug: city.slug,
+      city_name: city.name,
+      sent_count,
+      confirmed_count,
+      confirmation_rate
+    };
+  });
+}
+
+export async function checkAndTriggerRiverLevelAlerts(
+  citySlug: string,
+  newLevel: number,
+  previousStatus: LevelStatus,
+  currentStatus: LevelStatus,
+  customMessage?: string
+): Promise<number> {
+  if (currentStatus === 'normal' && !customMessage) {
+    return 0;
+  }
+
+  const allSubscribers = await fetchAlertSubscribers(citySlug);
+  const eligibleSubscribers = allSubscribers.filter(s => {
+    if (!s.active || !s.resides_in_risk_area) return false;
+    if (currentStatus === 'atencao' && !s.receive_attention) return false;
+    if (currentStatus === 'alerta' && !s.receive_alert) return false;
+    if (currentStatus === 'inundacao' && !s.receive_flood) return false;
+    return true;
+  });
+
+  if (eligibleSubscribers.length === 0) return 0;
+
+  const statusLabel = currentStatus === 'inundacao' ? 'INUNDAÇÃO' : currentStatus.toUpperCase();
+  const defaultMsg = customMessage || `ALERTA PREVENTIVO: O nível do Rio em ${citySlug} atingiu ${newLevel.toFixed(2)}m (Status: ${statusLabel}). Moradores em áreas de risco devem acompanhar as orientações da Defesa Civil.`;
+
+  let sentCount = 0;
+
+  for (const sub of eligibleSubscribers) {
+    const channel = sub.whatsapp && sub.email ? 'both' : sub.whatsapp ? 'whatsapp' : 'email';
+    const notifData = {
+      subscriber_id: sub.id,
+      city_slug: citySlug,
+      alert_type: (currentStatus === 'normal' ? 'atencao' : currentStatus) as 'atencao' | 'alerta' | 'inundacao',
+      river_level: newLevel,
+      message: defaultMsg,
+      channel: channel as 'email' | 'whatsapp' | 'both',
+      subscriber_name: sub.name
+    };
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('alert_notifications').insert({
+          subscriber_id: sub.id,
+          city_slug: citySlug,
+          alert_type: currentStatus === 'normal' ? 'atencao' : currentStatus,
+          river_level: newLevel,
+          message: defaultMsg,
+          channel,
+          sent_at: new Date().toISOString()
+        });
+      } catch (e) {
+        localStore.addNotification(notifData);
+      }
+    } else {
+      localStore.addNotification(notifData);
+    }
+
+    const emailEndpoint = getEnvVar('VITE_EMAIL_SERVICE_URL');
+    const whatsappEndpoint = getEnvVar('VITE_WHATSAPP_API_URL');
+
+    if (emailEndpoint && sub.email) {
+      try {
+        fetch(emailEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ recipient: sub.email, name: sub.name, message: defaultMsg })
+        }).catch(() => {});
+      } catch (e) {}
+    }
+
+    if (whatsappEndpoint && sub.whatsapp) {
+      try {
+        fetch(whatsappEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: sub.whatsapp, name: sub.name, message: defaultMsg })
+        }).catch(() => {});
+      } catch (e) {}
+    }
+
+    sentCount++;
+  }
+
+  return sentCount;
 }
 
