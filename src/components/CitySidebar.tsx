@@ -17,7 +17,7 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
   onSelectCity,
   onOpenInfoModal
 }) => {
-  const [activeBasin, setActiveBasin] = useState<'taquari' | 'guaiba' | 'uruguai' | 'all'>('taquari');
+  const [activeBasin, setActiveBasin] = useState<'taquari' | 'guaiba' | 'all'>('taquari');
 
   const thresholds = getCityThresholds(selectedCity, selectedCity.flood_level);
   const normalVal = thresholds.normal;
@@ -25,28 +25,29 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
   const alertVal = thresholds.alert;
   const floodVal = thresholds.flood;
 
-  // Group cities strictly by official basin catalog classification
+  // Strict list of allowed Vale do Taquari cities
+  const TAQUARI_SLUGS = ['santatereza', 'mucum', 'encantado', 'rocasales', 'lajeado', 'estrela', 'bomretirodosul'];
+  
+  // Strict list of allowed Bacia do Guaíba cities
+  const GUAIBA_SLUGS = ['portoalegre', 'saoleopoldo', 'gravatai', 'montenegro', 'saosebastiaodocai', 'taquari', 'taquara', 'cachoeiradosul', 'donafrancisca', 'feliz'];
+
+  // Filter cities by official classification and exclude hidden/removed cities like cruzeirodosul
   const taquariCities = cities.filter((c) => 
-    c.basin === 'taquari' || 
-    ['santatereza', 'mucum', 'encantado', 'rocasales', 'lajeado', 'estrela', 'cruzeirodosul', 'bomretirodosul'].includes(c.slug) ||
-    (c.river?.toLowerCase().includes('taquari') && c.basin !== 'guaiba')
+    c.slug !== 'cruzeirodosul' && (
+      TAQUARI_SLUGS.includes(c.slug) || 
+      (c.basin === 'taquari' && !GUAIBA_SLUGS.includes(c.slug))
+    )
   );
   
   const guaibaCities = cities.filter((c) => 
-    c.basin === 'guaiba' || 
-    ['portoalegre', 'saoleopoldo', 'taquara', 'feliz', 'saosebastiaodocai', 'gravatai', 'cachoeiradosul', 'donafrancisca', 'riopardo'].includes(c.slug)
+    GUAIBA_SLUGS.includes(c.slug) || 
+    (c.basin === 'guaiba' && !TAQUARI_SLUGS.includes(c.slug))
   );
 
-  const uruguaiCities = cities.filter((c) => 
-    c.basin === 'uruguai' || 
-    c.river?.toLowerCase().includes('uruguai')
-  );
-
-  // Get current list according to tab
+  // Get current list according to active tab
   let displayedCities = taquariCities;
   if (activeBasin === 'guaiba') displayedCities = guaibaCities;
-  else if (activeBasin === 'uruguai') displayedCities = uruguaiCities;
-  else if (activeBasin === 'all') displayedCities = cities;
+  else if (activeBasin === 'all') displayedCities = [...taquariCities, ...guaibaCities];
 
   return (
     <aside className="w-full lg:w-72 flex flex-col gap-5 shrink-0">
@@ -80,7 +81,7 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
           </button>
           <button
             onClick={() => setActiveBasin('guaiba')}
-            className={`flex-1 py-1.5 px-1.5 rounded-lg transition-all text-center ${
+            className={`flex-1 py-1.5 px-2 rounded-lg transition-all text-center ${
               activeBasin === 'guaiba'
                 ? 'bg-cyan-950 text-cyan-300 border border-cyan-800 shadow-sm font-bold'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
@@ -89,14 +90,14 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
             Bacia Guaíba
           </button>
           <button
-            onClick={() => setActiveBasin('uruguai')}
-            className={`flex-1 py-1.5 px-1.5 rounded-lg transition-all text-center ${
-              activeBasin === 'uruguai'
+            onClick={() => setActiveBasin('all')}
+            className={`py-1.5 px-2 rounded-lg transition-all text-center ${
+              activeBasin === 'all'
                 ? 'bg-cyan-950 text-cyan-300 border border-cyan-800 shadow-sm font-bold'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
             }`}
           >
-            Bacia Uruguai
+            Todas
           </button>
         </div>
 

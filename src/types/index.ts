@@ -17,7 +17,7 @@ export interface City {
   ordem?: number;
   station_id?: string;
   river?: string;
-  basin?: string; // 'taquari' | 'guaiba' | 'uruguai'
+  basin?: string; // 'taquari' | 'guaiba'
   source_origin?: string; // Origem da coleta (ex: niveldosrios.guerreirosdohumaita.com.br ou nivelguaiba.com.br)
   current_level?: number;
   trend?: LevelTrend;

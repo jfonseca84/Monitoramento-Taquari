@@ -21,10 +21,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
   const [mapType, setMapType] = useState<'sat' | 'dark'>('sat');
 
-  // Filter to display Bacia do Rio Taquari stations
-  const taquariCities = cities.filter(
-    (c) => c.basin === 'taquari' || c.river?.toLowerCase().includes('taquari') || c.river?.toLowerCase().includes('santa tereza')
-  );
+  // Display all active catalog cities on map
+  const displayCities = cities.filter((c) => c.active !== false && c.latitude && c.longitude);
 
   // Tile layer URLs
   const satTileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
@@ -84,7 +82,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     (Object.values(markersRef.current) as L.Marker[]).forEach((m) => m.remove());
     markersRef.current = {};
 
-    taquariCities.forEach((city) => {
+    displayCities.forEach((city) => {
       if (!city.latitude || !city.longitude) return;
 
       const isSelected = selectedCity.id === city.id || selectedCity.slug === city.slug;
@@ -130,7 +128,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
       markersRef.current[city.id] = marker;
     });
-  }, [taquariCities, selectedCity]);
+  }, [displayCities, selectedCity]);
 
   // Center map when selected city changes
   useEffect(() => {
@@ -154,7 +152,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 z-10 shrink-0">
         <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase flex items-center gap-2">
           <MapPin className="w-4 h-4 text-cyan-400 shrink-0" />
-          <span>MAPA DA BACIA DO RIO TAQUARI</span>
+          <span>MAPA HIDROLÓGICO REGIONAL</span>
         </h3>
 
         {/* SATELLITE / DARK MAP SWITCH */}
