@@ -78,41 +78,51 @@ interface DBCity {
   ordem?: number;
 }
 
+// Auxiliar de validação de UUID
+export function isValidUuid(id: string | null | undefined): boolean {
+  if (!id || typeof id !== 'string') return false;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id.trim());
+}
+
 // CATÁLOGO OFICIAL DE CIDADES DO SISTEMA (IDs E SLUGS CANÔNICOS FIXOS)
 export const OFFICIAL_CATALOG_CITIES: DBCity[] = [
-  { id: 'santatereza', name: 'Santa Tereza', slug: 'santatereza', river: 'Rio Santa Tereza', normal_level: 4.0, attention_level: 6.0, alert_level: 8.0, flood_level: 10.0, latitude: -29.1678, longitude: -51.7331, active: true, ordem: 0 },
-  { id: 'mucum', name: 'Muçum', slug: 'mucum', river: 'Rio Taquari', normal_level: 12.0, attention_level: 14.0, alert_level: 16.0, flood_level: 18.0, latitude: -29.1672, longitude: -51.8661, active: true, ordem: 1 },
-  { id: 'encantado', name: 'Encantado', slug: 'encantado', river: 'Rio Taquari', normal_level: 6.0, attention_level: 8.0, alert_level: 10.0, flood_level: 12.0, latitude: -29.2372, longitude: -51.8708, active: true, ordem: 2 },
-  { id: 'rocasales', name: 'Roca Sales', slug: 'rocasales', river: 'Rio Taquari', normal_level: 12.0, attention_level: 14.0, alert_level: 16.0, flood_level: 18.0, latitude: -29.2811, longitude: -51.8672, active: true, ordem: 3 },
-  { id: 'lajeado', name: 'Lajeado', slug: 'lajeado', river: 'Rio Taquari', normal_level: 13.0, attention_level: 15.0, alert_level: 17.0, flood_level: 19.0, latitude: -29.4678, longitude: -51.9614, active: true, ordem: 4 },
-  { id: 'estrela', name: 'Estrela', slug: 'estrela', river: 'Rio Taquari', normal_level: 13.0, attention_level: 15.0, alert_level: 17.0, flood_level: 19.0, latitude: -29.5011, longitude: -51.9614, active: true, ordem: 5 },
-  { id: 'cruzeirodosul', name: 'Cruzeiro do Sul', slug: 'cruzeirodosul', river: 'Rio Taquari', normal_level: 13.0, attention_level: 15.0, alert_level: 17.0, flood_level: 19.0, latitude: -29.5167, longitude: -51.9833, active: true, ordem: 6 },
-  { id: 'bomretirodosul', name: 'Bom Retiro do Sul', slug: 'bomretirodosul', river: 'Rio Taquari', normal_level: 13.0, attention_level: 15.0, alert_level: 17.0, flood_level: 19.0, latitude: -29.6019, longitude: -51.9482, active: true, ordem: 7 },
-  { id: 'portoalegre', name: 'Porto Alegre', slug: 'portoalegre', river: 'Rio Guaíba', normal_level: 1.5, attention_level: 2.1, alert_level: 2.5, flood_level: 3.0, latitude: -30.0346, longitude: -51.2177, active: true, ordem: 8 },
-  { id: 'saoleopoldo', name: 'São Leopoldo', slug: 'saoleopoldo', river: 'Rio dos Sinos', normal_level: 2.5, attention_level: 3.2, alert_level: 3.8, flood_level: 4.5, latitude: -29.7603, longitude: -51.1472, active: true, ordem: 9 },
-  { id: 'taquara', name: 'Taquara', slug: 'taquara', river: 'Rio dos Sinos', normal_level: 3.0, attention_level: 4.0, alert_level: 5.0, flood_level: 6.0, latitude: -29.6506, longitude: -50.7803, active: true, ordem: 10 },
-  { id: 'feliz', name: 'Feliz', slug: 'feliz', river: 'Rio Caí', normal_level: 4.5, attention_level: 6.0, alert_level: 7.5, flood_level: 9.0, latitude: -29.4517, longitude: -51.3050, active: true, ordem: 11 },
-  { id: 'saosebastiaodocai', name: 'São Sebastião do Caí', slug: 'saosebastiaodocai', river: 'Rio Caí', normal_level: 5.5, attention_level: 7.0, alert_level: 8.5, flood_level: 10.0, latitude: -29.5872, longitude: -51.3767, active: true, ordem: 12 },
-  { id: 'gravatai', name: 'Gravataí', slug: 'gravatai', river: 'Rio Gravataí', normal_level: 2.5, attention_level: 3.25, alert_level: 4.0, flood_level: 4.75, latitude: -29.9444, longitude: -50.9919, active: true, ordem: 13 },
-  { id: 'cachoeiradosul', name: 'Cachoeira do Sul', slug: 'cachoeiradosul', river: 'Rio Jacuí', normal_level: 12.0, attention_level: 14.0, alert_level: 16.0, flood_level: 18.0, latitude: -30.0392, longitude: -52.8933, active: true, ordem: 14 },
-  { id: 'donafrancisca', name: 'Dona Francisca', slug: 'donafrancisca', river: 'Rio Jacuí', normal_level: 4.0, attention_level: 5.5, alert_level: 6.5, flood_level: 7.5, latitude: -29.6169, longitude: -53.3628, active: true, ordem: 15 },
-  { id: 'riopardo', name: 'Rio Pardo', slug: 'riopardo', river: 'Rio Jacuí', normal_level: 6.5, attention_level: 8.5, alert_level: 10.5, flood_level: 12.5, latitude: -29.9897, longitude: -52.3697, active: true, ordem: 16 }
+  { id: '10000000-0000-4000-8000-000000000000', name: 'Santa Tereza', slug: 'santatereza', river: 'Rio Santa Tereza', normal_level: 4.0, attention_level: 6.0, alert_level: 8.0, flood_level: 10.0, latitude: -29.1678, longitude: -51.7331, active: true, ordem: 0 },
+  { id: '10000000-0000-4000-8000-000000000001', name: 'Muçum', slug: 'mucum', river: 'Rio Taquari', normal_level: 12.0, attention_level: 14.0, alert_level: 16.0, flood_level: 18.0, latitude: -29.1672, longitude: -51.8661, active: true, ordem: 1 },
+  { id: '10000000-0000-4000-8000-000000000002', name: 'Encantado', slug: 'encantado', river: 'Rio Taquari', normal_level: 6.0, attention_level: 8.0, alert_level: 10.0, flood_level: 12.0, latitude: -29.2372, longitude: -51.8708, active: true, ordem: 2 },
+  { id: '10000000-0000-4000-8000-000000000003', name: 'Roca Sales', slug: 'rocasales', river: 'Rio Taquari', normal_level: 12.0, attention_level: 14.0, alert_level: 16.0, flood_level: 18.0, latitude: -29.2811, longitude: -51.8672, active: true, ordem: 3 },
+  { id: '10000000-0000-4000-8000-000000000004', name: 'Lajeado', slug: 'lajeado', river: 'Rio Taquari', normal_level: 13.0, attention_level: 15.0, alert_level: 17.0, flood_level: 19.0, latitude: -29.4678, longitude: -51.9614, active: true, ordem: 4 },
+  { id: '10000000-0000-4000-8000-000000000005', name: 'Estrela', slug: 'estrela', river: 'Rio Taquari', normal_level: 13.0, attention_level: 15.0, alert_level: 17.0, flood_level: 19.0, latitude: -29.5011, longitude: -51.9614, active: true, ordem: 5 },
+  { id: '10000000-0000-4000-8000-000000000006', name: 'Cruzeiro do Sul', slug: 'cruzeirodosul', river: 'Rio Taquari', normal_level: 13.0, attention_level: 15.0, alert_level: 17.0, flood_level: 19.0, latitude: -29.5167, longitude: -51.9833, active: true, ordem: 6 },
+  { id: '10000000-0000-4000-8000-000000000007', name: 'Bom Retiro do Sul', slug: 'bomretirodosul', river: 'Rio Taquari', normal_level: 13.0, attention_level: 15.0, alert_level: 17.0, flood_level: 19.0, latitude: -29.6019, longitude: -51.9482, active: true, ordem: 7 },
+  { id: '10000000-0000-4000-8000-000000000008', name: 'Porto Alegre', slug: 'portoalegre', river: 'Rio Guaíba', normal_level: 1.5, attention_level: 2.1, alert_level: 2.5, flood_level: 3.0, latitude: -30.0346, longitude: -51.2177, active: true, ordem: 8 },
+  { id: '10000000-0000-4000-8000-000000000009', name: 'São Leopoldo', slug: 'saoleopoldo', river: 'Rio dos Sinos', normal_level: 2.5, attention_level: 3.2, alert_level: 3.8, flood_level: 4.5, latitude: -29.7603, longitude: -51.1472, active: true, ordem: 9 },
+  { id: '10000000-0000-4000-8000-000000000010', name: 'Taquara', slug: 'taquara', river: 'Rio dos Sinos', normal_level: 3.0, attention_level: 4.0, alert_level: 5.0, flood_level: 6.0, latitude: -29.6506, longitude: -50.7803, active: true, ordem: 10 },
+  { id: '10000000-0000-4000-8000-000000000011', name: 'Feliz', slug: 'feliz', river: 'Rio Caí', normal_level: 4.5, attention_level: 6.0, alert_level: 7.5, flood_level: 9.0, latitude: -29.4517, longitude: -51.3050, active: true, ordem: 11 },
+  { id: '10000000-0000-4000-8000-000000000012', name: 'São Sebastião do Caí', slug: 'saosebastiaodocai', river: 'Rio Caí', normal_level: 5.5, attention_level: 7.0, alert_level: 8.5, flood_level: 10.0, latitude: -29.5872, longitude: -51.3767, active: true, ordem: 12 },
+  { id: '10000000-0000-4000-8000-000000000013', name: 'Gravataí', slug: 'gravatai', river: 'Rio Gravataí', normal_level: 2.5, attention_level: 3.25, alert_level: 4.0, flood_level: 4.75, latitude: -29.9444, longitude: -50.9919, active: true, ordem: 13 },
+  { id: '10000000-0000-4000-8000-000000000014', name: 'Cachoeira do Sul', slug: 'cachoeiradosul', river: 'Rio Jacuí', normal_level: 12.0, attention_level: 14.0, alert_level: 16.0, flood_level: 18.0, latitude: -30.0392, longitude: -52.8933, active: true, ordem: 14 },
+  { id: '10000000-0000-4000-8000-000000000015', name: 'Dona Francisca', slug: 'donafrancisca', river: 'Rio Jacuí', normal_level: 4.0, attention_level: 5.5, alert_level: 6.5, flood_level: 7.5, latitude: -29.6169, longitude: -53.3628, active: true, ordem: 15 },
+  { id: '10000000-0000-4000-8000-000000000016', name: 'Rio Pardo', slug: 'riopardo', river: 'Rio Jacuí', normal_level: 6.5, attention_level: 8.5, alert_level: 10.5, flood_level: 12.5, latitude: -29.9897, longitude: -52.3697, active: true, ordem: 16 }
 ];
 
-const MOCK_INITIAL_STATIONS: DBStation[] = OFFICIAL_CATALOG_CITIES.map((city) => ({
-  id: `${city.slug}-st1`,
-  city_id: city.id,
-  name: `${city.name} - Estação Central`,
-  code: `${city.slug}-st1`,
-  latitude: city.latitude,
-  longitude: city.longitude,
-  normal_level: city.normal_level || 3.0,
-  attention_level: city.attention_level || 3.0,
-  alert_level: city.alert_level || 6.0,
-  flood_level: city.flood_level || 8.5,
-  active: true,
-  city
-}));
+const MOCK_INITIAL_STATIONS: DBStation[] = OFFICIAL_CATALOG_CITIES.map((city, idx) => {
+  const hexIdx = idx.toString(16).padStart(12, '0');
+  return {
+    id: `20000000-0000-4000-8000-${hexIdx}`,
+    city_id: city.id,
+    name: `${city.name} - Estação Central`,
+    code: `${city.slug}-st1`,
+    latitude: city.latitude,
+    longitude: city.longitude,
+    normal_level: city.normal_level || 3.0,
+    attention_level: city.attention_level || 3.0,
+    alert_level: city.alert_level || 6.0,
+    flood_level: city.flood_level || 8.5,
+    active: true,
+    city
+  };
+});
 
 function normalizeKey(str: string): string {
   if (!str) return '';
@@ -422,10 +432,9 @@ async function syncAndCleanSupabaseTables(): Promise<{
 
   console.log('[river-updater] 1. Garantindo integridade das tabelas `cities` e `stations` no Supabase...');
 
-  // 1. Sincroniza todas as cidades oficiais no Supabase com id e slug canônicos
+  // 1. Sincroniza todas as cidades oficiais no Supabase com id (UUID) e slug canônicos
   for (const city of OFFICIAL_CATALOG_CITIES) {
-    await supabase.from('cities').upsert({
-      id: city.id,
+    const cityData: any = {
       name: city.name,
       slug: city.slug,
       river: city.river,
@@ -437,63 +446,94 @@ async function syncAndCleanSupabaseTables(): Promise<{
       longitude: city.longitude,
       active: true,
       ordem: city.ordem
-    }, { onConflict: 'slug' });
+    };
+    if (isValidUuid(city.id)) {
+      cityData.id = city.id;
+    }
+    await supabase.from('cities').upsert(cityData, { onConflict: 'slug' });
   }
 
-  // 2. Busca todas as cidades atualmente no banco
+  // 2. Busca todas as cidades atualmente no banco para obter os registros e UUIDs oficiais
   const { data: rawCitiesData } = await supabase.from('cities').select('*');
   const allCitiesInDb = (rawCitiesData as DBCity[]) || [];
 
-  // Consolidar duplicatas (por exemplo, se existirem linhas com id 'c-dyn-lajeadoporto' ou 'lajeado-porto')
+  const citiesBySlugInDb = new Map<string, DBCity>();
+  for (const c of allCitiesInDb) {
+    if (c.slug) citiesBySlugInDb.set(c.slug, c);
+  }
+
+  // Consolidar duplicatas (por exemplo, se existirem linhas com slugs ou ids legados)
   for (const dbRow of allCitiesInDb) {
-    const official = findOfficialCity(dbRow.slug || dbRow.name || dbRow.id);
-    if (official && dbRow.id !== official.id) {
-      console.warn(`[river-updater] Remapeando registros da cidade duplicada: "${dbRow.name}" (${dbRow.id}) -> "${official.name}" (${official.id})`);
+    const matchResult = findOfficialCityMatch(dbRow.slug || dbRow.name || dbRow.id);
+    if (matchResult) {
+      const officialCatalog = matchResult.city;
+      const officialDbCity = citiesBySlugInDb.get(officialCatalog.slug);
+      const officialId = officialDbCity ? officialDbCity.id : officialCatalog.id;
 
-      // Atualiza `stations` que apontavam para o ID duplicado
-      const { data: stData } = await supabase
-        .from('stations')
-        .update({ city_id: official.id })
-        .eq('city_id', dbRow.id)
-        .select('id');
+      if (dbRow.id !== officialId && isValidUuid(officialId) && isValidUuid(dbRow.id)) {
+        console.warn(`[river-updater] Remapeando registros da cidade duplicada: "${dbRow.name}" (${dbRow.id}) -> "${officialCatalog.name}" (${officialId})`);
 
-      if (stData) audit.relinkedRecordsCount += stData.length;
+        // Atualiza `stations` que apontavam para o ID duplicado
+        const { data: stData } = await supabase
+          .from('stations')
+          .update({ city_id: officialId })
+          .eq('city_id', dbRow.id)
+          .select('id');
 
-      // Atualiza `river_levels` que apontavam para o ID duplicado
-      const { data: rlData } = await supabase
-        .from('river_levels')
-        .update({ city_id: official.id })
-        .eq('city_id', dbRow.id)
-        .select('id');
+        if (stData) audit.relinkedRecordsCount += stData.length;
 
-      if (rlData) audit.relinkedRecordsCount += rlData.length;
+        // Atualiza `river_levels` que apontavam para o ID duplicado
+        const { data: rlData } = await supabase
+          .from('river_levels')
+          .update({ city_id: officialId })
+          .eq('city_id', dbRow.id)
+          .select('id');
 
-      // Remove a linha duplicada da tabela `cities`
-      if (dbRow.slug !== official.slug) {
-        await supabase
-          .from('cities')
-          .delete()
-          .eq('id', dbRow.id);
+        if (rlData) audit.relinkedRecordsCount += rlData.length;
 
-        audit.duplicateCitiesRemoved++;
-        audit.duplicateCitiesDetails.push(`Removida cidade duplicada "${dbRow.name}" (${dbRow.id}) -> Vinculada a "${official.name}" (${official.id})`);
+        // Remove a linha duplicada da tabela `cities`
+        if (dbRow.slug !== officialCatalog.slug) {
+          await supabase
+            .from('cities')
+            .delete()
+            .eq('id', dbRow.id);
+
+          audit.duplicateCitiesRemoved++;
+          audit.duplicateCitiesDetails.push(`Removida cidade duplicada "${dbRow.name}" (${dbRow.id}) -> Vinculada a "${officialCatalog.name}" (${officialId})`);
+        }
       }
     }
   }
 
-  // 3. Garante que cada cidade oficial tenha a sua estação primária no Supabase
-  for (const city of OFFICIAL_CATALOG_CITIES) {
-    const stationCode = `${city.slug}-st1`;
+  // Recarrega o estado limpo das cidades
+  const { data: cleanCitiesData } = await supabase.from('cities').select('*');
+  const cleanCitiesList = (cleanCitiesData as DBCity[]) || [];
+  const cleanCitiesBySlugMap = new Map<string, DBCity>();
+  for (const c of cleanCitiesList) {
+    if (c.slug) cleanCitiesBySlugMap.set(c.slug, c);
+  }
+
+  // 3. Garante que cada cidade oficial tenha a sua estação primária no Supabase com city_id em UUID
+  for (const catalogCity of OFFICIAL_CATALOG_CITIES) {
+    const dbCity = cleanCitiesBySlugMap.get(catalogCity.slug) || catalogCity;
+    const cityUuid = dbCity.id;
+
+    if (!isValidUuid(cityUuid)) {
+      console.warn(`[river-updater] Upsert da estação de "${catalogCity.name}" ignorado: city_id ("${cityUuid}") não é um UUID válido.`);
+      continue;
+    }
+
+    const stationCode = `${catalogCity.slug}-st1`;
     await supabase.from('stations').upsert({
-      city_id: city.id,
-      name: `${city.name} - Estação Central`,
+      city_id: cityUuid,
+      name: `${catalogCity.name} - Estação Central`,
       code: stationCode,
-      latitude: city.latitude,
-      longitude: city.longitude,
-      normal_level: city.normal_level || 3.00,
-      attention_level: city.attention_level || 3.00,
-      alert_level: city.alert_level || 6.00,
-      flood_level: city.flood_level || 8.50,
+      latitude: catalogCity.latitude,
+      longitude: catalogCity.longitude,
+      normal_level: catalogCity.normal_level || 3.00,
+      attention_level: catalogCity.attention_level || 3.00,
+      alert_level: catalogCity.alert_level || 6.00,
+      flood_level: catalogCity.flood_level || 8.50,
       active: true
     }, { onConflict: 'code' });
   }
@@ -538,16 +578,21 @@ async function runSync() {
     const { dbCities, dbStations, audit: auditClean } = await syncAndCleanSupabaseTables();
     console.log(`[river-updater] Cidades limpas no catálogo: ${dbCities.length} | Estações ativas: ${dbStations.length}`);
 
-    // Mapeamentos indexados por ID oficial
-    const officialCitiesMap = new Map<string, DBCity>();
+    // Mapeamento das cidades oficiais no banco indexado por SLUG
+    const citiesBySlugMap = new Map<string, DBCity>();
     for (const c of dbCities) {
-      officialCitiesMap.set(c.id, c);
+      if (c.slug) citiesBySlugMap.set(c.slug, c);
     }
 
+    // Mapeamento de estações indexado por city_id (UUID) e por code
     const stationsByCityIdMap = new Map<string, DBStation>();
+    const stationsByCodeMap = new Map<string, DBStation>();
     for (const st of dbStations) {
       if (st.city_id && !stationsByCityIdMap.has(st.city_id)) {
         stationsByCityIdMap.set(st.city_id, st);
+      }
+      if (st.code) {
+        stationsByCodeMap.set(st.code, st);
       }
     }
 
@@ -579,7 +624,7 @@ async function runSync() {
 
         if (!rawKey) continue;
 
-        // 1. Resolve obrigatoriamente para a cidade oficial do catálogo com auditoria de match
+        // 1. Resolver cidade canônica pelo slug/name
         const matchResult = findOfficialCityMatch(rawKey);
 
         if (!matchResult) {
@@ -587,10 +632,24 @@ async function runSync() {
           continue;
         }
 
-        const targetCity = officialCitiesMap.get(matchResult.city.id) || matchResult.city;
+        const canonicalSlug = matchResult.city.slug;
+
+        // 2. Buscar o registro oficial na tabela cities (pelo slug resolvido)
+        const targetCity = citiesBySlugMap.get(canonicalSlug) || matchResult.city;
+
+        // 3. Obter cities.id (UUID)
         const cityId = targetCity.id;
 
-        // Registrar se foi feita normalização por alias/parcial ou mapa de apelidos
+        // 4. Validação estrita de UUID antes da gravação
+        if (!isValidUuid(cityId)) {
+          const errMsg = `[ERRO DE VALIDAÇÃO UUID] city_id inválido ("${cityId}") para a cidade "${targetCity.name}" (slug: "${canonicalSlug}"). O insert em river_levels foi impedido.`;
+          console.error(`[river-updater] ${errMsg}`);
+          errors.push(errMsg);
+          errorsCount++;
+          continue;
+        }
+
+        // Registrar se foi feita normalização por alias/parcial
         if (
           matchResult.matchedBy === 'alias' ||
           matchResult.matchedBy === 'partial' ||
@@ -603,15 +662,15 @@ async function runSync() {
           });
         }
 
-        // 2. Obtém a estação oficial vinculada à cidade (code: city.slug-st1)
-        let matchedStation = stationsByCityIdMap.get(cityId);
+        // 5. Obter a estação correspondente (stations)
+        let matchedStation = stationsByCityIdMap.get(cityId) || stationsByCodeMap.get(`${canonicalSlug}-st1`);
 
         if (!matchedStation) {
           matchedStation = {
-            id: `${targetCity.slug}-st1`,
+            id: `20000000-0000-4000-8000-${canonicalSlug.padEnd(12, '0').substring(0, 12)}`,
             city_id: cityId,
             name: `${targetCity.name} - Estação Central`,
-            code: `${targetCity.slug}-st1`,
+            code: `${canonicalSlug}-st1`,
             latitude: targetCity.latitude,
             longitude: targetCity.longitude,
             normal_level: targetCity.normal_level || 3.00,
@@ -623,6 +682,15 @@ async function runSync() {
         }
 
         const stationId = matchedStation.id;
+
+        if (!isValidUuid(stationId)) {
+          const errMsg = `[ERRO DE VALIDAÇÃO UUID] station_id inválido ("${stationId}") para a estação "${matchedStation.name}". O insert em river_levels foi impedido.`;
+          console.error(`[river-updater] ${errMsg}`);
+          errors.push(errMsg);
+          errorsCount++;
+          continue;
+        }
+
         activeLinkedStationsSet.add(stationId);
         activeLinkedCityIdsSet.add(cityId);
 
@@ -643,8 +711,8 @@ async function runSync() {
         const recordedAt = stPayload.ts ? new Date(stPayload.ts).toISOString() : new Date().toISOString();
 
         if (isSupabaseRealConfigured && supabase) {
-          // Atualiza registro na tabela `cities`
-          await supabase
+          // Atualiza registro na tabela `cities` usando o UUID correto (cityId)
+          const { error: cityUpdateError } = await supabase
             .from('cities')
             .update({
               current_level: currentLevel,
@@ -655,6 +723,10 @@ async function runSync() {
               updated_at: new Date().toISOString()
             })
             .eq('id', cityId);
+
+          if (cityUpdateError) {
+            console.warn(`[river-updater] Erro ao atualizar cities (${targetCity.name}): ${cityUpdateError.message}`);
+          }
 
           // Evita inserções duplicadas em `river_levels` dentro de um intervalo de 5 minutos
           const { data: lastReading } = await supabase
@@ -679,6 +751,7 @@ async function runSync() {
           if (isDuplicate) {
             skippedCount++;
           } else {
+            // Grava river_levels.city_id usando o UUID correto (cityId)!
             const { error: levelInsertError } = await supabase
               .from('river_levels')
               .insert({
@@ -701,7 +774,7 @@ async function runSync() {
         } else {
           // Modo Simulação
           updatedCount++;
-          console.log(`[river-updater] [MEDIDA] Cidade: ${targetCity.name.padEnd(20)} | Estação: ${matchedStation.name.padEnd(28)} | Nível: ${currentLevel.toFixed(2)}m | Status: ${statusLevel.toUpperCase()}`);
+          console.log(`[river-updater] [MEDIDA] Cidade: ${targetCity.name.padEnd(20)} | Estação: ${matchedStation.name.padEnd(28)} | Nível: ${currentLevel.toFixed(2)}m | Status: ${statusLevel.toUpperCase()} | City UUID: ${cityId}`);
         }
 
       } catch (stError: any) {
