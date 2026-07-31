@@ -81,9 +81,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '22.x'
       - name: Install Dependencies
         run: cd river-updater && npm install
       - name: Run Telemetry Sync

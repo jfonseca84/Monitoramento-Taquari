@@ -4,6 +4,9 @@
   "description": "Serviço autônomo e independente para sincronização e atualização de dados hidrológicos do Rio Taquari no Supabase",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "main": "src/index.ts",
   "scripts": {
     "start": "tsx src/index.ts",
