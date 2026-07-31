@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
 import { City } from '../types';
 import { getCityThresholds } from '../data/cityThresholds';
-import { Link as LinkIcon, Check, MessageSquare, AlertTriangle } from 'lucide-react';
+import { Link as LinkIcon, Check, MessageSquare, AlertTriangle, Bell, ShieldAlert } from 'lucide-react';
 import { StatusDot } from './StatusDot';
 
 interface StatsPanelProps {
   selectedCity: City;
   onOpenDetailModal?: () => void;
+  onOpenAlertSignup?: () => void;
 }
 
-export const StatsPanel: React.FC<StatsPanelProps> = ({ selectedCity, onOpenDetailModal }) => {
+export const StatsPanel: React.FC<StatsPanelProps> = ({
+  selectedCity,
+  onOpenDetailModal,
+  onOpenAlertSignup
+}) => {
   const [copied, setCopied] = useState(false);
 
   const thresholds = getCityThresholds(selectedCity);
@@ -51,6 +56,16 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ selectedCity, onOpenDeta
   return (
     <div className="flex flex-col gap-5 shrink-0">
       
+      {/* BOTÃO RECEBER ALERTAS (POSICIONADO ACIMA DE COTAS DE NÍVEL) */}
+      <button
+        type="button"
+        onClick={onOpenAlertSignup}
+        className="w-full bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 hover:from-amber-400 hover:via-orange-400 hover:to-rose-500 text-white font-extrabold py-3.5 px-4 rounded-2xl shadow-xl shadow-orange-950/30 border border-amber-300/40 flex items-center justify-center gap-2.5 transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer text-xs uppercase tracking-wider group"
+      >
+        <Bell className="w-4 h-4 text-amber-100 group-hover:scale-110 transition-transform animate-bounce" />
+        <span>Receber Alertas do Rio</span>
+      </button>
+
       {/* COTA DE INUNDAÇÃO CARD */}
       <div className="dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-2xl p-5 shadow-xl relative overflow-hidden transition-colors">
         <div className="flex items-center justify-between mb-4 pb-2 dark:border-slate-800/80 border-slate-200 border-b">

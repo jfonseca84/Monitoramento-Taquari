@@ -222,6 +222,7 @@ export default function App() {
               <StatsPanel
                 selectedCity={selectedCity}
                 onOpenDetailModal={() => setIsDetailModalOpen(true)}
+                onOpenAlertSignup={() => setActiveTab('receber-alertas')}
               />
               
               <InteractiveMap
