@@ -402,7 +402,7 @@ function evaluateSyncHealth(
 
   // 3. Cidades sem dados recentes
   const missingCities = catalogCities
-    .filter(city => !activeLinkedCityIds.has(city.id))
+    .filter(city => !activeLinkedCityIds.has(city.id) && !activeLinkedCityIds.has(city.slug))
     .map(city => ({ id: city.id, name: city.name }));
 
   if (missingCities.length > 0) {
@@ -411,8 +411,8 @@ function evaluateSyncHealth(
   }
 
   // 4. Quantidade de estações atualizadas
-  const updatedStationsCount = activeLinkedCityIds.size;
   const totalCatalogCities = catalogCities.length;
+  const updatedStationsCount = totalCatalogCities - missingCities.length;
 
   if (updatedStationsCount < totalCatalogCities && communicationOk) {
     warnings.push(`Atualização parcial: apenas ${updatedStationsCount} de ${totalCatalogCities} cidades foram atualizadas.`);
@@ -561,6 +561,9 @@ async function syncAndCleanSupabaseTables(): Promise<{
   }
 
   // 3. Garante que cada cidade oficial tenha a sua estação primária no Supabase com city_id em UUID
+  const canonicalStationIdsSet = new Set<string>();
+  const cityToCanonicalStationMap = new Map<string, DBStation>();
+
   for (const catalogCity of OFFICIAL_CATALOG_CITIES) {
     const dbCity = cleanCitiesBySlugMap.get(catalogCity.slug) || catalogCity;
     const cityUuid = dbCity.id;
@@ -571,7 +574,7 @@ async function syncAndCleanSupabaseTables(): Promise<{
     }
 
     const stationCode = `${catalogCity.slug}-st1`;
-    await supabase.from('stations').upsert({
+    const { data: upsertedStation } = await supabase.from('stations').upsert({
       city_id: cityUuid,
       name: `${catalogCity.name} - Estação Central`,
       code: stationCode,
@@ -582,7 +585,50 @@ async function syncAndCleanSupabaseTables(): Promise<{
       alert_level: catalogCity.alert_level || 6.00,
       flood_level: catalogCity.flood_level || 8.50,
       active: true
-    }, { onConflict: 'code' });
+    }, { onConflict: 'code' }).select('*').single();
+
+    if (upsertedStation) {
+      canonicalStationIdsSet.add(upsertedStation.id);
+      cityToCanonicalStationMap.set(cityUuid, upsertedStation as DBStation);
+    }
+  }
+
+  // 4. Limpeza de estações duplicadas ou órfãs fora das 17 estações primárias
+  const { data: currentStations } = await supabase.from('stations').select('*');
+  const allDbStations = (currentStations as DBStation[]) || [];
+
+  for (const st of allDbStations) {
+    if (!canonicalStationIdsSet.has(st.id)) {
+      console.warn(`[river-updater] Estação duplicada/antiga identificada para remoção: "${st.name}" (${st.id}, code: ${st.code})`);
+
+      let targetCanonicalStation: DBStation | undefined;
+      if (st.city_id && cityToCanonicalStationMap.has(st.city_id)) {
+        targetCanonicalStation = cityToCanonicalStationMap.get(st.city_id);
+      } else {
+        const matchResult = findOfficialCityMatch(st.code || st.name || '');
+        if (matchResult) {
+          const dbCity = cleanCitiesBySlugMap.get(matchResult.city.slug);
+          if (dbCity) targetCanonicalStation = cityToCanonicalStationMap.get(dbCity.id);
+        }
+      }
+
+      if (targetCanonicalStation) {
+        const { data: remappedLevels } = await supabase
+          .from('river_levels')
+          .update({ station_id: targetCanonicalStation.id, city_id: targetCanonicalStation.city_id })
+          .eq('station_id', st.id)
+          .select('id');
+
+        if (remappedLevels) {
+          audit.relinkedRecordsCount += remappedLevels.length;
+        }
+      } else {
+        await supabase.from('river_levels').delete().eq('station_id', st.id);
+      }
+
+      await supabase.from('stations').delete().eq('id', st.id);
+      audit.duplicateCitiesDetails.push(`Removida estação duplicada/antiga "${st.name}" (${st.id})`);
+    }
   }
 
   // Reload final clean state
@@ -833,6 +879,9 @@ async function runSync() {
 
         activeLinkedStationsSet.add(stationId);
         activeLinkedCityIdsSet.add(cityId);
+        activeLinkedCityIdsSet.add(canonicalSlug);
+        if (targetCity.id) activeLinkedCityIdsSet.add(targetCity.id);
+        if (matchResult.city.id) activeLinkedCityIdsSet.add(matchResult.city.id);
 
         const currentLevel = typeof stPayload.level === 'number' ? Number(stPayload.level.toFixed(2)) : 3.00;
         const rateInMeters = typeof stPayload.rate === 'number' ? Number((stPayload.rate / 100).toFixed(2)) : 0.00;

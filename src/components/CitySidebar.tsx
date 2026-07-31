@@ -17,7 +17,7 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
   onSelectCity,
   onOpenInfoModal
 }) => {
-  const [activeBasin, setActiveBasin] = useState<'taquari' | 'guaiba' | 'all'>('taquari');
+  const [activeBasin, setActiveBasin] = useState<'taquari' | 'guaiba'>('taquari');
 
   const thresholds = getCityThresholds(selectedCity, selectedCity.flood_level);
   const normalVal = thresholds.normal;
@@ -36,9 +36,7 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
   const guaibaCities = cities.filter((c) => GUAIBA_SLUGS.includes(c.slug));
 
   // Get current list according to active tab
-  let displayedCities = taquariCities;
-  if (activeBasin === 'guaiba') displayedCities = guaibaCities;
-  else if (activeBasin === 'all') displayedCities = [...taquariCities, ...guaibaCities];
+  const displayedCities = activeBasin === 'guaiba' ? guaibaCities : taquariCities;
 
   return (
     <aside className="w-full lg:w-72 flex flex-col gap-5 shrink-0">
@@ -80,22 +78,6 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
           >
             Bacia Guaíba
           </button>
-          <button
-            onClick={() => setActiveBasin('all')}
-            className={`py-1.5 px-2 rounded-lg transition-all text-center ${
-              activeBasin === 'all'
-                ? 'bg-cyan-950 text-cyan-300 border border-cyan-800 shadow-sm font-bold'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-            }`}
-          >
-            Todas
-          </button>
-        </div>
-
-        {/* SOURCES ATTRIBUTION NOTICE */}
-        <div className="mb-2 px-2.5 py-1.5 bg-slate-900/60 border border-slate-800 rounded-lg flex items-center justify-between text-[10px] text-slate-300">
-          <span>Telemetria: <strong>Multi-Fonte Oficial</strong></span>
-          <span className="text-[9px] text-cyan-400 font-mono">2 fontes ativas</span>
         </div>
 
         {/* CITY / STATION BUTTONS */}
