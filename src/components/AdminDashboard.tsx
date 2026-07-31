@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { City, NewsItem, AlertItem, Sponsor, AdminUser } from '../types';
+import { getCityThresholds } from '../data/cityThresholds';
 import {
   supabase,
   isSupabaseConfigured,
@@ -165,11 +166,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       // Initialize thresholdEdits for each city
       const tMap: Record<string, { normal_level: number; attention_level: number; alert_level: number; flood_level: number }> = {};
       citiesData.forEach(city => {
+        const th = getCityThresholds(city);
         tMap[city.id] = {
-          normal_level: city.normal_level ?? 3.0,
-          attention_level: city.attention_level ?? 6.0,
-          alert_level: city.alert_level ?? 8.0,
-          flood_level: city.flood_level ?? 10.0
+          normal_level: city.normal_level ?? th.normal,
+          attention_level: city.attention_level ?? th.attention,
+          alert_level: city.alert_level ?? th.alert,
+          flood_level: city.flood_level ?? th.flood
         };
       });
       setThresholdEdits(prev => ({ ...tMap, ...prev }));
@@ -606,21 +608,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // HANDLERS: COTAS HIDROLÓGICAS
   // ==========================================
   const handleThresholdInputChange = (cityId: string, field: 'normal_level' | 'attention_level' | 'alert_level' | 'flood_level', val: number) => {
+    const cityObj = citiesList.find(c => c.id === cityId);
+    const th = getCityThresholds(cityObj || cityId);
     setThresholdEdits(prev => ({
       ...prev,
       [cityId]: {
-        ...(prev[cityId] || { normal_level: 3.0, attention_level: 6.0, alert_level: 8.0, flood_level: 10.0 }),
+        ...(prev[cityId] || {
+          normal_level: cityObj?.normal_level ?? th.normal,
+          attention_level: cityObj?.attention_level ?? th.attention,
+          alert_level: cityObj?.alert_level ?? th.alert,
+          flood_level: cityObj?.flood_level ?? th.flood
+        }),
         [field]: val
       }
     }));
   };
 
   const handleSaveThreshold = async (city: City) => {
+    const th = getCityThresholds(city);
     const edits = thresholdEdits[city.id] || {
-      normal_level: city.normal_level ?? 3.0,
-      attention_level: city.attention_level ?? 6.0,
-      alert_level: city.alert_level ?? 8.0,
-      flood_level: city.flood_level ?? 10.0
+      normal_level: city.normal_level ?? th.normal,
+      attention_level: city.attention_level ?? th.attention,
+      alert_level: city.alert_level ?? th.alert,
+      flood_level: city.flood_level ?? th.flood
     };
 
     // Validation rule: normal < atenção < alerta < inundação
@@ -932,11 +942,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       {citiesList.filter(c => c.basin === 'taquari').map((city) => {
+                        const th = getCityThresholds(city);
                         const edits = thresholdEdits[city.id] || {
-                          normal_level: city.normal_level ?? 3.0,
-                          attention_level: city.attention_level ?? 6.0,
-                          alert_level: city.alert_level ?? 8.0,
-                          flood_level: city.flood_level ?? 10.0
+                          normal_level: city.normal_level ?? th.normal,
+                          attention_level: city.attention_level ?? th.attention,
+                          alert_level: city.alert_level ?? th.alert,
+                          flood_level: city.flood_level ?? th.flood
                         };
                         const isValid = edits.normal_level < edits.attention_level &&
                                         edits.attention_level < edits.alert_level &&
@@ -1039,11 +1050,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       {citiesList.filter(c => c.basin === 'guaiba').map((city) => {
+                        const th = getCityThresholds(city);
                         const edits = thresholdEdits[city.id] || {
-                          normal_level: city.normal_level ?? 3.0,
-                          attention_level: city.attention_level ?? 6.0,
-                          alert_level: city.alert_level ?? 8.0,
-                          flood_level: city.flood_level ?? 10.0
+                          normal_level: city.normal_level ?? th.normal,
+                          attention_level: city.attention_level ?? th.attention,
+                          alert_level: city.alert_level ?? th.alert,
+                          flood_level: city.flood_level ?? th.flood
                         };
                         const isValid = edits.normal_level < edits.attention_level &&
                                         edits.attention_level < edits.alert_level &&

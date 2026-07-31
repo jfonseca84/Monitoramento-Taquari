@@ -11,7 +11,7 @@ import {
   CartesianGrid
 } from 'recharts';
 import { Timeframe, ChartDataPoint, City } from '../types';
-import { getCityThresholds } from '../data/initialData';
+import { getCityThresholds } from '../data/cityThresholds';
 
 interface LevelChartProps {
   selectedCity: City;

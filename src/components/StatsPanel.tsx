@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { City } from '../types';
-import { getCityThresholds } from '../data/initialData';
+import { getCityThresholds } from '../data/cityThresholds';
 import { Link as LinkIcon, Check, MessageSquare, AlertTriangle } from 'lucide-react';
 import { StatusDot } from './StatusDot';
 

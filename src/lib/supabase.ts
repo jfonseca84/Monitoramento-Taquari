@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { City, Station, NewsItem, AlertItem, SystemLog, Sponsor, LevelTrend, LevelStatus, AdminUser } from '../types';
-import { INITIAL_CITIES, INITIAL_STATIONS, INITIAL_NEWS, INITIAL_ALERTS, INITIAL_LOGS, INITIAL_SPONSORS, generateHistoryForCity, getCityThresholds, calculateStatusLevel } from '../data/initialData';
+import { INITIAL_CITIES, INITIAL_STATIONS, INITIAL_NEWS, INITIAL_ALERTS, INITIAL_LOGS, INITIAL_SPONSORS, generateHistoryForCity, calculateStatusLevel } from '../data/initialData';
+import { getCityThresholds } from '../data/cityThresholds';
 import { BRASILIA_TIMEZONE, getBrasiliaLastUpdatedString, getBrasiliaTimeString } from './dateUtils';
 
 const getEnvVar = (key: string): string => {
@@ -288,11 +289,12 @@ export async function fetchCities(): Promise<City[]> {
     const cityDbId = dbCity?.id || initCity.id;
     const latestMeasurement = latestRiverLevelsMap.get(cityDbId) || latestRiverLevelsMap.get(initCity.id);
 
-    // Threshold levels: prioritize database values set by admin, fallback to initial catalog defaults
-    const normal_level = Number(dbCity?.normal_level ?? initCity.normal_level) || 3.0;
-    const attention_level = Number(dbCity?.attention_level ?? initCity.attention_level) || 6.0;
-    const alert_level = Number(dbCity?.alert_level ?? initCity.alert_level) || 8.0;
-    const flood_level = Number(dbCity?.flood_level ?? initCity.flood_level) || 10.0;
+    // Threshold levels: prioritize database custom values set by admin, fallback to official catalog
+    const thresholds = getCityThresholds(dbCity || initCity);
+    const normal_level = thresholds.normal;
+    const attention_level = thresholds.attention;
+    const alert_level = thresholds.alert;
+    const flood_level = thresholds.flood;
 
     // Real-time Telemetry
     const rawLevel = latestMeasurement?.level ?? dbCity?.current_level ?? initCity.current_level;
@@ -353,10 +355,10 @@ export async function fetchCities(): Promise<City[]> {
 
       const latestMeasurement = latestRiverLevelsMap.get(dbCity.id);
       const thresholds = getCityThresholds(dbCity);
-      const normal_level = Number(dbCity.normal_level ?? thresholds.normal) || 3.0;
-      const attention_level = Number(dbCity.attention_level ?? thresholds.attention) || 3.0;
-      const alert_level = Number(dbCity.alert_level ?? thresholds.alert) || 6.0;
-      const flood_level = Number(dbCity.flood_level ?? thresholds.flood) || 8.5;
+      const normal_level = thresholds.normal;
+      const attention_level = thresholds.attention;
+      const alert_level = thresholds.alert;
+      const flood_level = thresholds.flood;
 
       const rawLevel = latestMeasurement?.level ?? dbCity.current_level;
       const current_level = typeof rawLevel === 'number' && !isNaN(rawLevel) ? rawLevel : (Number(rawLevel) || 3.0);

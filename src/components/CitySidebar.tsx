@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { City, LevelStatus } from '../types';
 import { ChevronRight, QrCode, ExternalLink, Waves, Filter } from 'lucide-react';
-import { getCityThresholds } from '../data/initialData';
+import { getCityThresholds } from '../data/cityThresholds';
 import { StatusDot } from './StatusDot';
 
 interface CitySidebarProps {

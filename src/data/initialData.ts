@@ -1,92 +1,9 @@
 import { City, Station, NewsItem, AlertItem, SystemLog, LevelStatus, Sponsor } from '../types';
 import { getBrasiliaLastUpdatedString } from '../lib/dateUtils';
+import { CITY_THRESHOLDS, getCityThresholds, HydrologicalThresholds } from './cityThresholds';
 
-export interface HydrologicalThresholds {
-  normal: number;
-  attention: number;
-  alert: number;
-  flood: number;
-}
-
-// CATÁLOGO INTERNO EMANADO DE COTAS OFICIAIS (FONTE SOBERANA DE REFERÊNCIA)
-export const CITY_THRESHOLDS: Record<string, HydrologicalThresholds> = {
-  // Vale do Taquari (7 Cidades)
-  santatereza: { normal: 4.00, attention: 6.00, alert: 8.00, flood: 10.00 },
-  mucum: { normal: 12.00, attention: 14.00, alert: 16.00, flood: 18.00 },
-  encantado: { normal: 6.00, attention: 8.00, alert: 10.00, flood: 12.00 },
-  rocasales: { normal: 12.00, attention: 14.00, alert: 16.00, flood: 18.00 },
-  lajeado: { normal: 13.00, attention: 15.00, alert: 17.00, flood: 19.00 },
-  estrela: { normal: 13.00, attention: 15.00, alert: 17.00, flood: 19.00 },
-  bomretirodosul: { normal: 13.00, attention: 15.00, alert: 17.00, flood: 19.00 },
-
-  // Bacia do Guaíba (10 Cidades)
-  portoalegre: { normal: 1.50, attention: 2.10, alert: 2.50, flood: 3.00 },
-  saoleopoldo: { normal: 2.50, attention: 3.20, alert: 3.80, flood: 4.50 },
-  gravatai: { normal: 2.50, attention: 3.25, alert: 4.00, flood: 4.75 },
-  montenegro: { normal: 4.50, attention: 6.00, alert: 7.00, flood: 8.00 },
-  saosebastiaodocai: { normal: 5.50, attention: 7.00, alert: 8.50, flood: 10.00 },
-  taquari: { normal: 5.00, attention: 7.00, alert: 9.00, flood: 11.00 },
-  taquara: { normal: 3.00, attention: 4.00, alert: 5.00, flood: 6.00 },
-  cachoeiradosul: { normal: 12.00, attention: 14.00, alert: 16.00, flood: 18.00 },
-  donafrancisca: { normal: 4.00, attention: 5.50, alert: 6.50, flood: 7.50 },
-  feliz: { normal: 4.50, attention: 6.00, alert: 7.50, flood: 9.00 }
-};
-
-export function getCityThresholds(slugOrIdOrCity: any): HydrologicalThresholds {
-  if (!slugOrIdOrCity) {
-    return { normal: 4.00, attention: 6.00, alert: 8.00, flood: 10.00 };
-  }
-
-  // 1. Ordem de Prioridade 1: Cotas cadastradas no Supabase (se fornecidas no objeto)
-  if (typeof slugOrIdOrCity === 'object' && slugOrIdOrCity !== null) {
-    const city = slugOrIdOrCity;
-    const hasCustomDbThresholds =
-      typeof city.normal_level === 'number' && city.normal_level > 0 &&
-      typeof city.attention_level === 'number' && city.attention_level > 0 &&
-      typeof city.alert_level === 'number' && city.alert_level > 0 &&
-      typeof city.flood_level === 'number' && city.flood_level > 0;
-
-    if (hasCustomDbThresholds) {
-      return {
-        normal: Number(city.normal_level),
-        attention: Number(city.attention_level),
-        alert: Number(city.alert_level),
-        flood: Number(city.flood_level)
-      };
-    }
-    slugOrIdOrCity = city.slug || city.id || city.name || '';
-  }
-
-  const searchKey = String(slugOrIdOrCity)
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]/g, '');
-
-  // 2. Ordem de Prioridade 2: Catálogo interno estático (CITY_THRESHOLDS)
-  if (CITY_THRESHOLDS[searchKey]) {
-    return CITY_THRESHOLDS[searchKey];
-  }
-
-  const found = INITIAL_CITIES.find(c => {
-    const normSlug = c.slug.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const normName = c.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
-    const normId = c.id.toLowerCase().replace(/[^a-z0-9]/g, '');
-    return normSlug === searchKey || normName === searchKey || normId === searchKey;
-  });
-
-  if (found) {
-    return {
-      normal: Number(found.normal_level ?? 4.00),
-      attention: Number(found.attention_level ?? 6.00),
-      alert: Number(found.alert_level ?? 8.00),
-      flood: Number(found.flood_level ?? 10.00)
-    };
-  }
-
-  return { normal: 4.00, attention: 6.00, alert: 8.00, flood: 10.00 };
-}
+export { CITY_THRESHOLDS, getCityThresholds };
+export type { HydrologicalThresholds };
 
 export function calculateStatusLevel(
   currentLevel: number,
@@ -530,8 +447,13 @@ export const INITIAL_CITIES: City[] = [
   }
 ];
 
-// Ensure all initial cities have last_updated populated with Horário de Brasília (BRT)
+// Populate thresholds from official CITY_THRESHOLDS catalog and ensure last_updated is set
 INITIAL_CITIES.forEach((c) => {
+  const th = getCityThresholds(c.name);
+  c.normal_level = th.normal;
+  c.attention_level = th.attention;
+  c.alert_level = th.alert;
+  c.flood_level = th.flood;
   if (!c.last_updated || c.last_updated === 'Atualizando...') {
     c.last_updated = getBrasiliaLastUpdatedString();
   }
@@ -544,10 +466,10 @@ export const INITIAL_STATIONS: Station[] = INITIAL_CITIES.map((c) => ({
   code: `STA-${c.name.substring(0, 3).toUpperCase()}-01`,
   latitude: c.latitude,
   longitude: c.longitude,
-  normal_level: 3.00,
-  attention_level: 3.00,
-  alert_level: 6.00,
-  flood_level: 8.50,
+  normal_level: c.normal_level,
+  attention_level: c.attention_level,
+  alert_level: c.alert_level,
+  flood_level: c.flood_level,
   sensor_type: 'Radar Hidrométrico',
   precision_cm: 1.0,
   active: true,

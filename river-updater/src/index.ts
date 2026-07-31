@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import { CITY_THRESHOLDS, getCityThresholds } from '../../src/data/cityThresholds.js';
 
 dotenv.config();
 
@@ -127,6 +128,15 @@ export const OFFICIAL_CATALOG_CITIES: DBCity[] = [
   { id: '10000000-0000-4000-8000-000000000011', name: 'Feliz', slug: 'feliz', river: 'Rio Caí', basin: 'guaiba', normal_level: 4.5, attention_level: 6.0, alert_level: 7.5, flood_level: 9.0, latitude: -29.4517, longitude: -51.3050, active: true, ordem: 16 }
 ];
 
+// Populate official catalog thresholds from central cityThresholds
+OFFICIAL_CATALOG_CITIES.forEach((c) => {
+  const th = getCityThresholds(c.name);
+  c.normal_level = th.normal;
+  c.attention_level = th.attention;
+  c.alert_level = th.alert;
+  c.flood_level = th.flood;
+});
+
 const MOCK_INITIAL_STATIONS: DBStation[] = OFFICIAL_CATALOG_CITIES.map((city, idx) => {
   const hexIdx = idx.toString(16).padStart(12, '0');
   return {
@@ -136,10 +146,10 @@ const MOCK_INITIAL_STATIONS: DBStation[] = OFFICIAL_CATALOG_CITIES.map((city, id
     code: `${city.slug}-st1`,
     latitude: city.latitude,
     longitude: city.longitude,
-    normal_level: city.normal_level || 3.0,
-    attention_level: city.attention_level || 3.0,
-    alert_level: city.alert_level || 6.0,
-    flood_level: city.flood_level || 8.5,
+    normal_level: city.normal_level,
+    attention_level: city.attention_level,
+    alert_level: city.alert_level,
+    flood_level: city.flood_level,
     active: true,
     city
   };
@@ -477,15 +487,14 @@ async function syncAndCleanSupabaseTables(): Promise<{
   console.log('[river-updater] 1. Garantindo integridade das tabelas `cities` e `stations` no Supabase...');
 
   // 1. Sincroniza todas as cidades oficiais no Supabase com id (UUID) e slug canônicos
+  const { data: existingDbCities } = await supabase.from('cities').select('id, slug');
+  const existingSlugsSet = new Set((existingDbCities || []).map(c => c.slug));
+
   for (const city of OFFICIAL_CATALOG_CITIES) {
     const cityData: any = {
       name: city.name,
       slug: city.slug,
       river: city.river,
-      normal_level: city.normal_level,
-      attention_level: city.attention_level,
-      alert_level: city.alert_level,
-      flood_level: city.flood_level,
       latitude: city.latitude,
       longitude: city.longitude,
       active: true,
@@ -494,6 +503,21 @@ async function syncAndCleanSupabaseTables(): Promise<{
     if (isValidUuid(city.id)) {
       cityData.id = city.id;
     }
+
+    // Se a cidade não existe no banco, inclui cotas iniciais do catálogo estático
+    if (!existingSlugsSet.has(city.slug)) {
+      cityData.normal_level = city.normal_level;
+      cityData.attention_level = city.attention_level;
+      cityData.alert_level = city.alert_level;
+      cityData.flood_level = city.flood_level;
+    } else {
+      // Nunca atualizar estes campos se a cidade já existe
+      delete cityData.normal_level;
+      delete cityData.attention_level;
+      delete cityData.alert_level;
+      delete cityData.flood_level;
+    }
+
     await supabase.from('cities').upsert(cityData, { onConflict: 'slug' });
   }
 
@@ -580,10 +604,10 @@ async function syncAndCleanSupabaseTables(): Promise<{
       code: stationCode,
       latitude: catalogCity.latitude,
       longitude: catalogCity.longitude,
-      normal_level: catalogCity.normal_level || 3.00,
-      attention_level: catalogCity.attention_level || 3.00,
-      alert_level: catalogCity.alert_level || 6.00,
-      flood_level: catalogCity.flood_level || 8.50,
+      normal_level: catalogCity.normal_level || getCityThresholds(catalogCity).normal,
+      attention_level: catalogCity.attention_level || getCityThresholds(catalogCity).attention,
+      alert_level: catalogCity.alert_level || getCityThresholds(catalogCity).alert,
+      flood_level: catalogCity.flood_level || getCityThresholds(catalogCity).flood,
       active: true
     }, { onConflict: 'code' }).select('*').single();
 
@@ -661,7 +685,7 @@ export async function fetchFromNivelGuaiba(baseUrl: string = 'https://nivelguaib
         }
       }, 2, 800);
 
-      const data: Record<string, number> = await response.json();
+      const data = (await response.json()) as Record<string, number>;
       // 1. Ordene as chaves de data do JSON antes de selecionar a última medição
       const keys = Object.keys(data).sort();
       if (keys.length === 0) continue;
@@ -859,10 +883,10 @@ async function runSync() {
             code: `${canonicalSlug}-st1`,
             latitude: targetCity.latitude,
             longitude: targetCity.longitude,
-            normal_level: targetCity.normal_level || 3.00,
-            attention_level: targetCity.attention_level || 3.00,
-            alert_level: targetCity.alert_level || 6.00,
-            flood_level: targetCity.flood_level || 8.50,
+            normal_level: targetCity.normal_level || getCityThresholds(targetCity).normal,
+            attention_level: targetCity.attention_level || getCityThresholds(targetCity).attention,
+            alert_level: targetCity.alert_level || getCityThresholds(targetCity).alert,
+            flood_level: targetCity.flood_level || getCityThresholds(targetCity).flood,
             active: true
           };
         }
@@ -887,9 +911,10 @@ async function runSync() {
         const rateInMeters = typeof stPayload.rate === 'number' ? Number((stPayload.rate / 100).toFixed(2)) : 0.00;
         const trend = stPayload.trend || (rateInMeters > 0.005 ? 'subindo' : rateInMeters < -0.005 ? 'descendo' : 'estavel');
 
-        const floodThreshold = Number(targetCity.flood_level) || 10.00;
-        const alertThreshold = Number(targetCity.alert_level) || 8.00;
-        const attentionThreshold = Number(targetCity.attention_level) || 6.00;
+        const th = getCityThresholds(targetCity);
+        const floodThreshold = th.flood;
+        const alertThreshold = th.alert;
+        const attentionThreshold = th.attention;
 
         let statusLevel: 'normal' | 'atencao' | 'alerta' | 'inundacao' = stPayload.status || 'normal';
         if (currentLevel >= floodThreshold) statusLevel = 'inundacao';
@@ -901,19 +926,27 @@ async function runSync() {
 
         if (isSupabaseRealConfigured && supabase) {
           // Atualiza registro na tabela `cities` usando o UUID correto (cityId), mantendo cotas e bacia oficiais
+          const payload: Record<string, any> = {
+            current_level: currentLevel,
+            trend,
+            rate_of_change: rateInMeters,
+            status_level: statusLevel,
+            last_updated: lastUpdatedText,
+            updated_at: new Date().toISOString(),
+            river: targetCity.river,
+            basin: targetCity.basin,
+            source_origin: sourceOrigin
+          };
+
+          // Nunca atualizar estes campos
+          delete payload.normal_level;
+          delete payload.attention_level;
+          delete payload.alert_level;
+          delete payload.flood_level;
+
           const { error: cityUpdateError } = await supabase
             .from('cities')
-            .update({
-              current_level: currentLevel,
-              trend,
-              rate_of_change: rateInMeters,
-              status_level: statusLevel,
-              last_updated: lastUpdatedText,
-              updated_at: new Date().toISOString(),
-              river: targetCity.river,
-              basin: targetCity.basin,
-              source_origin: sourceOrigin
-            })
+            .update(payload)
             .eq('id', cityId);
 
           if (cityUpdateError) {

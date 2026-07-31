@@ -10,7 +10,7 @@ import {
   CartesianGrid
 } from 'recharts';
 import { City, ChartDataPoint, Timeframe, LevelStatus } from '../types';
-import { getCityThresholds } from '../data/initialData';
+import { getCityThresholds } from '../data/cityThresholds';
 import { getBrasiliaLastUpdatedString } from '../lib/dateUtils';
 import { X, ExternalLink, MapPin, ArrowUpRight, ArrowDownRight, Minus, Waves, Activity } from 'lucide-react';
 import { StatusDot } from './StatusDot';
