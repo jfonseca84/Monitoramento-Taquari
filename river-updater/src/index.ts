@@ -60,6 +60,9 @@ interface StationPayload {
   lng?: number;
   url?: string;
   source_origin?: string;
+  source_slug?: string;
+  source_url?: string;
+  api_endpoint?: string;
 }
 
 interface DBStation {
@@ -607,6 +610,7 @@ export async function fetchFromNivelGuaiba(baseUrl: string = 'https://nivelguaib
   for (const city of catalogCities) {
     const fetchSlug = city.slug === 'estrela' ? 'lajeado' : city.slug;
     const jsonUrl = `${cleanBaseUrl}/${fetchSlug}.json`;
+    const publicPageUrl = `${cleanBaseUrl}/${city.slug === 'portoalegre' ? '' : city.slug}`;
     try {
       const response = await fetchWithRetry(jsonUrl, {
         headers: {
@@ -616,7 +620,8 @@ export async function fetchFromNivelGuaiba(baseUrl: string = 'https://nivelguaib
       }, 2, 800);
 
       const data: Record<string, number> = await response.json();
-      const keys = Object.keys(data);
+      // 1. Ordene as chaves de data do JSON antes de selecionar a última medição
+      const keys = Object.keys(data).sort();
       if (keys.length === 0) continue;
 
       const lastKey = keys[keys.length - 1];
@@ -645,6 +650,9 @@ export async function fetchFromNivelGuaiba(baseUrl: string = 'https://nivelguaib
       results.push({
         city: city.name,
         slug: city.slug,
+        source_slug: fetchSlug,
+        source_url: publicPageUrl,
+        api_endpoint: jsonUrl,
         level: latestLevel,
         rate,
         trend,

@@ -46,13 +46,15 @@ export class RiverCollectorService {
     for (const item of CATALOG_SLUGS) {
       const fetchSlug = item.slug === 'estrela' ? 'lajeado' : item.slug;
       const jsonUrl = `${cleanBaseUrl}/${fetchSlug}.json`;
+      const publicPageUrl = `${cleanBaseUrl}/${item.slug === 'portoalegre' ? '' : item.slug}`;
       try {
         const res = await fetch(jsonUrl, {
           headers: { 'Accept': 'application/json' }
         });
         if (!res.ok) continue;
         const data = await res.json();
-        const keys = Object.keys(data);
+        // 1. Ordene as chaves de data do JSON antes de selecionar a última medição
+        const keys = Object.keys(data).sort();
         if (keys.length === 0) continue;
 
         const lastKey = keys[keys.length - 1];
@@ -80,6 +82,9 @@ export class RiverCollectorService {
         results.push({
           city: item.name,
           slug: item.slug,
+          source_slug: fetchSlug,
+          source_url: publicPageUrl,
+          api_endpoint: jsonUrl,
           level: latestLevel,
           rate,
           trend,
