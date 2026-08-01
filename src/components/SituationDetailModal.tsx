@@ -43,8 +43,8 @@ export const SituationDetailModal: React.FC<SituationDetailModalProps> = ({
   const sortedCities = [...cities].sort((a, b) => {
     const threshA = getCityThresholds(a);
     const threshB = getCityThresholds(b);
-    const statusA = calculateStatusLevel(a.current_level || 0, threshA);
-    const statusB = calculateStatusLevel(b.current_level || 0, threshB);
+    const statusA = calculateStatusLevel(a.current_level || 0, threshA, a.trend, a.rate_of_change);
+    const statusB = calculateStatusLevel(b.current_level || 0, threshB, b.trend, b.rate_of_change);
     const weightA = statusWeight[statusA] || 1;
     const weightB = statusWeight[statusB] || 1;
 
@@ -58,7 +58,12 @@ export const SituationDetailModal: React.FC<SituationDetailModalProps> = ({
 
   const activeCity = cities.find((c) => c.id === selectedCityId) || sortedCities[0];
   const activeThresholds = getCityThresholds(activeCity);
-  const activeStatus = calculateStatusLevel(activeCity.current_level || 0, activeThresholds);
+  const activeStatus = calculateStatusLevel(
+    activeCity.current_level || 0,
+    activeThresholds,
+    activeCity.trend,
+    activeCity.rate_of_change
+  );
 
   const currentLevel = activeCity.current_level || 0;
   const rateOfChange = activeCity.rate_of_change || 0; // m/h

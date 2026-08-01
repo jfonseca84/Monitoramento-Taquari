@@ -618,7 +618,7 @@ export async function fetchCities(): Promise<City[]> {
       ? getBrasiliaLastUpdatedString(rawLastUpdated)
       : getBrasiliaLastUpdatedString();
 
-    const status_level = calculateStatusLevel(current_level, { normal: normal_level, attention: attention_level, alert: alert_level, flood: flood_level });
+    const status_level = calculateStatusLevel(current_level, { normal: normal_level, attention: attention_level, alert: alert_level, flood: flood_level }, trend, rate_of_change);
 
     const cityImage = getBestImage(dbCity?.image, dbCity?.image_url, initCity.image);
     const cityCameraImage = getBestImage(dbCity?.camera_image, dbCity?.camera_image_url, initCity.camera_image || cityImage);
@@ -677,7 +677,7 @@ export async function fetchCities(): Promise<City[]> {
       const rate_of_change = typeof rawRate === 'number' && !isNaN(rawRate) ? rawRate : (Number(rawRate) || 0);
       const trend = (latestMeasurement?.trend || dbCity.trend || 'estavel') as LevelTrend;
       const rawLastUpdated = latestMeasurement?.recorded_at || dbCity.updated_at || dbCity.last_updated;
-      const status_level = calculateStatusLevel(current_level, { normal: normal_level, attention: attention_level, alert: alert_level, flood: flood_level });
+      const status_level = calculateStatusLevel(current_level, { normal: normal_level, attention: attention_level, alert: alert_level, flood: flood_level }, trend, rate_of_change);
 
       const cityImage = getBestImage(dbCity.image, dbCity.image_url, 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80');
       const cityCameraImage = getBestImage(dbCity.camera_image, dbCity.camera_image_url, cityImage);
@@ -2332,5 +2332,97 @@ export async function processHydrologicalMeasurement(
   }
 
   return localStore.addAlertHistory(payload);
+}
+
+// ==========================================
+// REALTIME SUBSCRIPTION ENGINE
+// ==========================================
+export type ConnectionStatusType = 'online' | 'updating' | 'offline';
+
+export function subscribeToRealtimeChanges(
+  onDataChange: (table: string, payload: any) => void,
+  onStatusChange: (status: ConnectionStatusType, message?: string) => void
+): () => void {
+  if (!isSupabaseConfigured || !supabase) {
+    onStatusChange('online', 'Modo Local');
+    return () => {};
+  }
+
+  let channel: ReturnType<typeof supabase.channel> | null = null;
+  let reconnectTimer: any = null;
+  let isCleanedUp = false;
+
+  const setupSubscription = () => {
+    if (isCleanedUp) return;
+
+    if (channel) {
+      try {
+        supabase.removeChannel(channel);
+      } catch (e) {}
+    }
+
+    onStatusChange('updating', 'Iniciando conexão Realtime...');
+
+    const channelName = `realtime-monitor-${Date.now()}`;
+    channel = supabase.channel(channelName);
+
+    channel
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'river_levels' },
+        (payload) => {
+          onStatusChange('updating', 'Novo dado de nível recebido');
+          onDataChange('river_levels', payload);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'cities' },
+        (payload) => {
+          onStatusChange('updating', 'Atualização da estação recebida');
+          onDataChange('cities', payload);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'alerts' },
+        (payload) => {
+          onStatusChange('updating', 'Novo alerta recebido');
+          onDataChange('alerts', payload);
+        }
+      )
+      .subscribe((status, err) => {
+        if (isCleanedUp) return;
+
+        if (status === 'SUBSCRIBED') {
+          onStatusChange('online', 'Sistema online via Supabase Realtime');
+        } else if (status === 'TIMED_OUT' || status === 'CHANNEL_ERROR') {
+          console.warn(`Supabase Realtime status error: ${status}`, err);
+          onStatusChange('offline', 'Sem conexão com o servidor');
+
+          // Auto-reconnect with backoff
+          clearTimeout(reconnectTimer);
+          reconnectTimer = setTimeout(() => {
+            if (!isCleanedUp) setupSubscription();
+          }, 5000);
+        } else if (status === 'CLOSED') {
+          onStatusChange('offline', 'Sem conexão com o servidor');
+        }
+      });
+  };
+
+  setupSubscription();
+
+  return () => {
+    isCleanedUp = true;
+    clearTimeout(reconnectTimer);
+    if (channel && supabase) {
+      try {
+        supabase.removeChannel(channel);
+      } catch (e) {
+        console.warn('Erro ao remover canal Supabase Realtime:', e);
+      }
+    }
+  };
 }
 

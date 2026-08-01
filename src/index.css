@@ -119,7 +119,7 @@ body {
 
 .animate-marquee {
   display: inline-flex;
-  animation: marquee 35s linear infinite;
+  animation: marquee 85s linear infinite;
 }
 
 .no-scrollbar::-webkit-scrollbar {

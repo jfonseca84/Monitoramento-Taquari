@@ -1,21 +1,26 @@
 import React, { useState } from 'react';
 import { City, LevelStatus } from '../types';
-import { ChevronRight, QrCode, ExternalLink, Waves, Filter } from 'lucide-react';
+import { ChevronRight, QrCode, ExternalLink, Waves, Filter, Activity } from 'lucide-react';
 import { getCityThresholds } from '../data/cityThresholds';
 import { StatusDot } from './StatusDot';
+import { ConnectionStatusType } from '../lib/supabase';
 
 interface CitySidebarProps {
   cities: City[];
   selectedCity: City;
   onSelectCity: (city: City) => void;
   onOpenInfoModal?: () => void;
+  connectionStatus?: ConnectionStatusType;
+  lastUpdatedText?: string;
 }
 
 export const CitySidebar: React.FC<CitySidebarProps> = ({
   cities,
   selectedCity,
   onSelectCity,
-  onOpenInfoModal
+  onOpenInfoModal,
+  connectionStatus = 'online',
+  lastUpdatedText = ''
 }) => {
   const [activeBasin, setActiveBasin] = useState<'taquari' | 'guaiba'>('taquari');
 

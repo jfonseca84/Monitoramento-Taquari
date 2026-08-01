@@ -1,5 +1,6 @@
 import React from 'react';
 import { Waves, Lock, Moon, Sun, Radio } from 'lucide-react';
+import { ConnectionStatusType } from '../lib/supabase';
 
 interface HeaderProps {
   activeTab: string;
@@ -8,6 +9,8 @@ interface HeaderProps {
   isSyncing?: boolean;
   theme?: 'dark' | 'light';
   onToggleTheme?: () => void;
+  connectionStatus?: ConnectionStatusType;
+  lastUpdatedText?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -16,7 +19,9 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAdmin,
   isSyncing = false,
   theme = 'dark',
-  onToggleTheme
+  onToggleTheme,
+  connectionStatus = 'online',
+  lastUpdatedText = ''
 }) => {
   const navItems = [
     { id: 'inicio', label: 'INÍCIO' },
@@ -32,8 +37,9 @@ export const Header: React.FC<HeaderProps> = ({
   ];
 
   return (
-    <header className="sticky top-0 z-40 dark:bg-[#0B132B]/95 bg-white/95 backdrop-blur-md dark:border-slate-800/80 border-slate-200 px-4 lg:px-8 py-3 shadow-sm transition-colors border-b">
-      <div className="max-w-[1600px] mx-auto flex items-center justify-between">
+    <header className="sticky top-0 z-40 dark:bg-[#0B132B]/95 bg-white/95 backdrop-blur-md dark:border-slate-800/80 border-slate-200 shadow-sm transition-colors border-b">
+      
+      <div className="max-w-[1600px] mx-auto px-4 lg:px-8 py-3 flex items-center justify-between">
         
         {/* LOGO */}
         <div 

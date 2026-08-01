@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
 import { CitySidebar } from './components/CitySidebar';
 import { LiveCameraHero } from './components/LiveCameraHero';
@@ -22,7 +22,8 @@ import { SituationBanner } from './components/SituationBanner';
 import { SituationDetailModal } from './components/SituationDetailModal';
 
 import { City, NewsItem, Timeframe, ChartDataPoint, AlertItem } from './types';
-import { fetchCities, fetchNews, fetchCityHistory, fetchAlerts, localStore } from './lib/supabase';
+import { fetchCities, fetchNews, fetchCityHistory, fetchAlerts, localStore, subscribeToRealtimeChanges, ConnectionStatusType } from './lib/supabase';
+import { getBrasiliaFullDateTimeString } from './lib/dateUtils';
 import { AlertTriangle, X, Radio, Video, ChevronRight } from 'lucide-react';
 
 export default function App() {
@@ -34,6 +35,19 @@ export default function App() {
   const [timeframe, setTimeframe] = useState<Timeframe>('24h');
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatusType>('online');
+  const [lastUpdatedText, setLastUpdatedText] = useState<string>(() => getBrasiliaFullDateTimeString());
+
+  // Refs for active selection to prevent stale closures in realtime callbacks
+  const selectedCityRef = useRef<City | null>(selectedCity);
+  useEffect(() => {
+    selectedCityRef.current = selectedCity;
+  }, [selectedCity]);
+
+  const timeframeRef = useRef<Timeframe>(timeframe);
+  useEffect(() => {
+    timeframeRef.current = timeframe;
+  }, [timeframe]);
 
   // Theme State with localStorage persistence
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -100,19 +114,24 @@ export default function App() {
     }
   };
 
-  // Load Data
-  const loadData = async () => {
+  // Load & Refresh All Data
+  const loadData = async (isRealtimeTrigger = false) => {
+    if (isRealtimeTrigger) {
+      setIsSyncing(true);
+      setConnectionStatus('updating');
+    }
     try {
       const cityList = await fetchCities();
       setCities(cityList);
 
-      if (!selectedCity && cityList.length > 0) {
+      const currentSel = selectedCityRef.current;
+      if (!currentSel && cityList.length > 0) {
         // Default select Lajeado or first city
         const defaultCity = cityList.find((c) => c.slug === 'lajeado') || cityList[0];
         setSelectedCity(defaultCity);
-      } else if (selectedCity) {
+      } else if (currentSel) {
         // Refresh selected city reference
-        const updated = cityList.find((c) => c.id === selectedCity.id || c.slug === selectedCity.slug);
+        const updated = cityList.find((c) => c.id === currentSel.id || c.slug === currentSel.slug);
         if (updated) setSelectedCity(updated);
       }
 
@@ -121,16 +140,52 @@ export default function App() {
 
       const alertList = await fetchAlerts();
       setAlerts(alertList);
+
+      if (currentSel || selectedCity) {
+        const targetCity = currentSel || selectedCity;
+        if (targetCity) {
+          const freshHistory = await fetchCityHistory(targetCity.id, timeframeRef.current);
+          setChartData(freshHistory);
+        }
+      }
+
+      setLastUpdatedText(getBrasiliaFullDateTimeString());
+      setConnectionStatus('online');
     } catch (e) {
-      console.error('Error loading initial portal data:', e);
+      console.error('Error loading realtime telemetry data:', e);
+      setConnectionStatus('offline');
+    } finally {
+      setIsSyncing(false);
     }
   };
 
+  // Setup Realtime & Periodic Telemetry Sync
   useEffect(() => {
-    loadData();
+    loadData(false);
+
+    // Subscribe to Supabase Realtime (river_levels, cities, alerts)
+    const unsubscribe = subscribeToRealtimeChanges(
+      (table, payload) => {
+        console.log(`[Supabase Realtime Event] ${table}:`, payload);
+        loadData(true);
+      },
+      (status) => {
+        setConnectionStatus(status);
+      }
+    );
+
+    // Periodic safety fallback poll every 30s
+    const fallbackInterval = setInterval(() => {
+      loadData(false);
+    }, 30000);
+
+    return () => {
+      unsubscribe();
+      clearInterval(fallbackInterval);
+    };
   }, []);
 
-  // Update chart data whenever selectedCity or timeframe changes
+  // Update chart data whenever selectedCity or timeframe changes manually
   useEffect(() => {
     if (selectedCity) {
       fetchCityHistory(selectedCity.id, timeframe).then((data) => {
@@ -145,7 +200,7 @@ export default function App() {
         <div className="flex items-center gap-3">
           <div className="w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
           <span className="text-sm font-semibold tracking-wider uppercase text-cyan-400">
-            Carregando Sistema de Telemetria...
+            Carregando Telemetria em Tempo Real...
           </span>
         </div>
       </div>
@@ -163,6 +218,8 @@ export default function App() {
         isSyncing={isSyncing}
         theme={theme}
         onToggleTheme={toggleTheme}
+        connectionStatus={connectionStatus}
+        lastUpdatedText={lastUpdatedText}
       />
 
       {/* PAINEL DE SITUAÇÃO DO VALE DO TAQUARI (DYNAMIC SYSTEM BANNER) */}

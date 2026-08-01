@@ -88,6 +88,27 @@ export function getBrasiliaDateTimeString(dateInput?: string | number | Date): s
 }
 
 /**
+ * Formats date and time into BRT full string "DD/MM/YYYY HH:mm:ss".
+ */
+export function getBrasiliaFullDateTimeString(dateInput?: string | number | Date): string {
+  let d = dateInput ? new Date(dateInput) : new Date();
+  if (typeof dateInput === 'string' && dateInput.includes(' ') && !dateInput.includes('T')) {
+    d = new Date(dateInput.replace(' ', 'T') + '-03:00');
+  }
+  const validDate = isNaN(d.getTime()) ? new Date() : d;
+
+  return validDate.toLocaleString('pt-BR', {
+    timeZone: BRASILIA_TIMEZONE,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+}
+
+/**
  * Returns formatted "Atualizado às HH:mm" in Horário de Brasília.
  */
 export function getBrasiliaLastUpdatedString(dateInput?: string | number | Date): string {
