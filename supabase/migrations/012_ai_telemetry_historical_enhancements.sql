@@ -16,6 +16,7 @@ CREATE INDEX IF NOT EXISTS idx_river_levels_station_recorded_at ON public.river_
 CREATE INDEX IF NOT EXISTS idx_river_levels_recorded_at ON public.river_levels (recorded_at DESC);
 
 -- View for latest river readings per station/city (Fast state lookup)
+DROP VIEW IF EXISTS public.v_latest_river_levels CASCADE;
 CREATE OR REPLACE VIEW public.v_latest_river_levels AS
 SELECT DISTINCT ON (rl.city_id)
     rl.id,

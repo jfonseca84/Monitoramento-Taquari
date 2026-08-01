@@ -135,6 +135,7 @@ CREATE INDEX IF NOT EXISTS idx_alerts_active ON public.alerts (active, expires_a
 CREATE INDEX IF NOT EXISTS idx_logs_created ON public.logs (created_at DESC);
 
 -- LATEST LEVELS VIEW
+DROP VIEW IF EXISTS public.v_latest_river_levels CASCADE;
 CREATE OR REPLACE VIEW public.v_latest_river_levels AS
 SELECT DISTINCT ON (rl.station_id)
     rl.id,
