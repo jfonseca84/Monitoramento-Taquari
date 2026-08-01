@@ -17,23 +17,29 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({
   onOpenInfoModal,
   onOpenDetailModal
 }) => {
+  const getHeroDefaultImg = (city: City) => {
+    if (city.image && city.image.includes('supabase.co/storage')) return city.image;
+    if (city.camera_image && city.camera_image.includes('supabase.co/storage')) return city.camera_image;
+    return city.image || city.camera_image || '';
+  };
+
   const [imgLoaded, setImgLoaded] = useState(true);
-  const [heroBgImg, setHeroBgImg] = useState<string>(selectedCity.camera_image || selectedCity.image || '');
+  const [heroBgImg, setHeroBgImg] = useState<string>(getHeroDefaultImg(selectedCity));
 
   useEffect(() => {
     let isMounted = true;
-    const currentCityImg = selectedCity.camera_image || selectedCity.image || '';
+    const currentCityImg = getHeroDefaultImg(selectedCity);
     setHeroBgImg(currentCityImg);
 
     async function loadCityCameraHero() {
       try {
+        // If city image is uploaded directly to Supabase storage, prefer city's custom image
+        if (currentCityImg.includes('supabase.co/storage')) {
+          return;
+        }
         const cams = await fetchCamerasByCity(selectedCity.slug);
         if (isMounted && cams.length > 0) {
           const firstCam = cams[0];
-          // If city image is uploaded directly to Supabase storage, prefer city's custom image
-          if (currentCityImg.includes('supabase.co/storage')) {
-            return;
-          }
           if (firstCam.url_thumbnail) {
             setHeroBgImg(firstCam.url_thumbnail);
           } else if (firstCam.tipo === 'Imagem Estática' && firstCam.url_stream) {
@@ -126,7 +132,10 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({
           src={heroBgImg || selectedCity.camera_image || selectedCity.image}
           alt={`Câmera ao vivo ${selectedCity.name}`}
           className="w-full h-full object-cover opacity-35 scale-105 transition-transform duration-700"
-          onError={() => setImgLoaded(false)}
+          onError={(e) => {
+            setImgLoaded(false);
+            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80';
+          }}
         />
         {/* GRADIENT OVERLAYS TO MATCH MOCKUP ATMOSPHERE */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#0B132B]/95 via-[#0B132B]/80 to-[#0B132B]/40" />

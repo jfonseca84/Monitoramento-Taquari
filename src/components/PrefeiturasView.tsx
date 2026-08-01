@@ -32,28 +32,44 @@ export const PrefeiturasView: React.FC<PrefeiturasViewProps> = ({ cities }) => {
         {cities.map((city) => (
           <div
             key={city.id}
-            className="dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-2xl p-5 shadow-xl flex flex-col justify-between space-y-4 border transition-colors"
+            className="dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-2xl overflow-hidden shadow-xl flex flex-col justify-between border transition-colors group"
           >
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-base font-bold dark:text-white text-slate-900">{city.name}</h3>
-                <span className="text-[10px] font-mono font-bold dark:bg-slate-800 bg-slate-100 text-cyan-600 dark:text-cyan-400 px-2 py-0.5 rounded-md dark:border-slate-700 border-slate-200 border">
+            {/* CITY PHOTO HEADER */}
+            <div className="relative h-28 w-full bg-slate-900 overflow-hidden">
+              <img
+                src={city.image || (city as any).image_url || city.camera_image || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80'}
+                alt={city.name}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80';
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/40 to-transparent" />
+              <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between">
+                <span className="text-xs font-black text-white drop-shadow">{city.river || 'Rio Taquari'}</span>
+                <span className="text-[10px] font-mono font-bold bg-slate-900/80 text-cyan-400 px-2 py-0.5 rounded-md border border-slate-700">
                   RS
                 </span>
               </div>
-              <p className="text-xs dark:text-slate-400 text-slate-600 line-clamp-2">
-                {city.description}
-              </p>
             </div>
 
-            <div className="space-y-2 text-xs dark:text-slate-300 text-slate-700 pt-3 dark:border-slate-800 border-slate-200 border-t">
-              <div className="flex items-center gap-2">
-                <Phone className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-                <span className="font-mono">(51) 3714-7000</span>
+            <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+              <div>
+                <h3 className="text-base font-bold dark:text-white text-slate-900">{city.name}</h3>
+                <p className="text-xs dark:text-slate-400 text-slate-600 line-clamp-2 mt-1">
+                  {city.description || 'Município monitorado pela rede hidrológica do Vale do Taquari.'}
+                </p>
               </div>
-              <div className="flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-                <span>defesacivil@{city.slug}.rs.gov.br</span>
+
+              <div className="space-y-2 text-xs dark:text-slate-300 text-slate-700 pt-3 dark:border-slate-800 border-slate-200 border-t">
+                <div className="flex items-center gap-2">
+                  <Phone className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+                  <span className="font-mono">(51) 3714-7000</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+                  <span>defesacivil@{city.slug}.rs.gov.br</span>
+                </div>
               </div>
             </div>
           </div>

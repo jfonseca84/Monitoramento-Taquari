@@ -516,16 +516,21 @@ function normalizeCityKey(str?: any): string {
 }
 
 function getBestImage(dbValue1?: any, dbValue2?: any, fallback?: string): string {
-  const val1 = typeof dbValue1 === 'string' ? dbValue1.trim() : '';
-  const val2 = typeof dbValue2 === 'string' ? dbValue2.trim() : '';
+  const v1 = typeof dbValue1 === 'string' ? dbValue1.trim() : '';
+  const v2 = typeof dbValue2 === 'string' ? dbValue2.trim() : '';
 
-  // Prioritize Supabase Storage upload URLs first
-  if (val1.includes('supabase.co/storage')) return val1;
-  if (val2.includes('supabase.co/storage')) return val2;
+  // 1. Highest priority: Supabase Storage public upload URLs
+  if (v1.includes('supabase.co/storage')) return v1;
+  if (v2.includes('supabase.co/storage')) return v2;
 
-  // Otherwise pick any non-empty custom string
-  if (val1) return val1;
-  if (val2) return val2;
+  // 2. Custom non-Unsplash URLs (e.g. user entered custom URL or uploaded elsewhere)
+  const isUnsplash = (url: string) => url.includes('unsplash.com');
+  if (v2 && !isUnsplash(v2)) return v2;
+  if (v1 && !isUnsplash(v1)) return v1;
+
+  // 3. Any non-empty value from DB
+  if (v2) return v2;
+  if (v1) return v1;
 
   return fallback || '';
 }
@@ -797,6 +802,34 @@ export async function saveCity(cityData: Partial<City>): Promise<City> {
         if (imageUrl) p3.image_url = imageUrl;
         if (cameraImageUrl) p3.camera_image_url = cameraImageUrl;
         result = await updateViaPayload(p3);
+      }
+    }
+
+    // Attempt 3: if update returned no data (row doesn't exist in Supabase yet), insert/upsert row
+    if (!result?.data && !result?.error) {
+      let pInsert: any = { ...p1 };
+      if (!pInsert.slug && cityData.name) {
+        pInsert.slug = cityData.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
+      }
+      let upsertRes = await supabase
+        .from('cities')
+        .upsert(pInsert, { onConflict: 'slug' })
+        .select()
+        .maybeSingle();
+
+      if (upsertRes?.error && (upsertRes.error.code === 'PGRST204' || upsertRes.error.message?.includes('column'))) {
+        let pInsert2: any = { ...p1 };
+        delete pInsert2.image_url;
+        delete pInsert2.camera_image_url;
+        upsertRes = await supabase
+          .from('cities')
+          .upsert(pInsert2, { onConflict: 'slug' })
+          .select()
+          .maybeSingle();
+      }
+
+      if (upsertRes?.data) {
+        result = upsertRes;
       }
     }
 

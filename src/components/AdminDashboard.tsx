@@ -68,6 +68,7 @@ import {
   LogOut,
   Award,
   Upload,
+  Loader2,
   Link as LinkIcon,
   Edit2,
   ShieldAlert,
@@ -2669,14 +2670,64 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             value={cityImage}
                             onChange={(e) => setCityImage(e.target.value)}
                             placeholder="URL da imagem da cidade"
-                            className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                            className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs font-mono"
                           />
-                          <label className="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 rounded-xl cursor-pointer flex items-center gap-1">
-                            <Upload className="w-3.5 h-3.5 text-cyan-400" />
-                            <span>{cityUploading ? '...' : 'Enviar'}</span>
-                            <input type="file" accept="image/*" onChange={handleCityImageUpload} className="hidden" />
+                          <label className="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 rounded-xl cursor-pointer flex items-center gap-1.5 transition-colors">
+                            {cityUploading ? (
+                              <Loader2 className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
+                            ) : (
+                              <Upload className="w-3.5 h-3.5 text-cyan-400" />
+                            )}
+                            <span className="text-xs text-slate-200">{cityUploading ? 'Enviando...' : 'Enviar'}</span>
+                            <input type="file" accept="image/*" onChange={handleCityImageUpload} disabled={cityUploading} className="hidden" />
                           </label>
                         </div>
+
+                        {/* LIVE IMAGE PREVIEW BOX */}
+                        {cityImage ? (
+                          <div className="mt-2.5 p-2.5 bg-slate-900/90 border border-slate-800 rounded-xl flex items-center gap-3">
+                            <div className="relative w-24 h-16 rounded-lg overflow-hidden border border-slate-700 shrink-0 bg-slate-950 flex items-center justify-center">
+                              <img
+                                src={cityImage}
+                                alt="Pré-visualização da cidade"
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80';
+                                }}
+                              />
+                              {cityImage.includes('supabase.co/storage') && (
+                                <span className="absolute bottom-1 right-1 bg-cyan-500 text-slate-950 font-bold text-[8px] px-1 py-0.2 rounded">
+                                  Storage
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-bold text-white flex items-center gap-1">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                  Pré-visualização
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setCityImage('')}
+                                  className="text-[10px] text-slate-400 hover:text-red-400 underline cursor-pointer"
+                                >
+                                  Remover
+                                </button>
+                              </div>
+                              <p className="text-[10px] text-slate-400 font-mono truncate">{cityImage}</p>
+                              {cityImage.includes('supabase.co/storage') ? (
+                                <p className="text-[10px] text-emerald-400 font-semibold">✓ Arquivo no Supabase Storage</p>
+                              ) : (
+                                <p className="text-[10px] text-cyan-400 font-medium">✓ URL Externa de Imagem</p>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-slate-500 mt-1.5 italic">
+                            Sem imagem. Envie uma foto para o Supabase Storage ou insira uma URL.
+                          </p>
+                        )}
                       </div>
 
                       <div>
@@ -2730,16 +2781,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               : 'bg-slate-900/80 border border-slate-800 hover:border-slate-700'
                           }`}
                         >
-                          <div>
-                            <p className="font-bold text-white flex items-center gap-1.5">
-                              <span>{city.name}</span>
-                              {editingCityId === city.id && (
-                                <span className="bg-cyan-500/20 text-cyan-300 text-[10px] px-1.5 py-0.5 rounded font-mono uppercase">
-                                  Editando
-                                </span>
-                              )}
-                            </p>
-                            <p className="text-[11px] text-slate-400">Nível: <span className="text-cyan-400 font-mono font-bold">{city.current_level}m</span></p>
+                          <div className="flex items-center gap-3">
+                            <div className="relative w-12 h-10 rounded-lg overflow-hidden border border-slate-700 bg-slate-950 shrink-0">
+                              <img
+                                src={city.image || (city as any).image_url || city.camera_image || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=300&q=80'}
+                                alt={city.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=300&q=80';
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <p className="font-bold text-white flex items-center gap-1.5">
+                                <span>{city.name}</span>
+                                {editingCityId === city.id && (
+                                  <span className="bg-cyan-500/20 text-cyan-300 text-[10px] px-1.5 py-0.5 rounded font-mono uppercase">
+                                    Editando
+                                  </span>
+                                )}
+                              </p>
+                              <p className="text-[11px] text-slate-400">Nível: <span className="text-cyan-400 font-mono font-bold">{city.current_level}m</span></p>
+                            </div>
                           </div>
                           <div className="flex gap-1">
                             <button
