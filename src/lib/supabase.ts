@@ -703,13 +703,27 @@ export async function saveCity(cityData: Partial<City>): Promise<City> {
     }
 
     if (cityData.id) {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('cities')
         .update(payload)
         .eq('id', cityData.id)
         .select()
-        .single();
-      if (!error && data) {
+        .maybeSingle();
+
+      if ((error || !data) && cityData.slug) {
+        const slugRes = await supabase
+          .from('cities')
+          .update(payload)
+          .eq('slug', cityData.slug)
+          .select()
+          .maybeSingle();
+        if (slugRes.data) {
+          data = slugRes.data;
+          error = slugRes.error;
+        }
+      }
+
+      if (data) {
         updatedCity = {
           ...data,
           image: data.image || data.image_url || cityData.image || '',

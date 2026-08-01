@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { City, NewsItem, AlertItem, Sponsor, AdminUser, AlertSubscriber, AlertNotification, AlertStats, AlertHistoryItem, LevelStatus, CityCamera } from '../types';
 import { getCityThresholds } from '../data/cityThresholds';
 import {
@@ -265,6 +265,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [simResult, setSimResult] = useState<string | null>(null);
 
   // City form state
+  const cityFormRef = useRef<HTMLFormElement>(null);
   const [editingCityId, setEditingCityId] = useState<string | null>(null);
   const [cityName, setCityName] = useState('');
   const [cityRiver, setCityRiver] = useState('Rio Taquari');
@@ -633,16 +634,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     alert('Cidade salva com sucesso!');
   };
 
+  const handleResetCityForm = () => {
+    setEditingCityId(null);
+    setCityName('');
+    setCityRiver('Rio Taquari');
+    setCityLevel(3.0);
+    setCityImage('');
+    setCityCameraUrl('');
+    setCityDescription('');
+    setCityOrder(1);
+    setCityActive(true);
+  };
+
   const handleEditCity = (city: City) => {
     setEditingCityId(city.id);
     setCityName(city.name);
     setCityRiver(city.river || 'Rio Taquari');
     setCityLevel(city.current_level || 3.0);
-    setCityImage(city.image || '');
+    setCityImage(city.image || (city as any).image_url || '');
     setCityCameraUrl(city.camera_url || '');
     setCityDescription(city.description || '');
     setCityOrder(city.ordem || 1);
     setCityActive(city.active ?? true);
+
+    setTimeout(() => {
+      cityFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
   };
 
   const handleDeleteCity = async (id: string, name: string) => {
@@ -2591,10 +2608,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {/* TAB 3: CIDADES */}
               {activeTab === 'cidades' && (
                 <div className="space-y-6">
-                  <form onSubmit={handleSaveCitySubmit} className="bg-[#0F172A] border border-slate-800 p-5 rounded-2xl space-y-4 text-xs">
-                    <h4 className="text-xs font-bold text-slate-200 uppercase">
-                      {editingCityId ? 'Editar Cidade' : 'Cadastrar Nova Cidade'}
-                    </h4>
+                  <form ref={cityFormRef} onSubmit={handleSaveCitySubmit} className="bg-[#0F172A] border border-slate-800 p-5 rounded-2xl space-y-4 text-xs">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                      <h4 className="text-xs font-bold text-slate-200 uppercase flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-cyan-400" />
+                        <span>{editingCityId ? `Editar Cidade: ${cityName || 'Selecionada'}` : 'Cadastrar Nova Cidade'}</span>
+                      </h4>
+                      {editingCityId && (
+                        <button
+                          type="button"
+                          onClick={handleResetCityForm}
+                          className="text-cyan-400 hover:underline text-[11px] font-semibold cursor-pointer"
+                        >
+                          + Cancelar edição e criar nova
+                        </button>
+                      )}
+                    </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
@@ -2672,26 +2701,61 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       />
                     </div>
 
-                    <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2.5 rounded-xl flex items-center gap-2">
-                      <Save className="w-4 h-4" />
-                      <span>Salvar Cidade</span>
-                    </button>
+                    <div className="flex items-center gap-3 pt-2">
+                      <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer transition-colors">
+                        <Save className="w-4 h-4" />
+                        <span>{editingCityId ? 'Atualizar Cidade' : 'Salvar Cidade'}</span>
+                      </button>
+                      {editingCityId && (
+                        <button
+                          type="button"
+                          onClick={handleResetCityForm}
+                          className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl font-medium cursor-pointer transition-colors"
+                        >
+                          Cancelar
+                        </button>
+                      )}
+                    </div>
                   </form>
 
                   <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-5">
                     <h4 className="text-xs font-bold text-slate-200 uppercase mb-3">Cidades Cadastradas ({citiesList.length})</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {citiesList.map((city) => (
-                        <div key={city.id} className="bg-slate-900/80 border border-slate-800 p-3 rounded-xl flex items-center justify-between text-xs">
+                        <div
+                          key={city.id}
+                          className={`p-3 rounded-xl flex items-center justify-between text-xs transition-all ${
+                            editingCityId === city.id
+                              ? 'bg-cyan-950/60 border-2 border-cyan-500 shadow-lg shadow-cyan-950/50'
+                              : 'bg-slate-900/80 border border-slate-800 hover:border-slate-700'
+                          }`}
+                        >
                           <div>
-                            <p className="font-bold text-white">{city.name}</p>
+                            <p className="font-bold text-white flex items-center gap-1.5">
+                              <span>{city.name}</span>
+                              {editingCityId === city.id && (
+                                <span className="bg-cyan-500/20 text-cyan-300 text-[10px] px-1.5 py-0.5 rounded font-mono uppercase">
+                                  Editando
+                                </span>
+                              )}
+                            </p>
                             <p className="text-[11px] text-slate-400">Nível: <span className="text-cyan-400 font-mono font-bold">{city.current_level}m</span></p>
                           </div>
                           <div className="flex gap-1">
-                            <button onClick={() => handleEditCity(city)} className="p-1.5 bg-slate-800 text-cyan-400 rounded-lg">
+                            <button
+                              type="button"
+                              onClick={() => handleEditCity(city)}
+                              title="Editar Cidade"
+                              className="p-2 bg-slate-800 hover:bg-cyan-900/50 text-cyan-400 hover:text-cyan-300 rounded-lg transition-colors cursor-pointer"
+                            >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
-                            <button onClick={() => handleDeleteCity(city.id, city.name)} className="p-1.5 bg-slate-800 text-red-400 rounded-lg">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCity(city.id, city.name)}
+                              title="Excluir Cidade"
+                              className="p-2 bg-slate-800 hover:bg-red-950 text-red-400 hover:text-red-300 rounded-lg transition-colors cursor-pointer"
+                            >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
