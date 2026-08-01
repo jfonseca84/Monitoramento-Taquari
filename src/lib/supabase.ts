@@ -603,18 +603,18 @@ export async function fetchCities(): Promise<City[]> {
     return {
       ...initCity,
       id: cityDbId,
-      name: initCity.name, // ALWAYS keep official catalog display name!
+      name: (dbCity?.name && dbCity.name.trim() !== '') ? dbCity.name : initCity.name,
       slug: initCity.slug,
-      river: initCity.river || dbCity?.river || 'Rio Taquari',
-      basin: initCity.basin || dbCity?.basin || 'taquari',
-      description: initCity.description || dbCity?.description || '',
-      image: initCity.image || dbCity?.image || '',
-      camera_image: initCity.camera_image || dbCity?.camera_image || '',
-      camera_url: initCity.camera_url || dbCity?.camera_url || '',
-      latitude: Number(initCity.latitude || dbCity?.latitude) || -29.4678,
-      longitude: Number(initCity.longitude || dbCity?.longitude) || -51.9614,
+      river: (dbCity?.river && dbCity.river.trim() !== '') ? dbCity.river : (initCity.river || 'Rio Taquari'),
+      basin: (dbCity?.basin && dbCity.basin.trim() !== '') ? dbCity.basin : (initCity.basin || 'taquari'),
+      description: (dbCity?.description && dbCity.description.trim() !== '') ? dbCity.description : (initCity.description || ''),
+      image: (dbCity?.image && typeof dbCity.image === 'string' && dbCity.image.trim() !== '') ? dbCity.image : ((dbCity?.image_url && typeof dbCity.image_url === 'string' && dbCity.image_url.trim() !== '') ? dbCity.image_url : (initCity.image || '')),
+      camera_image: (dbCity?.camera_image && typeof dbCity.camera_image === 'string' && dbCity.camera_image.trim() !== '') ? dbCity.camera_image : ((dbCity?.camera_image_url && typeof dbCity.camera_image_url === 'string' && dbCity.camera_image_url.trim() !== '') ? dbCity.camera_image_url : (initCity.camera_image || '')),
+      camera_url: (dbCity?.camera_url && typeof dbCity.camera_url === 'string' && dbCity.camera_url.trim() !== '') ? dbCity.camera_url : (initCity.camera_url || ''),
+      latitude: Number(dbCity?.latitude || initCity.latitude) || -29.4678,
+      longitude: Number(dbCity?.longitude || initCity.longitude) || -51.9614,
       active: dbCity?.active !== false,
-      ordem: index,
+      ordem: typeof dbCity?.ordem === 'number' ? dbCity.ordem : index,
       station_id: dbCity?.station_id || initCity.station_id,
       current_level,
       rate_of_change,
@@ -694,27 +694,49 @@ export async function saveCity(cityData: Partial<City>): Promise<City> {
   let updatedCity: City;
 
   if (isSupabaseConfigured && supabase) {
+    const payload: any = { ...cityData, updated_at: new Date().toISOString() };
+    if (cityData.image) {
+      payload.image_url = cityData.image;
+    }
+    if (cityData.camera_image) {
+      payload.camera_image_url = cityData.camera_image;
+    }
+
     if (cityData.id) {
       const { data, error } = await supabase
         .from('cities')
-        .update({ ...cityData, updated_at: new Date().toISOString() })
+        .update(payload)
         .eq('id', cityData.id)
         .select()
         .single();
       if (!error && data) {
-        updatedCity = data as City;
+        updatedCity = {
+          ...data,
+          image: data.image || data.image_url || cityData.image || '',
+          camera_image: data.camera_image || data.camera_image_url || cityData.camera_image || ''
+        } as City;
       } else {
+        if (error) {
+          console.error('Erro ao atualizar cidade no Supabase:', error);
+        }
         updatedCity = localStore.updateCity(cityData.id, cityData);
       }
     } else {
       const { data, error } = await supabase
         .from('cities')
-        .insert({ ...cityData })
+        .insert(payload)
         .select()
         .single();
       if (!error && data) {
-        updatedCity = data as City;
+        updatedCity = {
+          ...data,
+          image: data.image || data.image_url || cityData.image || '',
+          camera_image: data.camera_image || data.camera_image_url || cityData.camera_image || ''
+        } as City;
       } else {
+        if (error) {
+          console.error('Erro ao inserir cidade no Supabase:', error);
+        }
         updatedCity = localStore.addCity(cityData as any);
       }
     }
@@ -723,6 +745,15 @@ export async function saveCity(cityData: Partial<City>): Promise<City> {
       updatedCity = localStore.updateCity(cityData.id, cityData);
     } else {
       updatedCity = localStore.addCity(cityData as any);
+    }
+  }
+
+  // Ensure LocalStore is also updated in case of fallback or offline cache
+  if (updatedCity && updatedCity.id) {
+    try {
+      localStore.updateCity(updatedCity.id, updatedCity);
+    } catch (_) {
+      try { localStore.addCity(updatedCity); } catch (e) {}
     }
   }
 
