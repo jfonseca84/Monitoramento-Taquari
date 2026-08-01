@@ -61,16 +61,16 @@ export const SituationBanner: React.FC<SituationBannerProps> = ({
     return `${city.name.toUpperCase()} ${levelStr}m ${trendIcon} ${rateText}`;
   };
 
-  // Color schemes: Deep navy with bright cyan borders and straight corners
-  let bannerBgClass = 'bg-[#040C1C] border-y border-cyan-500/50 text-cyan-100 shadow-md';
-  let badgeBgClass = 'bg-[#081832] text-cyan-300 border border-cyan-500/60 rounded-none font-bold';
+  // Color schemes: Deep navy with clean border and straight corners
+  let bannerBgClass = 'bg-[#040C1C] border-y border-cyan-500/40 text-cyan-100 shadow-sm';
+  let badgeBgClass = 'bg-[#081832] text-cyan-300 border border-cyan-500/50 font-bold';
 
   if (hasFloodRisk) {
-    bannerBgClass = 'bg-[#180608] border-y border-red-500/60 text-red-100 shadow-md';
-    badgeBgClass = 'bg-[#2E0A0D] text-red-200 border border-red-500/70 rounded-none font-bold';
+    bannerBgClass = 'bg-[#040C1C] border-y border-red-500/50 text-red-100 shadow-sm';
+    badgeBgClass = 'bg-[#1F080A] text-red-200 border border-red-500/60 font-bold';
   } else if (hasAlertRisk) {
-    bannerBgClass = 'bg-[#181004] border-y border-amber-500/60 text-amber-100 shadow-md';
-    badgeBgClass = 'bg-[#2B1B06] text-amber-200 border border-amber-500/70 rounded-none font-bold';
+    bannerBgClass = 'bg-[#040C1C] border-y border-amber-500/50 text-amber-100 shadow-sm';
+    badgeBgClass = 'bg-[#1E1404] text-amber-200 border border-amber-500/60 font-bold';
   }
 
   // Render group helper
@@ -111,17 +111,23 @@ export const SituationBanner: React.FC<SituationBannerProps> = ({
       <div className="max-w-[1600px] mx-auto px-2 sm:px-4 py-1">
         <div className="flex items-center justify-between gap-1.5 sm:gap-3">
           
-          {/* LEFT: RIO TAQUARI BADGE */}
+          {/* LEFT: PAINEL ACTION BUTTON */}
           <div className="flex items-center shrink-0">
-            <div className={`flex items-center gap-1 px-2.5 py-0.5 border text-[10px] sm:text-[11px] font-bold uppercase tracking-wider shrink-0 ${badgeBgClass}`}>
-              <span>RIO TAQUARI</span>
-              {hasFloodRisk && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping ml-0.5" />}
-              {hasAlertRisk && !hasFloodRisk && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 ml-0.5" />}
-            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenSituationModal(primaryCity);
+              }}
+              className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-none bg-[#081832] hover:bg-cyan-950 active:scale-95 transition-all text-cyan-300 border border-cyan-500/60 shadow-xs cursor-pointer"
+            >
+              <Radio className="w-2.5 h-2.5 text-cyan-400 animate-pulse" />
+              <span>Painel</span>
+              <ChevronRight className="w-2.5 h-2.5" />
+            </button>
           </div>
 
           {/* CENTER: SLOW ELEGANT TICKER GROUPED BY HYDROGRAPHIC BASINS */}
-          <div className="w-full md:flex-1 overflow-hidden relative group py-0.5 px-2 bg-[#020712] rounded-none border border-cyan-500/40">
+          <div className="w-full md:flex-1 overflow-hidden relative group py-0.5 px-1">
             <div className="whitespace-nowrap flex items-center gap-5 animate-marquee group-hover:[animation-play-state:paused] text-[10px] sm:text-[11px] font-mono leading-none">
               {/* First pass */}
               {renderBasinGroup("RIO TAQUARI", taquariCities)}
@@ -131,21 +137,6 @@ export const SituationBanner: React.FC<SituationBannerProps> = ({
               {renderBasinGroup("RIO TAQUARI", taquariCities)}
               {renderBasinGroup("BACIA DO GUAÍBA", guaibaCities)}
             </div>
-          </div>
-
-          {/* RIGHT: COMPACT ACTION BUTTON */}
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenSituationModal(primaryCity);
-              }}
-              className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-none bg-[#081832] hover:bg-cyan-950 active:scale-95 transition-all text-cyan-300 border border-cyan-500/60 shadow-xs cursor-pointer"
-            >
-              <Radio className="w-2.5 h-2.5 text-cyan-400 animate-pulse" />
-              <span className="hidden sm:inline">Painel</span>
-              <ChevronRight className="w-2.5 h-2.5" />
-            </button>
           </div>
 
         </div>
