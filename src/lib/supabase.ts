@@ -506,13 +506,28 @@ export async function uploadStorageImage(
 // ==========================================
 // CITIES QUERY & MUTATIONS
 // ==========================================
-function normalizeCityKey(str?: string): string {
-  if (!str) return '';
-  return str
+function normalizeCityKey(str?: any): string {
+  if (str === null || str === undefined) return '';
+  return String(str)
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]/g, '');
+}
+
+function getBestImage(dbValue1?: any, dbValue2?: any, fallback?: string): string {
+  const val1 = typeof dbValue1 === 'string' ? dbValue1.trim() : '';
+  const val2 = typeof dbValue2 === 'string' ? dbValue2.trim() : '';
+
+  // Prioritize Supabase Storage upload URLs first
+  if (val1.includes('supabase.co/storage')) return val1;
+  if (val2.includes('supabase.co/storage')) return val2;
+
+  // Otherwise pick any non-empty custom string
+  if (val1) return val1;
+  if (val2) return val2;
+
+  return fallback || '';
 }
 
 export async function fetchCities(): Promise<City[]> {
@@ -540,8 +555,8 @@ export async function fetchCities(): Promise<City[]> {
 
       if (!rError && rData && rData.length > 0) {
         for (const row of rData) {
-          if (row.city_id && !latestRiverLevelsMap.has(row.city_id)) {
-            latestRiverLevelsMap.set(row.city_id, row);
+          if (row.city_id && !latestRiverLevelsMap.has(String(row.city_id))) {
+            latestRiverLevelsMap.set(String(row.city_id), row);
           }
         }
       }
@@ -574,7 +589,7 @@ export async function fetchCities(): Promise<City[]> {
       if (dbCity.name) matchedDbCityKeys.add(normalizeCityKey(dbCity.name));
     }
 
-    const cityDbId = dbCity?.id || initCity.id;
+    const cityDbId = dbCity?.id ? String(dbCity.id) : initCity.id;
     const latestMeasurement = latestRiverLevelsMap.get(cityDbId) || latestRiverLevelsMap.get(initCity.id);
 
     // Threshold levels: prioritize database custom values set by admin, fallback to official catalog
@@ -600,17 +615,20 @@ export async function fetchCities(): Promise<City[]> {
 
     const status_level = calculateStatusLevel(current_level, { normal: normal_level, attention: attention_level, alert: alert_level, flood: flood_level });
 
+    const cityImage = getBestImage(dbCity?.image, dbCity?.image_url, initCity.image);
+    const cityCameraImage = getBestImage(dbCity?.camera_image, dbCity?.camera_image_url, initCity.camera_image || cityImage);
+
     return {
       ...initCity,
       id: cityDbId,
-      name: (dbCity?.name && dbCity.name.trim() !== '') ? dbCity.name : initCity.name,
+      name: (dbCity?.name && String(dbCity.name).trim() !== '') ? String(dbCity.name) : initCity.name,
       slug: initCity.slug,
-      river: (dbCity?.river && dbCity.river.trim() !== '') ? dbCity.river : (initCity.river || 'Rio Taquari'),
-      basin: (dbCity?.basin && dbCity.basin.trim() !== '') ? dbCity.basin : (initCity.basin || 'taquari'),
-      description: (dbCity?.description && dbCity.description.trim() !== '') ? dbCity.description : (initCity.description || ''),
-      image: (dbCity?.image && typeof dbCity.image === 'string' && dbCity.image.trim() !== '') ? dbCity.image : ((dbCity?.image_url && typeof dbCity.image_url === 'string' && dbCity.image_url.trim() !== '') ? dbCity.image_url : (initCity.image || '')),
-      camera_image: (dbCity?.camera_image && typeof dbCity.camera_image === 'string' && dbCity.camera_image.trim() !== '') ? dbCity.camera_image : ((dbCity?.camera_image_url && typeof dbCity.camera_image_url === 'string' && dbCity.camera_image_url.trim() !== '') ? dbCity.camera_image_url : (initCity.camera_image || '')),
-      camera_url: (dbCity?.camera_url && typeof dbCity.camera_url === 'string' && dbCity.camera_url.trim() !== '') ? dbCity.camera_url : (initCity.camera_url || ''),
+      river: (dbCity?.river && String(dbCity.river).trim() !== '') ? String(dbCity.river) : (initCity.river || 'Rio Taquari'),
+      basin: (dbCity?.basin && String(dbCity.basin).trim() !== '') ? String(dbCity.basin) : (initCity.basin || 'taquari'),
+      description: (dbCity?.description && String(dbCity.description).trim() !== '') ? String(dbCity.description) : (initCity.description || ''),
+      image: cityImage,
+      camera_image: cityCameraImage,
+      camera_url: (dbCity?.camera_url && String(dbCity.camera_url).trim() !== '') ? String(dbCity.camera_url) : (initCity.camera_url || ''),
       latitude: Number(dbCity?.latitude || initCity.latitude) || -29.4678,
       longitude: Number(dbCity?.longitude || initCity.longitude) || -51.9614,
       active: dbCity?.active !== false,
@@ -641,7 +659,7 @@ export async function fetchCities(): Promise<City[]> {
       matchedDbCityKeys.add(idKey);
       matchedDbCityKeys.add(nameKey);
 
-      const latestMeasurement = latestRiverLevelsMap.get(dbCity.id);
+      const latestMeasurement = latestRiverLevelsMap.get(String(dbCity.id));
       const thresholds = getCityThresholds(dbCity);
       const normal_level = thresholds.normal;
       const attention_level = thresholds.attention;
@@ -656,15 +674,18 @@ export async function fetchCities(): Promise<City[]> {
       const rawLastUpdated = latestMeasurement?.recorded_at || dbCity.updated_at || dbCity.last_updated;
       const status_level = calculateStatusLevel(current_level, { normal: normal_level, attention: attention_level, alert: alert_level, flood: flood_level });
 
+      const cityImage = getBestImage(dbCity.image, dbCity.image_url, 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80');
+      const cityCameraImage = getBestImage(dbCity.camera_image, dbCity.camera_image_url, cityImage);
+
       mergedCities.push({
-        id: dbCity.id,
+        id: String(dbCity.id),
         name: dbCity.name || 'Nova Estação',
-        slug: dbCity.slug || dbCity.id,
+        slug: dbCity.slug || String(dbCity.id),
         river: dbCity.river || 'Rio Taquari',
         basin: dbCity.basin || 'taquari',
         description: dbCity.description || 'Estação de monitoramento hidrológico.',
-        image: dbCity.image || 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80',
-        camera_image: dbCity.camera_image || 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80',
+        image: cityImage,
+        camera_image: cityCameraImage,
         camera_url: dbCity.camera_url || '',
         latitude: Number(dbCity.latitude) || -29.4678,
         longitude: Number(dbCity.longitude) || -51.9614,
@@ -691,74 +712,165 @@ export async function fetchCities(): Promise<City[]> {
 
 
 export async function saveCity(cityData: Partial<City>): Promise<City> {
-  let updatedCity: City;
+  let updatedCity: City | null = null;
+  const imageUrl = cityData.image || (cityData as any).image_url || '';
+  const cameraImageUrl = cityData.camera_image || (cityData as any).camera_image_url || '';
 
   if (isSupabaseConfigured && supabase) {
-    const payload: any = { ...cityData, updated_at: new Date().toISOString() };
-    if (cityData.image) {
-      payload.image_url = cityData.image;
-    }
-    if (cityData.camera_image) {
-      payload.camera_image_url = cityData.camera_image;
-    }
+    const baseFields: Record<string, any> = {
+      name: cityData.name,
+      slug: cityData.slug,
+      river: cityData.river,
+      basin: cityData.basin,
+      current_level: cityData.current_level,
+      camera_url: cityData.camera_url,
+      description: cityData.description,
+      ordem: cityData.ordem,
+      active: cityData.active,
+      updated_at: new Date().toISOString()
+    };
 
-    if (cityData.id) {
-      let { data, error } = await supabase
-        .from('cities')
-        .update(payload)
-        .eq('id', cityData.id)
-        .select()
-        .maybeSingle();
+    // Clean undefined properties
+    Object.keys(baseFields).forEach(k => {
+      if (baseFields[k] === undefined) delete baseFields[k];
+    });
 
-      if ((error || !data) && cityData.slug) {
-        const slugRes = await supabase
+    const updateViaPayload = async (payloadToUse: any) => {
+      let res: any = null;
+
+      // 1. Try by slug
+      if (cityData.slug) {
+        res = await supabase
           .from('cities')
-          .update(payload)
+          .update(payloadToUse)
           .eq('slug', cityData.slug)
           .select()
           .maybeSingle();
-        if (slugRes.data) {
-          data = slugRes.data;
-          error = slugRes.error;
-        }
       }
 
-      if (data) {
-        updatedCity = {
-          ...data,
-          image: data.image || data.image_url || cityData.image || '',
-          camera_image: data.camera_image || data.camera_image_url || cityData.camera_image || ''
-        } as City;
-      } else {
-        if (error) {
-          console.error('Erro ao atualizar cidade no Supabase:', error);
-        }
-        updatedCity = localStore.updateCity(cityData.id, cityData);
+      // 2. Try by id if no success
+      if ((!res || res.error || !res.data) && cityData.id) {
+        res = await supabase
+          .from('cities')
+          .update(payloadToUse)
+          .eq('id', cityData.id)
+          .select()
+          .maybeSingle();
       }
-    } else {
-      const { data, error } = await supabase
-        .from('cities')
-        .insert(payload)
-        .select()
-        .single();
-      if (!error && data) {
-        updatedCity = {
-          ...data,
-          image: data.image || data.image_url || cityData.image || '',
-          camera_image: data.camera_image || data.camera_image_url || cityData.camera_image || ''
-        } as City;
-      } else {
-        if (error) {
-          console.error('Erro ao inserir cidade no Supabase:', error);
-        }
-        updatedCity = localStore.addCity(cityData as any);
+
+      // 3. Try by name if no success
+      if ((!res || res.error || !res.data) && cityData.name) {
+        res = await supabase
+          .from('cities')
+          .update(payloadToUse)
+          .eq('name', cityData.name)
+          .select()
+          .maybeSingle();
+      }
+
+      return res;
+    };
+
+    // Attempt 1: both image and image_url, camera_image and camera_image_url
+    let p1: any = { ...baseFields };
+    if (imageUrl) {
+      p1.image = imageUrl;
+      p1.image_url = imageUrl;
+    }
+    if (cameraImageUrl) {
+      p1.camera_image = cameraImageUrl;
+      p1.camera_image_url = cameraImageUrl;
+    }
+
+    let result = await updateViaPayload(p1);
+
+    // Attempt 2: if error due to column mismatch, retry with image only
+    if (result?.error && (result.error.code === 'PGRST204' || result.error.message?.includes('column'))) {
+      let p2: any = { ...baseFields };
+      if (imageUrl) p2.image = imageUrl;
+      if (cameraImageUrl) p2.camera_image = cameraImageUrl;
+      result = await updateViaPayload(p2);
+
+      // Attempt 3: if image failed, retry with image_url
+      if (result?.error) {
+        let p3: any = { ...baseFields };
+        if (imageUrl) p3.image_url = imageUrl;
+        if (cameraImageUrl) p3.camera_image_url = cameraImageUrl;
+        result = await updateViaPayload(p3);
       }
     }
-  } else {
-    if (cityData.id) {
-      updatedCity = localStore.updateCity(cityData.id, cityData);
-    } else {
-      updatedCity = localStore.addCity(cityData as any);
+
+    if (result?.data) {
+      const data = result.data;
+      updatedCity = {
+        ...data,
+        id: String(data.id || cityData.id || cityData.slug),
+        image: getBestImage(data.image, data.image_url, imageUrl),
+        camera_image: getBestImage(data.camera_image, data.camera_image_url, cameraImageUrl)
+      } as City;
+    } else if (result?.error) {
+      console.warn('Supabase city update failed, falling back to localStore:', result.error);
+    }
+  }
+
+  // Fallback to localStore update/addition
+  const targetId = cityData.id || cityData.slug || 'lajeado';
+  try {
+    updatedCity = localStore.updateCity(targetId, {
+      ...cityData,
+      image: imageUrl || cityData.image,
+      camera_image: cameraImageUrl || cityData.camera_image
+    });
+  } catch (e) {
+    try {
+      updatedCity = localStore.addCity({
+        name: cityData.name || 'Nova Cidade',
+        slug: cityData.slug || 'nova-cidade',
+        river: cityData.river || 'Taquari',
+        basin: cityData.basin || 'taquari',
+        current_level: cityData.current_level || 3.0,
+        rate_of_change: cityData.rate_of_change || 0,
+        trend: cityData.trend || 'estavel',
+        status_level: cityData.status_level || 'normal',
+        last_updated: cityData.last_updated || 'Agora',
+        normal_level: cityData.normal_level || 3.0,
+        attention_level: cityData.attention_level || 6.0,
+        alert_level: cityData.alert_level || 8.5,
+        flood_level: cityData.flood_level || 11.0,
+        image: imageUrl,
+        camera_image: cameraImageUrl,
+        camera_url: cityData.camera_url || '',
+        description: cityData.description || '',
+        latitude: cityData.latitude || -29.4678,
+        longitude: cityData.longitude || -51.9614,
+        active: cityData.active !== false,
+        ordem: cityData.ordem || 1
+      });
+    } catch (_) {
+      updatedCity = {
+        id: targetId,
+        name: cityData.name || 'Cidade',
+        slug: cityData.slug || targetId,
+        river: cityData.river || 'Taquari',
+        basin: cityData.basin || 'taquari',
+        current_level: cityData.current_level || 3.0,
+        rate_of_change: cityData.rate_of_change || 0,
+        trend: cityData.trend || 'estavel',
+        status_level: cityData.status_level || 'normal',
+        last_updated: cityData.last_updated || 'Agora',
+        normal_level: cityData.normal_level || 3.0,
+        attention_level: cityData.attention_level || 6.0,
+        alert_level: cityData.alert_level || 8.5,
+        flood_level: cityData.flood_level || 11.0,
+        image: imageUrl,
+        camera_image: cameraImageUrl,
+        camera_url: cityData.camera_url || '',
+        description: cityData.description || '',
+        latitude: cityData.latitude || -29.4678,
+        longitude: cityData.longitude || -51.9614,
+        active: cityData.active !== false,
+        ordem: cityData.ordem || 1
+      };
     }
   }
 

@@ -22,13 +22,18 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({
 
   useEffect(() => {
     let isMounted = true;
-    setHeroBgImg(selectedCity.camera_image || selectedCity.image || '');
+    const currentCityImg = selectedCity.camera_image || selectedCity.image || '';
+    setHeroBgImg(currentCityImg);
 
     async function loadCityCameraHero() {
       try {
         const cams = await fetchCamerasByCity(selectedCity.slug);
         if (isMounted && cams.length > 0) {
           const firstCam = cams[0];
+          // If city image is uploaded directly to Supabase storage, prefer city's custom image
+          if (currentCityImg.includes('supabase.co/storage')) {
+            return;
+          }
           if (firstCam.url_thumbnail) {
             setHeroBgImg(firstCam.url_thumbnail);
           } else if (firstCam.tipo === 'Imagem Estática' && firstCam.url_stream) {
