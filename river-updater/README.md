@@ -23,7 +23,7 @@ river-updater/
 1. **Execução Independente**: Funciona isoladamente via linha de comando (CLI) ou agendador Cron, sem qualquer dependência do pacote do frontend.
 2. **Uso Exclusivo de `SUPABASE_SERVICE_ROLE_KEY`**: Exige obrigatoriamente a chave administrativa com bypass de RLS para gravação nas tabelas `cities`, `river_levels` e `sync_logs`.
 3. **Mecanismo de Retry com Backoff Exponencial**: Repete automaticamente requisições HTTP em caso de instabilidades temporárias da fonte oficial ou do servidor.
-4. **Prevenção de Duplicatas**: Valida o timestamp e nível da última medição cadastrada para a cidade antes de inserir novos registros em `river_levels`.
+4. **Prevenção de Duplicatas**: Valida o timestamp da última medição cadastrada para a estação antes de inserir novos registros em `river_levels`. Leituras com níveis iguais em horários distintos são integralmente preservadas.
 5. **Auditoria em `sync_logs`**: Registra duração da execução, contagem de atualizações, duplicatas desconsideradas, erros e status (`sucesso`, `warning` ou `erro`).
 
 ---

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AlertCircle } from 'lucide-react';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -127,6 +128,19 @@ export const LevelChart: React.FC<LevelChartProps> = ({
       {/* RECHARTS CANVAS */}
       <div className="relative w-full h-[260px] sm:h-[300px]">
         
+        {/* INSUFFICIENT DATA OVERLAY */}
+        {(!chartData || chartData.length < 2) && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-xs rounded-2xl text-center p-4 border border-slate-800/60">
+            <AlertCircle className="w-8 h-8 text-amber-400 mb-2 animate-pulse" />
+            <p className="text-xs sm:text-sm font-bold text-slate-200">
+              Ainda não há histórico suficiente para exibir este período.
+            </p>
+            <p className="text-[11px] text-slate-400 mt-1">
+              As medições telemétricas estão sendo registradas continuamente.
+            </p>
+          </div>
+        )}
+
         {/* CURRENT LEVEL BADGE OVER CHART */}
         <div className="absolute right-4 top-2 z-10 bg-cyan-600 text-white font-mono font-bold text-xs px-3 py-1 rounded-lg shadow-lg shadow-cyan-900/50 border border-cyan-400/50 animate-bounce">
           {currentLevel.toFixed(2).replace('.', ',')} m

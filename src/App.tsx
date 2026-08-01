@@ -18,6 +18,9 @@ import { RiverLevelDetailModal } from './components/RiverLevelDetailModal';
 import { LiveCamerasView } from './components/LiveCamerasView';
 import { RiskAlertSignup } from './components/RiskAlertSignup';
 
+import { SituationBanner } from './components/SituationBanner';
+import { SituationDetailModal } from './components/SituationDetailModal';
+
 import { City, NewsItem, Timeframe, ChartDataPoint, AlertItem } from './types';
 import { fetchCities, fetchNews, fetchCityHistory, fetchAlerts, localStore } from './lib/supabase';
 import { AlertTriangle, X, Radio, Video, ChevronRight } from 'lucide-react';
@@ -64,6 +67,8 @@ export default function App() {
   const [isCameraModalOpen, setIsCameraModalOpen] = useState<boolean>(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState<boolean>(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState<boolean>(false);
+  const [isSituationModalOpen, setIsSituationModalOpen] = useState<boolean>(false);
+  const [situationModalCity, setSituationModalCity] = useState<City | null>(null);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -160,24 +165,14 @@ export default function App() {
         onToggleTheme={toggleTheme}
       />
 
-      {/* EMERGENCY ALERT BANNER IF ACTIVE */}
-      {alerts.length > 0 && (
-        <div className="bg-amber-950/80 border-b border-amber-800/80 px-4 py-2 text-xs font-medium text-amber-200">
-          <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 overflow-hidden">
-              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 animate-bounce" />
-              <span className="font-bold text-amber-300">ALERTA DEFESA CIVIL:</span>
-              <span className="truncate">{alerts[0].title} — {alerts[0].description}</span>
-            </div>
-            <button
-              onClick={() => setActiveTab('defesa-civil')}
-              className="text-amber-400 hover:text-white text-[11px] font-bold underline shrink-0"
-            >
-              Saiba Mais
-            </button>
-          </div>
-        </div>
-      )}
+      {/* PAINEL DE SITUAÇÃO DO VALE DO TAQUARI (DYNAMIC SYSTEM BANNER) */}
+      <SituationBanner
+        cities={cities}
+        onOpenSituationModal={(city) => {
+          setSituationModalCity(city || selectedCity);
+          setIsSituationModalOpen(true);
+        }}
+      />
 
       {/* MAIN CONTENT CANVAS */}
       <main className="max-w-[1600px] w-full mx-auto px-4 lg:px-8 py-6 flex-1">
@@ -359,6 +354,18 @@ export default function App() {
           } else {
             setActiveTab('mapa');
           }
+        }}
+      />
+
+      {/* PAINEL DE SITUAÇÃO DETALHADO MODAL */}
+      <SituationDetailModal
+        isOpen={isSituationModalOpen}
+        onClose={() => setIsSituationModalOpen(false)}
+        cities={cities}
+        initialCity={situationModalCity || selectedCity}
+        onSelectCityForChart={(city) => {
+          setSelectedCity(city);
+          setActiveTab('inicio');
         }}
       />
 

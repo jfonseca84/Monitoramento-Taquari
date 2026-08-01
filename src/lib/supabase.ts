@@ -841,6 +841,20 @@ export async function saveCity(cityData: Partial<City>): Promise<City> {
         image: getBestImage(data.image, data.image_url, imageUrl),
         camera_image: getBestImage(data.camera_image, data.camera_image_url, cameraImageUrl)
       } as City;
+
+      if (cityData.current_level !== undefined) {
+        try {
+          await supabase.from('river_levels').insert({
+            city_id: updatedCity.id,
+            level: Number(cityData.current_level),
+            trend: cityData.trend || updatedCity.trend || 'estavel',
+            rate_of_change: Number(cityData.rate_of_change || 0),
+            recorded_at: new Date().toISOString()
+          });
+        } catch (rlErr) {
+          console.warn('Could not insert level into river_levels:', rlErr);
+        }
+      }
     } else if (result?.error) {
       console.warn('Supabase city update failed, falling back to localStore:', result.error);
     }
@@ -1306,25 +1320,93 @@ export async function fetchRiverLevels(cityId: string, limit: number = 50) {
   return [];
 }
 
-export async function fetchCityHistory(cityId: string, timeframe: string) {
+export async function fetchCityHistory(cityId: string, timeframe: string = '24h') {
   if (isSupabaseConfigured && supabase) {
     try {
-      const { data: city } = await supabase.from('cities').select('*').or(`id.eq.${cityId},slug.eq.${cityId}`).limit(1).maybeSingle();
+      const { data: city } = await supabase
+        .from('cities')
+        .select('*')
+        .or(`id.eq.${cityId},slug.eq.${cityId}`)
+        .limit(1)
+        .maybeSingle();
+
       if (city) {
-        const { data: levels } = await supabase
+        const now = new Date();
+        let startDate: Date | null = null;
+        let maxLimit = 1000;
+
+        if (timeframe === '24h') {
+          startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          maxLimit = 100;
+        } else if (timeframe === '7d') {
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          maxLimit = 500;
+        } else if (timeframe === '30d') {
+          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          maxLimit = 1000;
+        } else if (timeframe === '12m') {
+          startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+          maxLimit = 2000;
+        } else if (timeframe === 'all') {
+          startDate = null;
+          maxLimit = 5000;
+        }
+
+        let query = supabase
           .from('river_levels')
           .select('*')
-          .eq('city_id', city.id)
-          .order('recorded_at', { ascending: true })
-          .limit(48);
+          .eq('city_id', city.id);
+
+        if (startDate) {
+          query = query.gte('recorded_at', startDate.toISOString());
+        }
+
+        query = query.order('recorded_at', { ascending: true }).limit(maxLimit);
+
+        let { data: levels } = await query;
+
+        // If no records in timeframe, attempt query without strict lower bound to catch latest available readings
+        if ((!levels || levels.length === 0) && startDate) {
+          const { data: fallbackLevels } = await supabase
+            .from('river_levels')
+            .select('*')
+            .eq('city_id', city.id)
+            .order('recorded_at', { ascending: true })
+            .limit(100);
+
+          if (fallbackLevels && fallbackLevels.length > 0) {
+            levels = fallbackLevels;
+          }
+        }
 
         if (levels && levels.length > 0) {
           const thresholds = getCityThresholds(city);
-          return levels.map((l) => {
+
+          // Downsample if dataset is large to maintain crisp chart rendering
+          let processedLevels = levels;
+          if (processedLevels.length > 120) {
+            const step = Math.ceil(processedLevels.length / 100);
+            processedLevels = processedLevels.filter((_, idx) => idx % step === 0 || idx === processedLevels.length - 1);
+          }
+
+          return processedLevels.map((l) => {
             const dateObj = new Date(l.recorded_at);
-            const timeStr = !isNaN(dateObj.getTime())
-              ? dateObj.toLocaleTimeString('pt-BR', { timeZone: BRASILIA_TIMEZONE, hour: '2-digit', minute: '2-digit' })
-              : String(l.recorded_at);
+            let timeStr = '';
+            if (!isNaN(dateObj.getTime())) {
+              if (timeframe === '24h') {
+                timeStr = dateObj.toLocaleTimeString('pt-BR', { timeZone: BRASILIA_TIMEZONE, hour: '2-digit', minute: '2-digit' });
+              } else if (timeframe === '7d') {
+                timeStr = dateObj.toLocaleDateString('pt-BR', { timeZone: BRASILIA_TIMEZONE, day: '2-digit', month: '2-digit' }) + ' ' + dateObj.toLocaleTimeString('pt-BR', { timeZone: BRASILIA_TIMEZONE, hour: '2-digit', minute: '2-digit' });
+              } else if (timeframe === '30d') {
+                timeStr = dateObj.toLocaleDateString('pt-BR', { timeZone: BRASILIA_TIMEZONE, day: '2-digit', month: '2-digit' });
+              } else if (timeframe === '12m') {
+                timeStr = dateObj.toLocaleDateString('pt-BR', { timeZone: BRASILIA_TIMEZONE, month: 'short', year: '2-digit' });
+              } else {
+                timeStr = dateObj.toLocaleDateString('pt-BR', { timeZone: BRASILIA_TIMEZONE, day: '2-digit', month: '2-digit', year: '2-digit' });
+              }
+            } else {
+              timeStr = String(l.recorded_at);
+            }
 
             return {
               time: timeStr,
@@ -1346,7 +1428,7 @@ export async function fetchCityHistory(cityId: string, timeframe: string) {
   const cities = await fetchCities();
   const city = cities.find((c) => c.id === cityId || c.slug === cityId);
   const currentVal = city?.current_level || 3.12;
-  return generateHistoryForCity(cityId, currentVal);
+  return generateHistoryForCity(cityId, currentVal, timeframe);
 }
 
 // ==========================================

@@ -12,7 +12,7 @@ import {
 import { City, ChartDataPoint, Timeframe, LevelStatus } from '../types';
 import { getCityThresholds } from '../data/cityThresholds';
 import { getBrasiliaLastUpdatedString } from '../lib/dateUtils';
-import { X, ExternalLink, MapPin, ArrowUpRight, ArrowDownRight, Minus, Waves, Activity } from 'lucide-react';
+import { X, ExternalLink, MapPin, ArrowUpRight, ArrowDownRight, Minus, Waves, Activity, AlertCircle } from 'lucide-react';
 import { StatusDot } from './StatusDot';
 
 interface RiverLevelDetailModalProps {
@@ -114,11 +114,11 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
 
   // Timeframe pill options
   const timeframes: { id: Timeframe; label: string }[] = [
-    { id: '24h', label: '24 h' },
-    { id: '7d', label: '2 dias' },
-    { id: '30d', label: '7 dias' },
-    { id: '12m', label: '30 dias' },
-    { id: 'all', label: 'Tudo' }
+    { id: '24h', label: '24 HORAS' },
+    { id: '7d', label: '7 DIAS' },
+    { id: '30d', label: '30 DIAS' },
+    { id: '12m', label: '12 MESES' },
+    { id: 'all', label: 'TODO PERÍODO' }
   ];
 
   // Source URL
@@ -256,6 +256,19 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
 
           {/* RECHARTS AREA CHART */}
           <div className="w-full h-48 md:h-56 relative">
+            {/* INSUFFICIENT DATA OVERLAY */}
+            {(!chartData || chartData.length < 2) && (
+              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-xs rounded-2xl text-center p-4 border border-slate-800/60">
+                <AlertCircle className="w-8 h-8 text-amber-400 mb-2 animate-pulse" />
+                <p className="text-xs sm:text-sm font-bold text-slate-200">
+                  Ainda não há histórico suficiente para exibir este período.
+                </p>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  As medições telemétricas estão sendo registradas continuamente.
+                </p>
+              </div>
+            )}
+
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData} margin={{ top: 15, right: 10, left: -25, bottom: 0 }}>
                 <defs>
@@ -265,7 +278,7 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" vertical={false} />
-                <XAxis dataKey="timestamp" stroke="#64748B" fontSize={10} tickLine={false} />
+                <XAxis dataKey="time" stroke="#64748B" fontSize={10} tickLine={false} />
                 <YAxis domain={['auto', 'auto']} stroke="#64748B" fontSize={10} tickLine={false} />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '12px' }}

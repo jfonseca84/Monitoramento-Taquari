@@ -953,7 +953,7 @@ async function runSync() {
             console.warn(`[river-updater] Erro ao atualizar cities (${targetCity.name}): ${cityUpdateError.message}`);
           }
 
-          // Evita inserções duplicadas em `river_levels` dentro de um intervalo de 5 minutos
+          // Apenas descarta se for comprovadamente a mesma leitura com exatamente o mesmo timestamp (recorded_at)
           const { data: lastReading } = await supabase
             .from('river_levels')
             .select('id, level, recorded_at')
@@ -966,9 +966,10 @@ async function runSync() {
           if (lastReading) {
             const lastTime = new Date(lastReading.recorded_at).getTime();
             const newTime = new Date(recordedAt).getTime();
-            const timeDiffMinutes = Math.abs(newTime - lastTime) / (1000 * 60);
 
-            if (lastReading.recorded_at === recordedAt || (timeDiffMinutes < 5 && Number(lastReading.level) === currentLevel)) {
+            // Apenas leituras comprovadamente duplicadas (mesmo station_id e mesmo recorded_at) são descartadas.
+            // Mesmos níveis em horários distintos são preservados para continuidade temporal e histórico telemétrico.
+            if (lastReading.recorded_at === recordedAt || (lastTime === newTime && !isNaN(lastTime))) {
               isDuplicate = true;
             }
           }
