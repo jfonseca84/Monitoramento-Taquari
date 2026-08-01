@@ -1,24 +1,15 @@
-# Monitoramento automático do Rio Taquari - execução a cada 15 minutos
 name: River Updater Telemetry Sync
 
 on:
   schedule:
-    # Executa a cada 5 minutos
-    - cron: '*/5 * * * *'
+    # Executa a cada 15 minutos
+    - cron: '*/15 * * * *'
   workflow_dispatch: # Permite acionamento manual no painel de Actions do GitHub
-
-# Cancela execuções anteriores se um novo disparo manual for feito
-concurrency:
-  group: river-updater-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   update-river-levels:
     name: Sincronizar Níveis do Rio
     runs-on: ubuntu-latest
-    
-    # Define limite máximo de 5 minutos por execução para evitar jobs travados
-    timeout-minutes: 5
 
     steps:
       - name: Checkout do Repositório
@@ -29,14 +20,18 @@ jobs:
         with:
           node-version: '22.x'
           cache: 'npm'
-          cache-dependency-path: river-updater/package-lock.json
+          cache-dependency-path: river-updater/package.json
 
-      - name: Instalar Dependências
-        run: npm ci --prefix river-updater
+      - name: Instalar Dependências (river-updater)
+        run: |
+          cd river-updater
+          npm ci || npm install
 
       - name: Executar Sincronização Hidrológica
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           OFFICIAL_SOURCE_URL: ${{ secrets.OFFICIAL_SOURCE_URL }}
-        run: npm start --prefix river-updater
+        run: |
+          cd river-updater
+          npm start

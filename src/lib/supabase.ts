@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { City, Station, NewsItem, AlertItem, SystemLog, Sponsor, LevelTrend, LevelStatus, AdminUser, AlertSubscriber, AlertNotification, AlertStats, AlertHistoryItem, AlertDispatchItem, CityCamera } from '../types';
-import { INITIAL_CITIES, INITIAL_STATIONS, INITIAL_NEWS, INITIAL_ALERTS, INITIAL_LOGS, INITIAL_SPONSORS, INITIAL_CITY_CAMERAS, generateHistoryForCity, calculateStatusLevel } from '../data/initialData';
+import { INITIAL_CITIES, INITIAL_STATIONS, INITIAL_NEWS, INITIAL_ALERTS, INITIAL_LOGS, INITIAL_SPONSORS, INITIAL_CITY_CAMERAS, INITIAL_SUBSCRIBERS, generateHistoryForCity, calculateStatusLevel } from '../data/initialData';
 import { getCityThresholds } from '../data/cityThresholds';
 import { BRASILIA_TIMEZONE, getBrasiliaLastUpdatedString, getBrasiliaTimeString } from './dateUtils';
 
@@ -46,11 +46,11 @@ class LocalStore {
         const saved = localStorage.getItem('taquari_subscribers');
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) return parsed;
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         }
       }
     } catch (e) {}
-    return [];
+    return [...INITIAL_SUBSCRIBERS];
   })();
   private notifications: AlertNotification[] = (() => {
     try {
@@ -123,7 +123,9 @@ class LocalStore {
 
   getSubscribers(citySlug?: string, neighborhood?: string): AlertSubscriber[] {
     let list = [...this.subscribers];
-    if (citySlug) list = list.filter(s => s.city_slug === citySlug);
+    if (citySlug && citySlug !== 'all' && citySlug !== 'todas') {
+      list = list.filter(s => s.city_slug === citySlug || s.cidade === citySlug);
+    }
     if (neighborhood) list = list.filter(s => s.neighborhood.toLowerCase().includes(neighborhood.toLowerCase()));
     return list;
   }
@@ -1482,6 +1484,65 @@ export async function fetchAlertSubscribers(
     receber_alertas: item.receber_alertas ?? item.active ?? true,
     criado_em: item.criado_em || item.created_at || new Date().toISOString()
   }));
+}
+
+export async function saveAlertSubscriber(subscriberData: Partial<AlertSubscriber>): Promise<AlertSubscriber> {
+  const payload = {
+    nome_completo: subscriberData.nome_completo || subscriberData.name || 'Morador',
+    name: subscriberData.nome_completo || subscriberData.name || 'Morador',
+    email: subscriberData.email || '',
+    whatsapp: subscriberData.whatsapp || '',
+    cidade: subscriberData.cidade || subscriberData.city_slug || 'lajeado',
+    city_slug: subscriberData.cidade || subscriberData.city_slug || 'lajeado',
+    bairro: subscriberData.bairro || subscriberData.neighborhood || 'Centro',
+    neighborhood: subscriberData.bairro || subscriberData.neighborhood || 'Centro',
+    rua: subscriberData.rua || '',
+    numero: subscriberData.numero || '',
+    complemento: subscriberData.complemento || '',
+    cota_residencia: Number(subscriberData.cota_residencia || 0),
+    receber_alertas: subscriberData.receber_alertas ?? subscriberData.active ?? true,
+    active: subscriberData.receber_alertas ?? subscriberData.active ?? true,
+    atualizado_em: new Date().toISOString()
+  };
+
+  if (subscriberData.id) {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('alert_subscribers')
+          .update(payload)
+          .eq('id', subscriberData.id)
+          .select()
+          .single();
+        if (!error && data) {
+          localStore.updateSubscriber(subscriberData.id, data as AlertSubscriber);
+          return data as AlertSubscriber;
+        }
+      } catch (e) {
+        console.warn('Supabase saveAlertSubscriber update error:', e);
+      }
+    }
+    const updated = localStore.updateSubscriber(subscriberData.id, payload);
+    if (updated) return updated;
+  } else {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('alert_subscribers')
+          .insert({ ...payload, criado_em: new Date().toISOString(), created_at: new Date().toISOString() })
+          .select()
+          .single();
+        if (!error && data) {
+          localStore.addSubscriber(data as AlertSubscriber);
+          return data as AlertSubscriber;
+        }
+      } catch (e) {
+        console.warn('Supabase saveAlertSubscriber insert error:', e);
+      }
+    }
+    return localStore.addSubscriber(payload as any);
+  }
+  return subscriberData as AlertSubscriber;
 }
 
 export async function toggleSubscriberActive(id: string, active: boolean): Promise<void> {

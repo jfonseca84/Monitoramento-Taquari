@@ -178,6 +178,9 @@ export interface AlertSubscriber {
   whatsapp?: string;
   cidade: string;
   bairro: string;
+  rua?: string;
+  numero?: string;
+  complemento?: string;
   cota_residencia: number;
   receber_alertas: boolean;
   criado_em?: string;

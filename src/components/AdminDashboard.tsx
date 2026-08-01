@@ -45,9 +45,11 @@ import {
   processDispatchQueue
 } from '../lib/supabase';
 import { AlertDispatchItem } from '../types';
+import { ResidentsIntelligenceView } from './ResidentsIntelligenceView';
 import {
   X,
   LayoutDashboard,
+  Home,
   Building2,
   Camera,
   Video,
@@ -1117,6 +1119,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <aside className="w-full md:w-64 bg-[#0B132B] border-r border-slate-800 p-3 flex flex-row md:flex-col gap-1 overflow-x-auto shrink-0">
               {[
                 { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+                { id: 'moradores', label: 'Moradores Cadastrados', icon: Home },
                 { id: 'central_alertas', label: 'Central de Alertas', icon: Radio },
                 { id: 'rede_alertas', label: 'Alertas de Moradores', icon: BellRing },
                 { id: 'patrocinadores', label: 'Patrocinadores', icon: Award },
@@ -1183,6 +1186,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </p>
                   </div>
                 </div>
+              )}
+
+              {/* TAB: MORADORES CADASTRADOS */}
+              {activeTab === 'moradores' && (
+                <ResidentsIntelligenceView
+                  subscribers={subscribersList}
+                  cities={citiesList}
+                  onRefresh={loadAllAdminData}
+                />
               )}
 
               {/* TAB: CENTRAL DE ALERTAS */}
