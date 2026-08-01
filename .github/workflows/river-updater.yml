@@ -7,10 +7,18 @@ on:
     - cron: '*/15 * * * *'
   workflow_dispatch: # Permite acionamento manual no painel de Actions do GitHub
 
+# Cancela execuções anteriores se um novo disparo manual for feito
+concurrency:
+  group: river-updater-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   update-river-levels:
     name: Sincronizar Níveis do Rio
     runs-on: ubuntu-latest
+    
+    # Define limite máximo de 5 minutos por execução para evitar jobs travados
+    timeout-minutes: 5
 
     steps:
       - name: Checkout do Repositório
@@ -21,18 +29,14 @@ jobs:
         with:
           node-version: '22.x'
           cache: 'npm'
-          cache-dependency-path: river-updater/package.json
+          cache-dependency-path: river-updater/package-lock.json
 
-      - name: Instalar Dependências (river-updater)
-        run: |
-          cd river-updater
-          npm ci || npm install
+      - name: Instalar Dependências
+        run: npm ci --prefix river-updater
 
       - name: Executar Sincronização Hidrológica
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           OFFICIAL_SOURCE_URL: ${{ secrets.OFFICIAL_SOURCE_URL }}
-        run: |
-          cd river-updater
-          npm start
+        run: npm start --prefix river-updater
