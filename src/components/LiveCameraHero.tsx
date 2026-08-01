@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { City, LevelStatus } from '../types';
 import { Info, Video, MapPin } from 'lucide-react';
-import { getBrasiliaDateTimeString } from '../lib/dateUtils';
+import { getBrasiliaDateString, getBrasiliaTimeString } from '../lib/dateUtils';
 import { fetchCamerasByCity } from '../lib/supabase';
 
 interface LiveCameraHeroProps {
@@ -115,7 +115,9 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({
 
   // Format date display in Horário de Brasília
   const rawDate = selectedCity.updated_at || selectedCity.last_updated;
-  const displayTimestamp = getBrasiliaDateTimeString(rawDate && rawDate !== 'Atualizando...' ? rawDate : undefined);
+  const validDate = rawDate && rawDate !== 'Atualizando...' ? rawDate : undefined;
+  const displayDate = getBrasiliaDateString(validDate);
+  const displayTime = getBrasiliaTimeString(validDate).replace(':', 'h');
 
 
   // Station location name
@@ -206,7 +208,7 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({
 
         {/* TIMESTAMP SUBTITLE */}
         <p className="text-xs text-slate-300 font-medium tracking-wide mt-2">
-          {displayTimestamp} • Leitura em tempo real
+          {displayDate} • Última atualização às {displayTime}
         </p>
       </div>
 
