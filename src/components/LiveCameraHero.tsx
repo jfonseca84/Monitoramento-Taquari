@@ -102,12 +102,14 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({
     ? selectedCity.current_level.toFixed(2).replace('.', ',')
     : '0,00';
 
-  const rateOfChangeCm = typeof selectedCity.rate_of_change === 'number' && !isNaN(selectedCity.rate_of_change)
-    ? Math.abs(selectedCity.rate_of_change * 100).toFixed(0)
-    : '0';
+  const rawRateVal = typeof selectedCity.rate_of_change === 'number' && !isNaN(selectedCity.rate_of_change)
+    ? selectedCity.rate_of_change
+    : 0;
+  const rateValCm = Number((rawRateVal * 100).toFixed(1));
+  const rateOfChangeCmStr = Math.abs(rateValCm).toString().replace('.0', '').replace('.', ',');
 
-  const isUp = selectedCity.trend === 'subindo';
-  const isDown = selectedCity.trend === 'descendo';
+  const isUp = selectedCity.trend === 'subindo' || rateValCm > 0;
+  const isDown = selectedCity.trend === 'descendo' || rateValCm < 0;
 
   const trendSymbol = isUp ? '↗' : isDown ? '↘' : '→';
   const trendSign = isUp ? '+' : isDown ? '-' : '';
@@ -202,7 +204,7 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({
           {/* TREND BADGE Beside Level Number (Aligned on the baseline of 'm') */}
           <div className={`flex items-center gap-1.5 bg-[#121A2D]/90 border border-slate-700/80 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold font-mono self-baseline ${trendColorClass}`}>
             <span className="text-sm">{trendSymbol}</span>
-            <span>{trendSign}{rateOfChangeCm} cm/h (1h)</span>
+            <span>{trendSign}{rateOfChangeCmStr} cm/h (1h)</span>
           </div>
         </div>
 

@@ -162,6 +162,19 @@ export class SupabaseService {
     return (data as DBStation[]) || [];
   }
 
+  public static async fetchRecentStationReadings(stationId: string, limit: number = 30): Promise<any[]> {
+    const client = this.getClient();
+    const { data, error } = await client
+      .from('river_levels')
+      .select('level, recorded_at')
+      .eq('station_id', stationId)
+      .order('recorded_at', { ascending: false })
+      .limit(limit);
+
+    if (error) return [];
+    return data || [];
+  }
+
   public static async fetchRecentReadingsSet(stationIds: string[]): Promise<Set<string>> {
     const existingSet = new Set<string>();
     if (stationIds.length === 0) return existingSet;

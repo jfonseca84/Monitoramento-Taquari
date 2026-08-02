@@ -61,23 +61,44 @@ export class RiverCollectorService {
         const latestLevel = Number(data[lastKey]);
         if (isNaN(latestLevel)) continue;
 
-        let prevLevel = latestLevel;
-        if (keys.length > 1) {
-          const lookbackIdx = Math.max(0, keys.length - 5);
-          const val = Number(data[keys[lookbackIdx]]);
-          if (!isNaN(val)) prevLevel = val;
-        }
-
-        const rate = Number((latestLevel - prevLevel).toFixed(2));
-        let trend = 'estavel';
-        if (rate > 0.01) trend = 'subindo';
-        else if (rate < -0.01) trend = 'descendo';
-
         let tsIso = new Date().toISOString();
+        let lastTimeMs = Date.now();
         if (lastKey) {
           const parsed = new Date(lastKey.replace(' ', 'T'));
-          if (!isNaN(parsed.getTime())) tsIso = parsed.toISOString();
+          if (!isNaN(parsed.getTime())) {
+            tsIso = parsed.toISOString();
+            lastTimeMs = parsed.getTime();
+          }
         }
+
+        // Cálculo exato de ~60 minutos atrás
+        let prevLevel = latestLevel;
+        let prevTimeMs = lastTimeMs;
+
+        if (keys.length > 1 && !isNaN(lastTimeMs)) {
+          const target1hMs = lastTimeMs - 60 * 60 * 1000;
+          let minDiff = Infinity;
+          for (const k of keys) {
+            const kTime = new Date(k.replace(' ', 'T')).getTime();
+            if (isNaN(kTime)) continue;
+            const diffFromTarget = Math.abs(kTime - target1hMs);
+            if (diffFromTarget < minDiff) {
+              minDiff = diffFromTarget;
+              prevLevel = Number(data[k]);
+              prevTimeMs = kTime;
+            }
+          }
+        }
+
+        const timeDiffHours = (lastTimeMs - prevTimeMs) / (1000 * 60 * 60);
+        const levelDiffMeters = latestLevel - prevLevel;
+        const rate = (timeDiffHours > 0 && !isNaN(levelDiffMeters))
+          ? Number((levelDiffMeters / timeDiffHours).toFixed(4))
+          : 0.00;
+
+        let trend = 'estavel';
+        if (rate > 0.005) trend = 'subindo';
+        else if (rate < -0.005) trend = 'descendo';
 
         results.push({
           city: item.name,

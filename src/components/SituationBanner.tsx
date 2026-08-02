@@ -53,9 +53,10 @@ export const SituationBanner: React.FC<SituationBannerProps> = ({
     if (city.trend === 'descendo') trendIcon = '↓';
 
     let rateText = 'estável';
-    if (city.rate_of_change && Math.abs(city.rate_of_change) > 0) {
-      const cmPerHour = Math.round(city.rate_of_change * 100);
-      rateText = `${cmPerHour > 0 ? '+' : ''}${cmPerHour}cm/h`;
+    if (typeof city.rate_of_change === 'number' && Math.abs(city.rate_of_change) > 0) {
+      const cmVal = Number((city.rate_of_change * 100).toFixed(1));
+      const formattedCm = Math.abs(cmVal).toString().replace('.0', '').replace('.', ',');
+      rateText = `${cmVal > 0 ? '+' : cmVal < 0 ? '-' : ''}${formattedCm}cm/h`;
     }
 
     return `${city.name.toUpperCase()} ${levelStr}m ${trendIcon} ${rateText}`;

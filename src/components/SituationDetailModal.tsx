@@ -70,10 +70,12 @@ export const SituationDetailModal: React.FC<SituationDetailModalProps> = ({
 
   // Hourly variations calculations
   const var1hMeters = rateOfChange;
-  const var1hCm = Math.round(var1hMeters * 100);
+  const var1hCmVal = Number((var1hMeters * 100).toFixed(1));
+  const var1hCmStr = Math.abs(var1hCmVal).toString().replace('.0', '').replace('.', ',');
 
   const var6hMeters = rateOfChange * 6;
-  const var6hCm = Math.round(var6hMeters * 100);
+  const var6hCmVal = Number((var6hMeters * 100).toFixed(1));
+  const var6hCmStr = Math.abs(var6hCmVal).toString().replace('.0', '').replace('.', ',');
 
   // Future mathematical projections (3h, 6h, 12h)
   const proj3h = Math.max(0, currentLevel + rateOfChange * 3);
@@ -239,7 +241,7 @@ export const SituationDetailModal: React.FC<SituationDetailModalProps> = ({
               <div className="flex items-center gap-1.5 mt-2 font-mono">
                 <Activity className="w-4 h-4 text-cyan-400" />
                 <span className="text-sm font-bold text-cyan-300">
-                  {var1hCm > 0 ? `+${var1hCm}` : var1hCm} cm/h
+                  {var1hCmVal > 0 ? `+${var1hCmStr}` : var1hCmVal < 0 ? `-${var1hCmStr}` : '0'} cm/h
                 </span>
               </div>
             </div>
@@ -248,8 +250,8 @@ export const SituationDetailModal: React.FC<SituationDetailModalProps> = ({
             <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 flex flex-col justify-between">
               <span className="text-[11px] font-semibold text-slate-400 uppercase">Última 1 Hora</span>
               <div className="flex items-center gap-1.5 mt-2 font-mono">
-                <span className={`text-sm font-bold ${var1hCm > 0 ? 'text-rose-400' : var1hCm < 0 ? 'text-emerald-400' : 'text-slate-300'}`}>
-                  {var1hCm > 0 ? `+${var1hCm}` : var1hCm} cm
+                <span className={`text-sm font-bold ${var1hCmVal > 0 ? 'text-rose-400' : var1hCmVal < 0 ? 'text-emerald-400' : 'text-slate-300'}`}>
+                  {var1hCmVal > 0 ? `+${var1hCmStr}` : var1hCmVal < 0 ? `-${var1hCmStr}` : '0'} cm
                 </span>
               </div>
             </div>
@@ -258,8 +260,8 @@ export const SituationDetailModal: React.FC<SituationDetailModalProps> = ({
             <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 flex flex-col justify-between">
               <span className="text-[11px] font-semibold text-slate-400 uppercase">Últimas 6 Horas</span>
               <div className="flex items-center gap-1.5 mt-2 font-mono">
-                <span className={`text-sm font-bold ${var6hCm > 0 ? 'text-rose-400' : var6hCm < 0 ? 'text-emerald-400' : 'text-slate-300'}`}>
-                  {var6hCm > 0 ? `+${var6hCm}` : var6hCm} cm
+                <span className={`text-sm font-bold ${var6hCmVal > 0 ? 'text-rose-400' : var6hCmVal < 0 ? 'text-emerald-400' : 'text-slate-300'}`}>
+                  {var6hCmVal > 0 ? `+${var6hCmStr}` : var6hCmVal < 0 ? `-${var6hCmStr}` : '0'} cm
                 </span>
               </div>
             </div>

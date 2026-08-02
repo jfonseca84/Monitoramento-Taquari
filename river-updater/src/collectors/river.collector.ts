@@ -197,23 +197,46 @@ export async function fetchFromNivelGuaiba(baseUrl: string = 'https://nivelguaib
       const latestLevel = Number(data[lastKey]);
       if (isNaN(latestLevel)) return null;
 
-      let prevLevel = latestLevel;
-      if (keys.length > 1) {
-        const lookbackIdx = Math.max(0, keys.length - 5);
-        const lookbackVal = Number(data[keys[lookbackIdx]]);
-        if (!isNaN(lookbackVal)) prevLevel = lookbackVal;
-      }
-
-      const rate = Number((latestLevel - prevLevel).toFixed(2));
-      let trend: 'subindo' | 'descendo' | 'estavel' = 'estavel';
-      if (rate > 0.01) trend = 'subindo';
-      else if (rate < -0.01) trend = 'descendo';
-
       let tsIso = new Date().toISOString();
+      let lastTimeMs = Date.now();
       if (lastKey) {
         const parsed = new Date(lastKey.replace(' ', 'T'));
-        if (!isNaN(parsed.getTime())) tsIso = parsed.toISOString();
+        if (!isNaN(parsed.getTime())) {
+          tsIso = parsed.toISOString();
+          lastTimeMs = parsed.getTime();
+        }
       }
+
+      // Cálculo exato da variação da última hora (janela de ~60 minutos = 3.600.000 ms)
+      let prevLevel = latestLevel;
+      let prevTimeMs = lastTimeMs;
+
+      if (keys.length > 1 && !isNaN(lastTimeMs)) {
+        const target1hTimeMs = lastTimeMs - 60 * 60 * 1000;
+        let minDiff = Infinity;
+
+        for (const k of keys) {
+          const kTime = new Date(k.replace(' ', 'T')).getTime();
+          if (isNaN(kTime)) continue;
+          const diffFromTarget = Math.abs(kTime - target1hTimeMs);
+          if (diffFromTarget < minDiff) {
+            minDiff = diffFromTarget;
+            prevLevel = Number(data[k]);
+            prevTimeMs = kTime;
+          }
+        }
+      }
+
+      const timeDiffHours = (lastTimeMs - prevTimeMs) / (1000 * 60 * 60);
+      const levelDiffMeters = latestLevel - prevLevel;
+      // Taxa em metros por hora (m/h) com alta precisão
+      const rate = (timeDiffHours > 0 && !isNaN(levelDiffMeters))
+        ? Number((levelDiffMeters / timeDiffHours).toFixed(4))
+        : 0.00;
+
+      let trend: 'subindo' | 'descendo' | 'estavel' = 'estavel';
+      if (rate > 0.005) trend = 'subindo';
+      else if (rate < -0.005) trend = 'descendo';
 
       return {
         city: city.name,
@@ -386,7 +409,49 @@ export class RiverCollector {
           const stationId = matchedStation.id;
 
           const currentLevel = Number(stPayload.level.toFixed(2));
-          const rateInMeters = typeof stPayload.rate === 'number' ? Number((stPayload.rate / 100).toFixed(2)) : 0.00;
+          const recordedAt = stPayload.ts || new Date().toISOString();
+
+          // Normalização da taxa de variação (m/h com alta precisão)
+          let rateInMeters = 0.00;
+          if (typeof stPayload.rate === 'number' && !isNaN(stPayload.rate)) {
+            // Se a taxa for informada em cm/h (ex: -2.8 ou 2.8), converte para m/h (-0.028)
+            if (Math.abs(stPayload.rate) > 2.0) {
+              rateInMeters = Number((stPayload.rate / 100).toFixed(4));
+            } else {
+              rateInMeters = Number(stPayload.rate.toFixed(4));
+            }
+          }
+
+          // Se a taxa for zero, realiza busca retroativa de ~60 min nas medições recentes do banco
+          if (rateInMeters === 0.00) {
+            const recentStationReadings = await SupabaseService.fetchRecentStationReadings(stationId, 30);
+            if (recentStationReadings && recentStationReadings.length > 0) {
+              const currentMs = new Date(recordedAt).getTime();
+              const target1hMs = currentMs - 60 * 60 * 1000;
+              let closestReading: any = null;
+              let minDiff = Infinity;
+
+              for (const r of recentStationReadings) {
+                const rMs = new Date(r.recorded_at).getTime();
+                if (isNaN(rMs)) continue;
+                const diffFromTarget = Math.abs(rMs - target1hMs);
+                if (diffFromTarget < minDiff) {
+                  minDiff = diffFromTarget;
+                  closestReading = r;
+                }
+              }
+
+              if (closestReading) {
+                const closestMs = new Date(closestReading.recorded_at).getTime();
+                const dtHours = (currentMs - closestMs) / (1000 * 60 * 60);
+                if (dtHours > 0) {
+                  const diffMeters = currentLevel - Number(closestReading.level);
+                  rateInMeters = Number((diffMeters / dtHours).toFixed(4));
+                }
+              }
+            }
+          }
+
           const trend = stPayload.trend || (rateInMeters > 0.005 ? 'subindo' : rateInMeters < -0.005 ? 'descendo' : 'estavel');
 
           const th = getCityThresholds(targetCity.name);
@@ -396,7 +461,6 @@ export class RiverCollector {
           else if (currentLevel >= th.attention) statusLevel = 'atencao';
 
           const lastUpdatedText = formatLastUpdated();
-          const recordedAt = stPayload.ts || new Date().toISOString();
 
           // Atualizar estado da cidade no Supabase
           const updatedOk = await SupabaseService.updateCityState(cityId, {

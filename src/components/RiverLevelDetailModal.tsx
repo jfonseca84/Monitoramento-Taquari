@@ -58,9 +58,10 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
   const floodLevelStr = floodLevel.toFixed(2).replace('.', ',');
 
   // Trend rate formatted
-  const rateChange = typeof selectedCity.rate_of_change === 'number' && !isNaN(selectedCity.rate_of_change) ? selectedCity.rate_of_change : (selectedCity.trend === 'subindo' ? 0.05 : -0.13);
-  const rateCmHour = (rateChange * 100).toFixed(1);
-  const trendFormatted = `${rateChange >= 0 ? '+' : ''}${rateCmHour} cm/h`;
+  const rateChange = typeof selectedCity.rate_of_change === 'number' && !isNaN(selectedCity.rate_of_change) ? selectedCity.rate_of_change : 0;
+  const rateCmHourVal = Number((rateChange * 100).toFixed(1));
+  const rateCmHourStr = Math.abs(rateCmHourVal).toString().replace('.0', '').replace('.', ',');
+  const trendFormatted = `${rateCmHourVal > 0 ? '+' : rateCmHourVal < 0 ? '-' : ''}${rateCmHourStr} cm/h`;
 
   // Min & Max in history
   const levelsInSeries = (chartData || [])
