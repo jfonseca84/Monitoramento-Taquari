@@ -1,7 +1,10 @@
 import React from 'react';
 import { Waves, Cpu, Database, Shield, CheckCircle2 } from 'lucide-react';
+import { useSiteSettings } from '../context/SiteSettingsContext';
 
 export const AboutView: React.FC = () => {
+  const { settings } = useSiteSettings();
+
   return (
     <div className="space-y-6 max-w-[1600px] mx-auto animate-fade-in">
       
@@ -14,11 +17,11 @@ export const AboutView: React.FC = () => {
           </div>
 
           <h2 className="text-2xl lg:text-3xl font-extrabold dark:text-white text-slate-900 tracking-tight">
-            Portal Profissional de Monitoramento do Rio Taquari
+            Portal Profissional de {settings.site_name || 'Monitoramento Hidrológico'}
           </h2>
 
           <p className="text-xs lg:text-sm dark:text-slate-300 text-slate-700 leading-relaxed font-sans">
-            Desenvolvido para oferecer previsibilidade, segurança e transparência em tempo real para a população do Vale do Taquari. Sincronizado a cada 15 minutos com dados da rede telemétrica oficial.
+            {settings.site_subtitle || 'Desenvolvido para oferecer previsibilidade, segurança e transparência em tempo real.'} Sincronizado a cada 15 minutos com dados da rede telemétrica oficial.
           </p>
         </div>
       </div>

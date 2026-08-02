@@ -11,6 +11,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
+    "predeploy-check": "tsx scripts/predeploy-check.ts",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

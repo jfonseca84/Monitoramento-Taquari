@@ -268,3 +268,14 @@ export interface CityCamera {
   atualizado_em?: string;
 }
 
+export interface SiteSettings {
+  id?: string;
+  site_name: string;
+  site_subtitle: string;
+  site_description: string;
+  logo_url: string | null;
+  favicon_url: string | null;
+  updated_at?: string;
+}
+
+

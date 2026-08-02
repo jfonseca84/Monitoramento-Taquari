@@ -1,6 +1,7 @@
 import React from 'react';
 import { Waves, Lock, Moon, Sun, Radio } from 'lucide-react';
 import { ConnectionStatusType } from '../lib/supabase';
+import { useSiteSettings } from '../context/SiteSettingsContext';
 
 interface HeaderProps {
   activeTab: string;
@@ -23,6 +24,7 @@ export const Header: React.FC<HeaderProps> = ({
   connectionStatus = 'online',
   lastUpdatedText = ''
 }) => {
+  const { settings } = useSiteSettings();
   const navItems = [
     { id: 'inicio', label: 'INÍCIO' },
     { id: 'nivel', label: 'NÍVEL DO RIO' },
@@ -36,6 +38,8 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'contato', label: 'CONTATO' },
   ];
 
+  const logoTimestamp = settings.updated_at ? new Date(settings.updated_at).getTime() : 1;
+
   return (
     <header className="sticky top-0 z-40 dark:bg-[#0B132B]/95 bg-white/95 backdrop-blur-md dark:border-slate-800/80 border-slate-200 shadow-sm transition-colors border-b">
       
@@ -46,13 +50,21 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={() => setActiveTab('inicio')} 
           className="flex items-center gap-3 cursor-pointer group"
         >
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 via-sky-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-900/40 group-hover:scale-105 transition-transform">
-            <Waves className="w-6 h-6 text-white" />
-          </div>
+          {settings.logo_url ? (
+            <img 
+              src={`${settings.logo_url}${settings.logo_url.includes('?') ? '&' : '?'}v=${logoTimestamp}`} 
+              alt={settings.site_name}
+              className="h-10 max-w-[180px] object-contain group-hover:scale-105 transition-transform"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 via-sky-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-900/40 group-hover:scale-105 transition-transform">
+              <Waves className="w-6 h-6 text-white" />
+            </div>
+          )}
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold tracking-tight dark:text-white text-slate-900 font-sans">
-                RIO TAQUARI
+              <h1 className="text-xl font-bold tracking-tight dark:text-white text-slate-900 font-sans uppercase">
+                {settings.site_name || 'RIO TAQUARI'}
               </h1>
               {isSyncing && (
                 <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full dark:bg-cyan-950/80 bg-cyan-100 dark:text-cyan-400 text-cyan-800 dark:border-cyan-800 border-cyan-300 animate-pulse">
@@ -61,7 +73,7 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </div>
             <p className="text-[11px] font-medium tracking-widest text-cyan-600 dark:text-cyan-400 uppercase">
-              MONITORAMENTO HIDROLÓGICO
+              {settings.site_subtitle || 'MONITORAMENTO HIDROLÓGICO'}
             </p>
           </div>
         </div>

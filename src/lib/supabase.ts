@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { City, Station, NewsItem, AlertItem, SystemLog, Sponsor, LevelTrend, LevelStatus, AdminUser, AlertSubscriber, AlertNotification, AlertStats, AlertHistoryItem, AlertDispatchItem, CityCamera } from '../types';
+import { City, Station, NewsItem, AlertItem, SystemLog, Sponsor, LevelTrend, LevelStatus, AdminUser, AlertSubscriber, AlertNotification, AlertStats, AlertHistoryItem, AlertDispatchItem, CityCamera, SiteSettings } from '../types';
 import { INITIAL_CITIES, INITIAL_STATIONS, INITIAL_NEWS, INITIAL_ALERTS, INITIAL_LOGS, INITIAL_SPONSORS, INITIAL_CITY_CAMERAS, INITIAL_SUBSCRIBERS, generateHistoryForCity, calculateStatusLevel } from '../data/initialData';
 import { getCityThresholds } from '../data/cityThresholds';
 import { BRASILIA_TIMEZONE, getBrasiliaLastUpdatedString, getBrasiliaTimeString } from './dateUtils';
@@ -470,7 +470,7 @@ export const localStore = new LocalStore();
 // SUPABASE STORAGE HELPER
 // ==========================================
 export async function uploadStorageImage(
-  bucketName: 'cidades' | 'patrocinadores' | 'noticias' | 'logos' | 'cameras',
+  bucketName: 'cidades' | 'patrocinadores' | 'noticias' | 'logos' | 'cameras' | 'site_assets' | 'favicons' | string,
   file: File
 ): Promise<string> {
   if (!isSupabaseConfigured || !supabase) {
@@ -1292,6 +1292,114 @@ export async function saveSetting(key: string, value: any, description?: string)
   if (isSupabaseConfigured && supabase) {
     await supabase.from('settings').upsert({ key, value, description, updated_at: new Date().toISOString() });
   }
+}
+
+// ==========================================
+// SITE SETTINGS (GLOBAL SITE CONFIGURATION)
+// ==========================================
+export const DEFAULT_SITE_SETTINGS: SiteSettings = {
+  id: 'default',
+  site_name: 'Monitoramento Rio Taquari',
+  site_subtitle: 'Informação e prevenção para o Vale do Taquari',
+  site_description: 'Plataforma oficial de monitoramento hidrológico e prevenção de cheias.',
+  logo_url: null,
+  favicon_url: null,
+  updated_at: new Date().toISOString()
+};
+
+export async function fetchSiteSettings(): Promise<SiteSettings> {
+  let settings: SiteSettings = { ...DEFAULT_SITE_SETTINGS };
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('*')
+        .eq('id', 'default')
+        .maybeSingle();
+
+      if (!error && data) {
+        settings = {
+          ...DEFAULT_SITE_SETTINGS,
+          ...data,
+          site_name: data.site_name || DEFAULT_SITE_SETTINGS.site_name,
+          site_subtitle: data.site_subtitle || DEFAULT_SITE_SETTINGS.site_subtitle,
+          site_description: data.site_description || DEFAULT_SITE_SETTINGS.site_description,
+          logo_url: data.logo_url || null,
+          favicon_url: data.favicon_url || null
+        };
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('taquari_site_settings', JSON.stringify(settings));
+        }
+        return settings;
+      }
+    } catch (e) {
+      console.warn('Supabase fetchSiteSettings error:', e);
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      const saved = localStorage.getItem('taquari_site_settings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          ...DEFAULT_SITE_SETTINGS,
+          ...parsed
+        };
+      }
+    } catch (e) {}
+  }
+
+  return settings;
+}
+
+export async function saveSiteSettings(updates: Partial<SiteSettings>): Promise<SiteSettings> {
+  const current = await fetchSiteSettings();
+  const updated: SiteSettings = {
+    ...current,
+    ...updates,
+    updated_at: new Date().toISOString()
+  };
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .upsert({
+          id: 'default',
+          site_name: updated.site_name,
+          site_subtitle: updated.site_subtitle,
+          site_description: updated.site_description,
+          logo_url: updated.logo_url,
+          favicon_url: updated.favicon_url,
+          updated_at: updated.updated_at
+        })
+        .select()
+        .maybeSingle();
+
+      if (!error && data) {
+        const result = {
+          ...DEFAULT_SITE_SETTINGS,
+          ...data
+        };
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('taquari_site_settings', JSON.stringify(result));
+          window.dispatchEvent(new CustomEvent('site_settings_updated', { detail: result }));
+        }
+        return result;
+      }
+    } catch (e) {
+      console.warn('Supabase saveSiteSettings exception:', e);
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('taquari_site_settings', JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent('site_settings_updated', { detail: updated }));
+  }
+
+  return updated;
 }
 
 // ==========================================

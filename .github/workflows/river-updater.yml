@@ -1,14 +1,14 @@
-name: River Updater Telemetry Sync
+name: Telemetry Health Monitor & Redundancy Guard
 
 on:
   schedule:
-    # Executa a cada 15 minutos
-    - cron: '*/15 * * * *'
-  workflow_dispatch: # Permite acionamento manual no painel de Actions do GitHub
+    # Auditoria de integridade a cada 30 minutos (motor principal é o Supabase Cron)
+    - cron: '*/30 * * * *'
+  workflow_dispatch: # Permite acionamento e auditoria manual no painel de Actions do GitHub
 
 jobs:
-  update-river-levels:
-    name: Sincronizar Níveis do Rio
+  monitor-telemetry:
+    name: Auditar e Validar Supabase Cron
     runs-on: ubuntu-latest
 
     steps:
@@ -27,11 +27,12 @@ jobs:
           cd river-updater
           npm ci || npm install
 
-      - name: Executar Sincronização Hidrológica
+      - name: Executar Auditoria de Integridade Hidrológica
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           OFFICIAL_SOURCE_URL: ${{ secrets.OFFICIAL_SOURCE_URL }}
         run: |
           cd river-updater
-          npm start
+          npm run monitor
+

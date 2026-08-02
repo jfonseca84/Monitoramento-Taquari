@@ -3,9 +3,11 @@ import { ShieldCheck, Building2, PhoneCall, Clock } from 'lucide-react';
 import { Sponsor } from '../types';
 import { fetchSponsors } from '../lib/supabase';
 import { getBrasiliaDateString, getBrasiliaTimeString } from '../lib/dateUtils';
+import { useSiteSettings } from '../context/SiteSettingsContext';
 
 export const Footer: React.FC = () => {
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
+  const { settings } = useSiteSettings();
 
   const loadSponsors = async () => {
     try {
@@ -128,13 +130,13 @@ export const Footer: React.FC = () => {
               </div>
               <div>
                 <h4 className="dark:text-white text-slate-900 font-black text-xs sm:text-sm uppercase tracking-wider mb-1">
-                  SITE OFICIAL DE MONITORAMENTO
+                  {settings.site_name || 'SITE OFICIAL DE MONITORAMENTO'}
                 </h4>
                 <p className="text-xs dark:text-slate-300 text-slate-700 font-medium leading-tight">
-                  Plataforma institucional do Rio Taquari
+                  {settings.site_subtitle || 'Plataforma de Monitoramento Hidrológico'}
                 </p>
                 <p className="text-xs dark:text-slate-400 text-slate-500 mt-0.5">
-                  Vale do Taquari - Lajeado - RS
+                  {settings.site_description || 'Vale do Taquari - RS'}
                 </p>
               </div>
             </div>
@@ -194,7 +196,7 @@ export const Footer: React.FC = () => {
 
         {/* 4. RODAPÉ INFERIOR */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs dark:text-slate-400 text-slate-600 pt-4 border-t dark:border-[#122347] border-slate-300">
-          <p>© {year} Sistema de Monitoramento Hidrológico do Rio Taquari. Todos os direitos reservados.</p>
+          <p>© {year} {settings.site_name || 'Sistema de Monitoramento Hidrológico'}. Todos os direitos reservados.</p>
           <div className="flex items-center gap-4 dark:text-slate-400 text-slate-600 font-medium">
             <a href="#sobre" className="hover:text-slate-900 dark:hover:text-slate-200 transition-colors">Termos de Uso</a>
             <span>•</span>

@@ -46,6 +46,7 @@ import {
 } from '../lib/supabase';
 import { AlertDispatchItem } from '../types';
 import { ResidentsIntelligenceView } from './ResidentsIntelligenceView';
+import { useSiteSettings } from '../context/SiteSettingsContext';
 import {
   X,
   LayoutDashboard,
@@ -92,7 +93,11 @@ import {
   MessageSquare,
   Smartphone,
   Eye,
-  SendHorizontal
+  SendHorizontal,
+  Image as ImageIcon,
+  Sparkles,
+  RotateCcw,
+  AlertCircle
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -316,10 +321,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [alertCityId, setAlertCityId] = useState('');
 
   // Settings form state
-  const [siteName, setSiteName] = useState('Rio Taquari - Monitoramento Hidrológico');
+  const { settings: siteSettings, updateSettings } = useSiteSettings();
+  const [siteName, setSiteName] = useState(siteSettings.site_name || 'Monitoramento Rio Taquari');
+  const [siteSubtitle, setSiteSubtitle] = useState(siteSettings.site_subtitle || 'Informação e prevenção para o Vale do Taquari');
+  const [siteDescription, setSiteDescription] = useState(siteSettings.site_description || 'Portal institucional e sistema de alerta hidrológico.');
+  const [logoUrl, setLogoUrl] = useState<string | null>(siteSettings.logo_url || null);
+  const [faviconUrl, setFaviconUrl] = useState<string | null>(siteSettings.favicon_url || null);
+
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [faviconUploading, setFaviconUploading] = useState(false);
+  const [settingsSaveSuccess, setSettingsSaveSuccess] = useState<string | null>(null);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+
   const [updateFreq, setUpdateFreq] = useState<number>(15);
   const [sourceUrl, setSourceUrl] = useState('https://niveldosrios.guerreirosdohumaita.com.br/');
   const [emergencyPhone, setEmergencyPhone] = useState('199');
+
+  useEffect(() => {
+    if (siteSettings) {
+      if (siteSettings.site_name) setSiteName(siteSettings.site_name);
+      if (siteSettings.site_subtitle) setSiteSubtitle(siteSettings.site_subtitle);
+      if (siteSettings.site_description) setSiteDescription(siteSettings.site_description);
+      setLogoUrl(siteSettings.logo_url || null);
+      setFaviconUrl(siteSettings.favicon_url || null);
+    }
+  }, [siteSettings]);
 
   // Thresholds state (Cotas Hidrológicas)
   const [thresholdEdits, setThresholdEdits] = useState<Record<string, { normal_level: number; attention_level: number; alert_level: number; flood_level: number }>>({});
@@ -1018,17 +1044,112 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   // ==========================================
-  // HANDLERS: CONFIGURAÇÕES
+  // HANDLERS: CONFIGURAÇÕES DO SITE
   // ==========================================
+  const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setSettingsError('O arquivo de logo excede o limite máximo permitido de 5MB.');
+      return;
+    }
+
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setSettingsError('Formato inválido para o logo. Formatos permitidos: .PNG, .JPG, .JPEG, .SVG e .WEBP.');
+      return;
+    }
+
+    setSettingsError(null);
+    setLogoUploading(true);
+    try {
+      const uploadedUrl = await uploadStorageImage('logos', file);
+      setLogoUrl(uploadedUrl);
+      setSettingsSaveSuccess('Imagem do logo enviada com sucesso! Clique em "Salvar Configurações" para confirmar.');
+    } catch (err: any) {
+      console.error('Erro no upload do logo:', err);
+      setSettingsError('Falha ao enviar a imagem do logo para o Supabase Storage.');
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoUrl(null);
+    setSettingsSaveSuccess('Logo removido. O sistema utilizará o ícone padrão. Clique em "Salvar Configurações" para aplicar.');
+  };
+
+  const handleFaviconFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      setSettingsError('O arquivo de favicon excede o limite máximo permitido de 2MB.');
+      return;
+    }
+
+    const ext = file.name.split('.').pop()?.toLowerCase() || '';
+    const allowedExtensions = ['ico', 'png', 'svg'];
+    if (!allowedExtensions.includes(ext) && !['image/x-icon', 'image/vnd.microsoft.icon', 'image/png', 'image/svg+xml'].includes(file.type)) {
+      setSettingsError('Formato inválido para o favicon. Formatos permitidos: .ICO, .PNG e .SVG.');
+      return;
+    }
+
+    setSettingsError(null);
+    setFaviconUploading(true);
+    try {
+      const uploadedUrl = await uploadStorageImage('favicons', file);
+      setFaviconUrl(uploadedUrl);
+      setSettingsSaveSuccess('Favicon enviado com sucesso! Clique em "Salvar Configurações" para confirmar.');
+    } catch (err: any) {
+      console.error('Erro no upload do favicon:', err);
+      setSettingsError('Falha ao enviar o favicon para o Supabase Storage.');
+    } finally {
+      setFaviconUploading(false);
+    }
+  };
+
+  const handleRemoveFavicon = () => {
+    setFaviconUrl(null);
+    setSettingsSaveSuccess('Favicon removido. Clique em "Salvar Configurações" para confirmar.');
+  };
+
+  const handleRestoreDefaults = () => {
+    if (confirm('Deseja restaurar as configurações padrão da identidade visual do site?')) {
+      setSiteName('Monitoramento Rio Taquari');
+      setSiteSubtitle('Informação e prevenção para o Vale do Taquari');
+      setSiteDescription('Portal institucional e sistema de alerta hidrológico.');
+      setLogoUrl(null);
+      setFaviconUrl(null);
+      setSettingsSaveSuccess('Valores padrão restaurados. Clique em "Salvar Configurações" para aplicar.');
+    }
+  };
+
   const handleSaveSettingsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await saveSetting('site_name', siteName, 'Nome oficial do portal');
-    await saveSetting('update_frequency_minutes', Number(updateFreq), 'Frequência de atualização em minutos');
-    await saveSetting('official_source_url', sourceUrl, 'URL da fonte oficial de dados');
-    await saveSetting('emergency_contacts', { defesa_civil: emergencyPhone, bombeiros: '193', brigada: '190' }, 'Contatos de emergência');
+    setSettingsError(null);
+    setSettingsSaveSuccess(null);
 
-    await addAuditLog('UPDATE', 'configuracoes', 'Configurações gerais do sistema salvas');
-    alert('Configurações salvas no Supabase com sucesso!');
+    try {
+      await updateSettings({
+        site_name: siteName,
+        site_subtitle: siteSubtitle,
+        site_description: siteDescription,
+        logo_url: logoUrl,
+        favicon_url: faviconUrl,
+      });
+
+      await saveSetting('site_name', siteName, 'Nome oficial do portal');
+      await saveSetting('update_frequency_minutes', Number(updateFreq), 'Frequência de atualização em minutos');
+      await saveSetting('official_source_url', sourceUrl, 'URL da fonte oficial de dados');
+      await saveSetting('emergency_contacts', { defesa_civil: emergencyPhone, bombeiros: '193', brigada: '190' }, 'Contatos de emergência');
+
+      await addAuditLog('UPDATE', 'configuracoes', `Configurações do site salvas: ${siteName}`);
+      setSettingsSaveSuccess('Configurações salvas e aplicadas em todo o sistema com sucesso!');
+    } catch (err: any) {
+      setSettingsError(`Erro ao salvar configurações: ${err.message || 'Erro desconhecido'}`);
+    }
   };
 
   return (
@@ -1150,7 +1271,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 { id: 'sincronizacao', label: 'Sincronização', icon: RefreshCw },
                 { id: 'logs', label: 'Registros', icon: FileText },
                 { id: 'usuarios', label: 'Usuários Administradores', icon: Users },
-                { id: 'configuracoes', label: 'Configurações', icon: Settings },
+                { id: 'configuracoes', label: 'Configurações do Site', icon: Settings },
               ].map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -3290,58 +3411,301 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               )}
 
-              {/* TAB 9: CONFIGURAÇÕES */}
+              {/* TAB 9: CONFIGURAÇÕES DO SITE */}
               {activeTab === 'configuracoes' && (
-                <form onSubmit={handleSaveSettingsSubmit} className="bg-[#0F172A] border border-slate-800 p-6 rounded-2xl space-y-4 text-xs">
-                  <h4 className="text-xs font-bold text-slate-200 uppercase">Configurações Gerais do Sistema</h4>
+                <div className="space-y-6 text-xs">
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-slate-300 mb-1">Nome do Portal</label>
-                      <input
-                        type="text"
-                        value={siteName}
-                        onChange={(e) => setSiteName(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white"
-                      />
+                  {/* ALERTS FOR SUCCESS / ERROR */}
+                  {settingsSaveSuccess && (
+                    <div className="p-4 bg-emerald-950/90 border border-emerald-800 text-emerald-300 rounded-2xl flex items-center justify-between shadow-lg">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
+                        <span className="font-semibold">{settingsSaveSuccess}</span>
+                      </div>
+                      <button onClick={() => setSettingsSaveSuccess(null)} className="text-emerald-400 hover:text-white p-1 rounded-lg">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  {settingsError && (
+                    <div className="p-4 bg-red-950/90 border border-red-800 text-red-300 rounded-2xl flex items-center justify-between shadow-lg">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5 shrink-0 text-red-400" />
+                        <span className="font-semibold">{settingsError}</span>
+                      </div>
+                      <button onClick={() => setSettingsError(null)} className="text-red-400 hover:text-white p-1 rounded-lg">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSaveSettingsSubmit} className="space-y-6">
+                    
+                    {/* SEÇÃO 1: LOGO DO SITE */}
+                    <div className="bg-[#0F172A] border border-slate-800 p-6 rounded-2xl space-y-4 shadow-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                        <div>
+                          <h4 className="text-sm font-bold text-white uppercase flex items-center gap-2">
+                            <ImageIcon className="w-4 h-4 text-cyan-400" />
+                            1. Logo do Site
+                          </h4>
+                          <p className="text-slate-400 text-[11px] mt-0.5">
+                            Envie uma imagem para substituir o logo em todo o sistema (cabeçalho, menus, telas iniciais e administrativas).
+                          </p>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 text-[10px] font-mono shrink-0 self-start sm:self-auto">
+                          PNG, JPG, SVG, WEBP (Máx. 5MB)
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                        {/* PREVIEW CONTAINER */}
+                        <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl flex flex-col items-center justify-center min-h-[140px] relative">
+                          <span className="text-[10px] text-slate-500 uppercase tracking-widest mb-2 font-mono">Preview do Logo Atual</span>
+                          {logoUrl ? (
+                            <div className="flex flex-col items-center gap-2">
+                              <img 
+                                src={`${logoUrl}${logoUrl.includes('?') ? '&' : '?'}v=${Date.now()}`} 
+                                alt="Logo Preview" 
+                                className="max-h-16 max-w-full object-contain p-2 bg-slate-950/60 rounded-lg border border-slate-800"
+                              />
+                              <span className="text-[10px] text-cyan-400 font-mono truncate max-w-[250px]">{logoUrl}</span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center gap-2 text-slate-500">
+                              <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-cyan-600 via-sky-500 to-blue-600 flex items-center justify-center text-white shadow-lg">
+                                <Waves className="w-7 h-7" />
+                              </div>
+                              <span className="text-[11px] text-slate-400 font-medium">Ícone Padrão Ativo (Sem Logo Personalizado)</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* CONTROLES DO LOGO */}
+                        <div className="space-y-3">
+                          <label className="block text-slate-300 font-semibold mb-1">Upload de Novo Logo</label>
+                          <div className="flex flex-wrap gap-2">
+                            <label className={`px-4 py-2.5 rounded-xl text-white font-bold text-xs flex items-center gap-2 cursor-pointer transition-all ${logoUploading ? 'bg-slate-700 cursor-not-allowed' : 'bg-cyan-600 hover:bg-cyan-500 shadow-md'}`}>
+                              <Upload className="w-4 h-4" />
+                              <span>{logoUploading ? 'Enviando imagem...' : 'Selecionar Nova Imagem'}</span>
+                              <input 
+                                type="file" 
+                                accept="image/png, image/jpeg, image/jpg, image/svg+xml, image/webp" 
+                                onChange={handleLogoFileChange}
+                                disabled={logoUploading}
+                                className="hidden" 
+                              />
+                            </label>
+
+                            {logoUrl && (
+                              <button
+                                type="button"
+                                onClick={handleRemoveLogo}
+                                className="px-4 py-2.5 rounded-xl bg-red-950/80 hover:bg-red-900 border border-red-800 text-red-300 font-bold text-xs flex items-center gap-2"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                <span>Remover Logo</span>
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-400 leading-relaxed">
+                            Dica: Utilize imagens com fundo transparente (PNG ou SVG) e boa definição. A substituição será aplicada instantaneamente no portal.
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
-                    <div>
-                      <label className="block text-slate-300 mb-1">Frequência de Atualização Esperada (minutos)</label>
-                      <input
-                        type="number"
-                        value={updateFreq}
-                        onChange={(e) => setUpdateFreq(parseInt(e.target.value) || 15)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white"
-                      />
+                    {/* SEÇÃO 2: NOME E INFORMAÇÕES INSTITUCIONAIS */}
+                    <div className="bg-[#0F172A] border border-slate-800 p-6 rounded-2xl space-y-4 shadow-sm">
+                      <div className="border-b border-slate-800 pb-3">
+                        <h4 className="text-sm font-bold text-white uppercase flex items-center gap-2">
+                          <Globe className="w-4 h-4 text-cyan-400" />
+                          2. Nome e Identidade do Sistema
+                        </h4>
+                        <p className="text-slate-400 text-[11px] mt-0.5">
+                          Altere as informações institucionais exibidas no título da página, cabeçalho, rodapé e menus.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2">
+                          <label className="block text-slate-300 font-semibold mb-1">Nome Principal do Sistema</label>
+                          <input
+                            type="text"
+                            value={siteName}
+                            onChange={(e) => setSiteName(e.target.value)}
+                            placeholder="Ex: Monitoramento Rio Taquari"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-sm focus:border-cyan-500 outline-none"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-300 font-semibold mb-1">Subtítulo Institucional</label>
+                          <input
+                            type="text"
+                            value={siteSubtitle}
+                            onChange={(e) => setSiteSubtitle(e.target.value)}
+                            placeholder="Ex: Informação e prevenção para o Vale do Taquari"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:border-cyan-500 outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-300 font-semibold mb-1">Descrição Curta</label>
+                          <input
+                            type="text"
+                            value={siteDescription}
+                            onChange={(e) => setSiteDescription(e.target.value)}
+                            placeholder="Ex: Portal institucional e sistema de alerta hidrológico."
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:border-cyan-500 outline-none"
+                          />
+                        </div>
+                      </div>
                     </div>
 
-                    <div>
-                      <label className="block text-slate-300 mb-1">Fonte Oficial de Dados Telemétricos</label>
-                      <input
-                        type="text"
-                        value={sourceUrl}
-                        onChange={(e) => setSourceUrl(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono"
-                      />
+                    {/* SEÇÃO 3: FAVICON DO SITE */}
+                    <div className="bg-[#0F172A] border border-slate-800 p-6 rounded-2xl space-y-4 shadow-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                        <div>
+                          <h4 className="text-sm font-bold text-white uppercase flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-cyan-400" />
+                            3. Favicon do Site
+                          </h4>
+                          <p className="text-slate-400 text-[11px] mt-0.5">
+                            O favicon é o pequeno ícone exibido na aba do navegador ao lado do título do site.
+                          </p>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 text-[10px] font-mono shrink-0 self-start sm:self-auto">
+                          .ICO, .PNG, .SVG (Máx. 2MB)
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                        {/* PREVIEW CONTAINER */}
+                        <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-around min-h-[120px]">
+                          <div className="flex flex-col items-center gap-2">
+                            <span className="text-[10px] text-slate-500 font-mono uppercase">Tamanho Real (16x16 / 32x32)</span>
+                            <div className="w-8 h-8 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center p-1">
+                              {faviconUrl ? (
+                                <img src={`${faviconUrl}${faviconUrl.includes('?') ? '&' : '?'}v=${Date.now()}`} alt="Favicon Small" className="w-5 h-5 object-contain" />
+                              ) : (
+                                <Waves className="w-4 h-4 text-cyan-400" />
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col items-center gap-2">
+                            <span className="text-[10px] text-slate-500 font-mono uppercase">Preview Ampliado</span>
+                            <div className="w-16 h-16 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center p-2 shadow-inner">
+                              {faviconUrl ? (
+                                <img src={`${faviconUrl}${faviconUrl.includes('?') ? '&' : '?'}v=${Date.now()}`} alt="Favicon Large" className="w-10 h-10 object-contain" />
+                              ) : (
+                                <Waves className="w-8 h-8 text-cyan-400" />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* CONTROLES DO FAVICON */}
+                        <div className="space-y-3">
+                          <label className="block text-slate-300 font-semibold mb-1">Upload de Favicon</label>
+                          <div className="flex flex-wrap gap-2">
+                            <label className={`px-4 py-2.5 rounded-xl text-white font-bold text-xs flex items-center gap-2 cursor-pointer transition-all ${faviconUploading ? 'bg-slate-700 cursor-not-allowed' : 'bg-cyan-600 hover:bg-cyan-500 shadow-md'}`}>
+                              <Upload className="w-4 h-4" />
+                              <span>{faviconUploading ? 'Enviando favicon...' : 'Selecionar Favicon'}</span>
+                              <input 
+                                type="file" 
+                                accept=".ico, image/x-icon, image/vnd.microsoft.icon, image/png, image/svg+xml" 
+                                onChange={handleFaviconFileChange}
+                                disabled={faviconUploading}
+                                className="hidden" 
+                              />
+                            </label>
+
+                            {faviconUrl && (
+                              <button
+                                type="button"
+                                onClick={handleRemoveFavicon}
+                                className="px-4 py-2.5 rounded-xl bg-red-950/80 hover:bg-red-900 border border-red-800 text-red-300 font-bold text-xs flex items-center gap-2"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                <span>Remover Favicon</span>
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-400 leading-relaxed">
+                            A imagem enviada atualizará automaticamente a tag &lt;link rel="icon"&gt; na aba do navegador.
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
-                    <div>
-                      <label className="block text-slate-300 mb-1">Telefone da Defesa Civil</label>
-                      <input
-                        type="text"
-                        value={emergencyPhone}
-                        onChange={(e) => setEmergencyPhone(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono"
-                      />
-                    </div>
-                  </div>
+                    {/* SEÇÃO 4: CONFIGURAÇÕES COMPLEMENTARES DA TELEMETRIA */}
+                    <div className="bg-[#0F172A] border border-slate-800 p-6 rounded-2xl space-y-4 shadow-sm">
+                      <div className="border-b border-slate-800 pb-3">
+                        <h4 className="text-sm font-bold text-white uppercase flex items-center gap-2">
+                          <Sliders className="w-4 h-4 text-cyan-400" />
+                          4. Parâmetros de Sincronização e Contatos
+                        </h4>
+                      </div>
 
-                  <button type="submit" className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-5 py-2.5 rounded-xl flex items-center gap-2">
-                    <Save className="w-4 h-4" />
-                    <span>Salvar Configurações no Supabase</span>
-                  </button>
-                </form>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-slate-300 font-semibold mb-1">Intervalo de Sync (Minutos)</label>
+                          <input
+                            type="number"
+                            value={updateFreq}
+                            onChange={(e) => setUpdateFreq(parseInt(e.target.value) || 15)}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-300 font-semibold mb-1">Fonte Oficial de Dados</label>
+                          <input
+                            type="text"
+                            value={sourceUrl}
+                            onChange={(e) => setSourceUrl(e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-mono text-xs"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-300 font-semibold mb-1">Defesa Civil Emergência</label>
+                          <input
+                            type="text"
+                            value={emergencyPhone}
+                            onChange={(e) => setEmergencyPhone(e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-mono text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* BARRA DE AÇÕES INFERIOR */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={handleRestoreDefaults}
+                        className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center gap-2 border border-slate-700 w-full sm:w-auto justify-center cursor-pointer"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        <span>Restaurar Configurações Padrão</span>
+                      </button>
+
+                      <button 
+                        type="submit" 
+                        className="w-full sm:w-auto bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold px-6 py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-cyan-950 cursor-pointer"
+                      >
+                        <Save className="w-4 h-4" />
+                        <span>Salvar Todas as Configurações no Supabase</span>
+                      </button>
+                    </div>
+
+                  </form>
+                </div>
               )}
 
             </main>

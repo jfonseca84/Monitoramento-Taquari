@@ -10,6 +10,7 @@
   "main": "src/index.ts",
   "scripts": {
     "start": "tsx src/index.ts",
+    "monitor": "tsx src/monitor.ts",
     "build": "tsc"
   },
   "dependencies": {

@@ -736,7 +736,7 @@ export async function fetchFromNivelGuaiba(baseUrl: string = 'https://nivelguaib
 /**
  * Processo Principal de Sincronização Hidrológica
  */
-async function runSync() {
+export async function runSync() {
   const startTime = Date.now();
   console.log(`[river-updater] =================================================`);
   console.log(`[river-updater] [${new Date().toISOString()}] INICIANDO CICLO DE TELEMETRIA`);
