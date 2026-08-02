@@ -7,6 +7,7 @@
     "node": ">=22.0.0"
   },
   "scripts": {
+    "start": "tsx river-updater/src/index.ts",
     "dev": "vite --host 0.0.0.0 --port 3000",
     "build": "vite build",
     "preview": "vite preview",
@@ -35,7 +36,6 @@
     "react-dom": "^19.0.1",
     "react-leaflet": "^5.0.0",
     "recharts": "^3.10.1",
-    "vite": "^6.2.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {
