@@ -12,6 +12,12 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "predeploy-check": "tsx scripts/predeploy-check.ts",
+    "sync": "tsx river-updater/src/sync.ts",
+    "worker:start": "tsx river-updater/src/index.ts",
+    "worker:sync": "tsx river-updater/src/sync.ts",
+    "worker:monitor": "tsx river-updater/src/monitor.ts",
+    "worker:test": "tsx river-updater/src/tests/worker.test.ts",
+    "worker:simulate": "tsx river-updater/src/tests/cron_simulation.ts",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
@@ -24,6 +30,7 @@
     "leaflet": "^1.9.4",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
+    "node-cron": "^4.6.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "react-leaflet": "^5.0.0",
@@ -35,6 +42,7 @@
     "@types/express": "^4.17.21",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^22.14.0",
+    "@types/node-cron": "^3.0.11",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
     "tailwindcss": "^4.1.14",
