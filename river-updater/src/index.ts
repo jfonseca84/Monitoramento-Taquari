@@ -1,6 +1,7 @@
 import http from 'http';
-import dotenv from 'dotenv';
+import fs from 'fs';
 import path from 'path';
+import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { LoggerService } from './logs/logger.service.js';
 import { SupabaseService } from './services/supabase.service.js';
@@ -20,12 +21,33 @@ try {
 
 const PORT = Number(process.env.PORT) || 3000;
 
-function startHttpServer() {
-  const server = http.createServer((req, res) => {
-    const url = req.url || '/';
+const MIME_TYPES: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.wasm': 'application/wasm',
+};
 
-    // Headers CORS e JSON
-    res.setHeader('Content-Type', 'application/json');
+function startHttpServer() {
+  const distDir = path.resolve(process.cwd(), 'dist');
+
+  const server = http.createServer((req, res) => {
+    const rawUrl = req.url || '/';
+    const parsedUrl = new URL(rawUrl, `http://${req.headers.host || 'localhost'}`);
+    const pathname = parsedUrl.pathname;
+
+    // Headers CORS padrão
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
 
@@ -35,7 +57,8 @@ function startHttpServer() {
       return;
     }
 
-    if (url === '/health' || url === '/') {
+    // Endpoint exclusivo de saúde do Worker
+    if (pathname === '/health') {
       const healthInfo = HealthService.getHealth();
       const response = {
         status: 'online',
@@ -52,13 +75,55 @@ function startHttpServer() {
           totalErrors: healthInfo.totalErrors
         }
       };
-      res.writeHead(200);
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(response, null, 2));
       return;
     }
 
-    res.writeHead(404);
-    res.end(JSON.stringify({ error: 'Rota não encontrada', path: url }));
+    // Servir arquivos estáticos do Frontend (dist)
+    let filePath = path.join(distDir, pathname);
+
+    // Segurança contra Directory Traversal
+    if (!filePath.startsWith(distDir)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Acesso negado' }));
+      return;
+    }
+
+    // Tentar ler arquivo estático em /dist
+    fs.stat(filePath, (err, stats) => {
+      if (!err && stats.isFile()) {
+        const ext = path.extname(filePath).toLowerCase();
+        const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+        res.writeHead(200, { 'Content-Type': contentType });
+        fs.createReadStream(filePath).pipe(res);
+        return;
+      }
+
+      // Se o arquivo não existir fisicamente (rotas SPA como /, /historico, /dashboard), serve index.html
+      const indexPath = path.join(distDir, 'index.html');
+      fs.readFile(indexPath, (indexErr, content) => {
+        if (indexErr) {
+          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+          res.end(`
+            <!DOCTYPE html>
+            <html lang="pt-BR">
+            <head><meta charset="UTF-8"><title>Rio Taquari - Worker Online</title></head>
+            <body style="font-family: sans-serif; padding: 2rem; background: #0f172a; color: #f8fafc;">
+              <h1>🌊 Monitoramento Hidrológico do Rio Taquari</h1>
+              <p>O backend worker está <strong>ONLINE</strong> e rodando perfeitamente na Railway.</p>
+              <p>Acesse o health-check em <a href="/health" style="color: #38bdf8;">/health</a>.</p>
+              <p><em>Aguardando build do frontend em <code>/dist</code>...</em></p>
+            </body>
+            </html>
+          `);
+          return;
+        }
+
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(content);
+      });
+    });
   });
 
   server.listen(PORT, '0.0.0.0', () => {
