@@ -89,7 +89,7 @@ export class ValidationService {
       ...payload,
       city: cityName.trim(),
       level: Number(numLevel.toFixed(2)),
-      rate: typeof payload.rate === 'number' ? Number(payload.rate.toFixed(2)) : 0.0,
+      rate: typeof payload.rate === 'number' ? Number(payload.rate.toFixed(4)) : 0.0,
       trend,
       ts: validTimestampIso,
       source_origin: payload.source_origin || 'fonte_oficial'

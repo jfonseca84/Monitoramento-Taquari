@@ -36,6 +36,25 @@ export interface SyncResult {
   readings?: any[];
 }
 
+function parseKeyToTimeMs(key: string): number {
+  if (!key) return 0;
+  if (key.includes('/')) {
+    const parts = key.trim().split(' ');
+    const dateParts = parts[0].split('/');
+    if (dateParts.length === 3) {
+      const day = dateParts[0].padStart(2, '0');
+      const month = dateParts[1].padStart(2, '0');
+      const year = dateParts[2].length === 2 ? `20${dateParts[2]}` : dateParts[2];
+      const timePart = parts[1] || '00:00:00';
+      const isoStr = `${year}-${month}-${day}T${timePart}`;
+      const t = new Date(isoStr).getTime();
+      if (!isNaN(t)) return t;
+    }
+  }
+  const t = new Date(key.replace(' ', 'T')).getTime();
+  return isNaN(t) ? 0 : t;
+}
+
 export class RiverCollectorService {
   private sources = OFFICIAL_SOURCES;
 
@@ -53,8 +72,8 @@ export class RiverCollectorService {
         });
         if (!res.ok) continue;
         const data = await res.json();
-        // 1. Ordene as chaves de data do JSON antes de selecionar a última medição
-        const keys = Object.keys(data).sort();
+        // 1. Ordene as chaves de data do JSON cronologicamente por timestamp
+        const keys = Object.keys(data).sort((a, b) => parseKeyToTimeMs(a) - parseKeyToTimeMs(b));
         if (keys.length === 0) continue;
 
         const lastKey = keys[keys.length - 1];
@@ -64,10 +83,10 @@ export class RiverCollectorService {
         let tsIso = new Date().toISOString();
         let lastTimeMs = Date.now();
         if (lastKey) {
-          const parsed = new Date(lastKey.replace(' ', 'T'));
-          if (!isNaN(parsed.getTime())) {
-            tsIso = parsed.toISOString();
-            lastTimeMs = parsed.getTime();
+          const parsedMs = parseKeyToTimeMs(lastKey);
+          if (parsedMs > 0) {
+            tsIso = new Date(parsedMs).toISOString();
+            lastTimeMs = parsedMs;
           }
         }
 
@@ -75,12 +94,12 @@ export class RiverCollectorService {
         let prevLevel = latestLevel;
         let prevTimeMs = lastTimeMs;
 
-        if (keys.length > 1 && !isNaN(lastTimeMs)) {
+        if (keys.length > 1 && lastTimeMs > 0) {
           const target1hMs = lastTimeMs - 60 * 60 * 1000;
           let minDiff = Infinity;
           for (const k of keys) {
-            const kTime = new Date(k.replace(' ', 'T')).getTime();
-            if (isNaN(kTime)) continue;
+            const kTime = parseKeyToTimeMs(k);
+            if (kTime === 0) continue;
             const diffFromTarget = Math.abs(kTime - target1hMs);
             if (diffFromTarget < minDiff) {
               minDiff = diffFromTarget;

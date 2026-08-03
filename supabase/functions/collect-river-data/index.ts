@@ -233,6 +233,25 @@ async function fetchWithRetry(
   throw new Error(`Max retries ou timeout excedido para ${url}`);
 }
 
+function parseKeyToTimeMs(key: string): number {
+  if (!key) return 0;
+  if (key.includes('/')) {
+    const parts = key.trim().split(' ');
+    const dateParts = parts[0].split('/');
+    if (dateParts.length === 3) {
+      const day = dateParts[0].padStart(2, '0');
+      const month = dateParts[1].padStart(2, '0');
+      const year = dateParts[2].length === 2 ? `20${dateParts[2]}` : dateParts[2];
+      const timePart = parts[1] || '00:00:00';
+      const isoStr = `${year}-${month}-${day}T${timePart}`;
+      const t = new Date(isoStr).getTime();
+      if (!isNaN(t)) return t;
+    }
+  }
+  const t = new Date(key.replace(' ', 'T')).getTime();
+  return isNaN(t) ? 0 : t;
+}
+
 async function fetchFromNivelGuaiba(baseUrl: string = 'https://nivelguaiba.com.br', catalogCities: DBCity[] = []): Promise<StationPayload[]> {
   const cleanBaseUrl = baseUrl.replace(/\/$/, '');
 
@@ -246,30 +265,51 @@ async function fetchFromNivelGuaiba(baseUrl: string = 'https://nivelguaiba.com.b
       }, 2, 800, 10000);
 
       const data = (await response.json()) as Record<string, number>;
-      const keys = Object.keys(data).sort();
+      const keys = Object.keys(data).sort((a, b) => parseKeyToTimeMs(a) - parseKeyToTimeMs(b));
       if (keys.length === 0) return null;
 
       const lastKey = keys[keys.length - 1];
       const latestLevel = Number(data[lastKey]);
       if (isNaN(latestLevel)) return null;
 
-      let prevLevel = latestLevel;
-      if (keys.length > 1) {
-        const lookbackIdx = Math.max(0, keys.length - 5);
-        const lookbackVal = Number(data[keys[lookbackIdx]]);
-        if (!isNaN(lookbackVal)) prevLevel = lookbackVal;
-      }
-
-      const rate = Number((latestLevel - prevLevel).toFixed(2));
-      let trend: 'subindo' | 'descendo' | 'estavel' = 'estavel';
-      if (rate > 0.01) trend = 'subindo';
-      else if (rate < -0.01) trend = 'descendo';
-
       let tsIso = new Date().toISOString();
+      let lastTimeMs = Date.now();
       if (lastKey) {
-        const parsed = new Date(lastKey.replace(' ', 'T'));
-        if (!isNaN(parsed.getTime())) tsIso = parsed.toISOString();
+        const parsedMs = parseKeyToTimeMs(lastKey);
+        if (parsedMs > 0) {
+          tsIso = new Date(parsedMs).toISOString();
+          lastTimeMs = parsedMs;
+        }
       }
+
+      let prevLevel = latestLevel;
+      let prevTimeMs = lastTimeMs;
+
+      if (keys.length > 1 && lastTimeMs > 0) {
+        const target1hTimeMs = lastTimeMs - 60 * 60 * 1000;
+        let minDiff = Infinity;
+
+        for (const k of keys) {
+          const kTime = parseKeyToTimeMs(k);
+          if (kTime === 0) continue;
+          const diffFromTarget = Math.abs(kTime - target1hTimeMs);
+          if (diffFromTarget < minDiff) {
+            minDiff = diffFromTarget;
+            prevLevel = Number(data[k]);
+            prevTimeMs = kTime;
+          }
+        }
+      }
+
+      const timeDiffHours = (lastTimeMs - prevTimeMs) / (1000 * 60 * 60);
+      const levelDiffMeters = latestLevel - prevLevel;
+      const rate = (timeDiffHours > 0 && !isNaN(levelDiffMeters))
+        ? Number((levelDiffMeters / timeDiffHours).toFixed(4))
+        : 0.00;
+
+      let trend: 'subindo' | 'descendo' | 'estavel' = 'estavel';
+      if (rate > 0.005) trend = 'subindo';
+      else if (rate < -0.005) trend = 'descendo';
 
       return {
         city: city.name,
@@ -505,7 +545,14 @@ Deno.serve(async (req) => {
         const stationId = matchedStation.id;
 
         const currentLevel = typeof stPayload.level === 'number' ? Number(stPayload.level.toFixed(2)) : 3.00;
-        const rateInMeters = typeof stPayload.rate === 'number' ? Number((stPayload.rate / 100).toFixed(2)) : 0.00;
+        let rateInMeters = 0.00;
+        if (typeof stPayload.rate === 'number' && !isNaN(stPayload.rate)) {
+          if (Math.abs(stPayload.rate) >= 1.0) {
+            rateInMeters = Number((stPayload.rate / 100).toFixed(4));
+          } else {
+            rateInMeters = Number(stPayload.rate.toFixed(4));
+          }
+        }
         const trend = stPayload.trend || (rateInMeters > 0.005 ? 'subindo' : rateInMeters < -0.005 ? 'descendo' : 'estavel');
 
         const th = getCityThresholds(targetCity.name);

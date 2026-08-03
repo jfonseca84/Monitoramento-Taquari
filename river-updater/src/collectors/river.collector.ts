@@ -177,6 +177,25 @@ export async function fetchWithRetry(
   throw new Error(`Max retries ou timeout excedido para ${url}`);
 }
 
+function parseKeyToTimeMs(key: string): number {
+  if (!key) return 0;
+  if (key.includes('/')) {
+    const parts = key.trim().split(' ');
+    const dateParts = parts[0].split('/');
+    if (dateParts.length === 3) {
+      const day = dateParts[0].padStart(2, '0');
+      const month = dateParts[1].padStart(2, '0');
+      const year = dateParts[2].length === 2 ? `20${dateParts[2]}` : dateParts[2];
+      const timePart = parts[1] || '00:00:00';
+      const isoStr = `${year}-${month}-${day}T${timePart}`;
+      const t = new Date(isoStr).getTime();
+      if (!isNaN(t)) return t;
+    }
+  }
+  const t = new Date(key.replace(' ', 'T')).getTime();
+  return isNaN(t) ? 0 : t;
+}
+
 export async function fetchFromNivelGuaiba(baseUrl: string = 'https://nivelguaiba.com.br', catalogCities: DBCity[] = []): Promise<RawStationPayload[]> {
   const cleanBaseUrl = baseUrl.replace(/\/$/, '');
 
@@ -190,7 +209,7 @@ export async function fetchFromNivelGuaiba(baseUrl: string = 'https://nivelguaib
       }, 2, 800, 10000);
 
       const data = (await response.json()) as Record<string, number>;
-      const keys = Object.keys(data).sort();
+      const keys = Object.keys(data).sort((a, b) => parseKeyToTimeMs(a) - parseKeyToTimeMs(b));
       if (keys.length === 0) return null;
 
       const lastKey = keys[keys.length - 1];
@@ -200,10 +219,10 @@ export async function fetchFromNivelGuaiba(baseUrl: string = 'https://nivelguaib
       let tsIso = new Date().toISOString();
       let lastTimeMs = Date.now();
       if (lastKey) {
-        const parsed = new Date(lastKey.replace(' ', 'T'));
-        if (!isNaN(parsed.getTime())) {
-          tsIso = parsed.toISOString();
-          lastTimeMs = parsed.getTime();
+        const parsedMs = parseKeyToTimeMs(lastKey);
+        if (parsedMs > 0) {
+          tsIso = new Date(parsedMs).toISOString();
+          lastTimeMs = parsedMs;
         }
       }
 
@@ -211,13 +230,13 @@ export async function fetchFromNivelGuaiba(baseUrl: string = 'https://nivelguaib
       let prevLevel = latestLevel;
       let prevTimeMs = lastTimeMs;
 
-      if (keys.length > 1 && !isNaN(lastTimeMs)) {
+      if (keys.length > 1 && lastTimeMs > 0) {
         const target1hTimeMs = lastTimeMs - 60 * 60 * 1000;
         let minDiff = Infinity;
 
         for (const k of keys) {
-          const kTime = new Date(k.replace(' ', 'T')).getTime();
-          if (isNaN(kTime)) continue;
+          const kTime = parseKeyToTimeMs(k);
+          if (kTime === 0) continue;
           const diffFromTarget = Math.abs(kTime - target1hTimeMs);
           if (diffFromTarget < minDiff) {
             minDiff = diffFromTarget;
@@ -414,8 +433,8 @@ export class RiverCollector {
           // Normalização da taxa de variação (m/h com alta precisão)
           let rateInMeters = 0.00;
           if (typeof stPayload.rate === 'number' && !isNaN(stPayload.rate)) {
-            // Se a taxa for informada em cm/h (ex: -2.8 ou 2.8), converte para m/h (-0.028)
-            if (Math.abs(stPayload.rate) > 2.0) {
+            // Se a taxa for informada em cm/h (ex: -3.5 ou 3.5), converte para m/h (-0.035)
+            if (Math.abs(stPayload.rate) >= 1.0) {
               rateInMeters = Number((stPayload.rate / 100).toFixed(4));
             } else {
               rateInMeters = Number(stPayload.rate.toFixed(4));
