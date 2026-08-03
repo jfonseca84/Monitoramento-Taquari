@@ -12,7 +12,8 @@ import {
   Pin,
   Share2,
   CheckCircle2,
-  ShieldAlert
+  ShieldAlert,
+  Globe
 } from 'lucide-react';
 
 interface NewsSectionProps {
@@ -35,15 +36,15 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ news, onViewAllNews, i
     switch (category) {
       case 'Alertas':
       case 'Defesa Civil':
-        return 'bg-red-500/20 text-red-600 dark:text-red-300 border-red-500/40';
+        return 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30';
       case 'Monitoramento':
-        return 'bg-amber-500/20 text-amber-600 dark:text-amber-300 border-amber-500/40';
+        return 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30';
       case 'Prefeituras':
-        return 'bg-sky-500/20 text-sky-700 dark:text-sky-300 border-sky-500/40';
+        return 'bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/30';
       case 'Meteorologia':
-        return 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40';
+        return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30';
       default:
-        return 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border-cyan-500/40';
+        return 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border-cyan-500/30';
     }
   };
 
@@ -80,103 +81,210 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ news, onViewAllNews, i
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
+  // Modal Render Function (white background, journalistic design)
+  const renderArticleModal = () => {
+    if (!selectedArticle) return null;
+
+    return (
+      <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
+        <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative my-auto max-h-[90vh] overflow-y-auto text-slate-900 font-sans">
+          {/* CLOSE BUTTON */}
+          <button
+            onClick={() => setSelectedArticle(null)}
+            className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-full cursor-pointer z-20 transition-colors"
+            title="Fechar notícia"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          {/* EDITORIAL HEADER / BADGES */}
+          <div className="flex items-center gap-2 flex-wrap mb-4">
+            <span
+              className={`inline-block px-3 py-1 rounded-md text-xs font-bold border uppercase tracking-wider ${getCategoryBadge(
+                selectedArticle.category
+              )}`}
+            >
+              {selectedArticle.category}
+            </span>
+
+            {selectedArticle.manter_permanente && (
+              <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-800 border border-amber-300 text-xs font-bold px-2.5 py-1 rounded-md uppercase">
+                <Pin className="w-3 h-3 text-amber-600" />
+                <span>Comunicado Permanente</span>
+              </span>
+            )}
+
+            {getPriorityBadge(selectedArticle.prioridade)}
+          </div>
+
+          {/* HEADLINE */}
+          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 mb-4 leading-snug tracking-tight">
+            {selectedArticle.title}
+          </h2>
+
+          {/* METADATA BAR */}
+          <div className="flex items-center justify-between text-xs text-slate-500 mb-6 pb-4 border-b border-slate-200 flex-wrap gap-2">
+            <div className="flex items-center gap-4">
+              <span className="flex items-center gap-1.5 font-bold text-cyan-800">
+                <User className="w-4 h-4 text-cyan-600" />
+                {selectedArticle.fonte || selectedArticle.author || 'Defesa Civil'}
+              </span>
+              <span className="flex items-center gap-1.5 font-mono text-slate-500">
+                <Clock className="w-4 h-4 text-slate-400" />
+                {selectedArticle.date}
+              </span>
+            </div>
+
+            <button
+              onClick={() => handleShare(selectedArticle)}
+              className="flex items-center gap-1.5 text-xs font-bold text-cyan-800 hover:text-cyan-950 cursor-pointer bg-cyan-50 hover:bg-cyan-100 px-3 py-1.5 rounded-lg border border-cyan-200 transition-colors"
+            >
+              {copiedLink ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <Share2 className="w-4 h-4" />}
+              <span>{copiedLink ? 'Link Copiado!' : 'Compartilhar'}</span>
+            </button>
+          </div>
+
+          {/* FEATURED IMAGE */}
+          {selectedArticle.image && (
+            <div className="mb-6 rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
+              <img
+                src={selectedArticle.image}
+                alt={selectedArticle.title}
+                className="w-full h-64 sm:h-80 object-cover"
+              />
+            </div>
+          )}
+
+          {/* ARTICLE BODY / JOURNALISTIC TEXT */}
+          <div className="bg-slate-50/80 p-5 rounded-2xl border border-slate-200 space-y-3">
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <Newspaper className="w-3.5 h-3.5 text-slate-400" />
+              <span>Resumo do Comunicado Oficial</span>
+            </h4>
+            <p className="text-sm sm:text-base text-slate-800 leading-relaxed font-sans">
+              {selectedArticle.summary || selectedArticle.content}
+            </p>
+          </div>
+
+          {/* FOOTER ACTIONS - ONLY HERE DISPLAYS REDIRECTION TO OFFICIAL SITE */}
+          <div className="mt-8 pt-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+            {selectedArticle.link_original ? (
+              <a
+                href={selectedArticle.link_original}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto bg-cyan-600 hover:bg-cyan-700 text-white text-xs sm:text-sm font-bold px-6 py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg cursor-pointer"
+              >
+                <Globe className="w-4 h-4" />
+                <span>Acessar Fonte Oficial</span>
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            ) : (
+              <div />
+            )}
+
+            <button
+              onClick={() => setSelectedArticle(null)}
+              className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold px-6 py-3 rounded-xl cursor-pointer transition-colors text-center"
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // ==========================================
   // COMPACT WIDGET MODE (Dashboard Widget)
   // ==========================================
   if (!isFullPage) {
     return (
-      <div className="dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-3xl p-5 lg:p-6 shadow-2xl transition-colors">
-        {/* HEADER */}
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="text-xs font-bold dark:text-slate-300 text-slate-700 tracking-wider uppercase flex items-center gap-2">
-            <Newspaper className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-            <span>NOTÍCIAS E COMUNICADOS OFICIAIS</span>
-          </h3>
+      <>
+        <div className="dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-3xl p-5 lg:p-6 shadow-2xl transition-colors">
+          {/* HEADER */}
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-xs font-bold dark:text-slate-300 text-slate-700 tracking-wider uppercase flex items-center gap-2">
+              <Newspaper className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+              <span>NOTÍCIAS E COMUNICADOS OFICIAIS</span>
+            </h3>
 
-          <button
-            onClick={onViewAllNews}
-            className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
-          >
-            <span>Ver todas</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {/* NEWS LIST CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {filteredDisplayNews.slice(0, 3).map((item) => (
-            <div
-              key={item.id}
-              onClick={() => {
-                if (item.link_original) {
-                  window.open(item.link_original, '_blank', 'noopener,noreferrer');
-                } else {
-                  setSelectedArticle(item);
-                }
-              }}
-              className="dark:bg-[#182238] bg-slate-50 dark:border-slate-800/80 border-slate-200 dark:hover:border-cyan-800/60 hover:border-cyan-400 border rounded-2xl p-4 cursor-pointer transition-all hover:-translate-y-1 hover:shadow-xl flex flex-col justify-between group"
+            <button
+              onClick={onViewAllNews}
+              className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
             >
-              <div>
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <span
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider ${getCategoryBadge(
-                      item.category
-                    )}`}
-                  >
-                    {item.category}
-                  </span>
+              <span>Ver todas</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
 
-                  {item.manter_permanente && (
-                    <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">
-                      <Pin className="w-2.5 h-2.5 text-amber-600" />
-                      <span>Permanente</span>
+          {/* NEWS LIST CARDS */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {filteredDisplayNews.slice(0, 3).map((item) => (
+              <div
+                key={item.id}
+                onClick={() => setSelectedArticle(item)}
+                className="dark:bg-[#182238] bg-slate-50 dark:border-slate-800/80 border-slate-200 dark:hover:border-cyan-800/60 hover:border-cyan-400 border rounded-2xl p-4 cursor-pointer transition-all hover:-translate-y-1 hover:shadow-xl flex flex-col justify-between group"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider ${getCategoryBadge(
+                        item.category
+                      )}`}
+                    >
+                      {item.category}
                     </span>
-                  )}
+
+                    {item.manter_permanente && (
+                      <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">
+                        <Pin className="w-2.5 h-2.5 text-amber-600" />
+                        <span>Permanente</span>
+                      </span>
+                    )}
+                  </div>
+
+                  <h4 className="text-xs font-bold dark:text-white text-slate-900 line-clamp-2 leading-snug mb-2 group-hover:text-cyan-500 transition-colors">
+                    {item.title}
+                  </h4>
+
+                  <p className="text-[11px] dark:text-slate-400 text-slate-600 line-clamp-2 leading-relaxed mb-3">
+                    {item.summary}
+                  </p>
                 </div>
 
-                <h4 className="text-xs font-bold dark:text-white text-slate-900 line-clamp-2 leading-snug mb-2 group-hover:text-cyan-500 transition-colors">
-                  {item.title}
-                </h4>
-
-                <p className="text-[11px] dark:text-slate-400 text-slate-600 line-clamp-2 leading-relaxed mb-3">
-                  {item.summary}
-                </p>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between text-[10px] font-mono dark:text-slate-400 text-slate-500 pt-2 dark:border-slate-800 border-slate-200 border-t mb-2">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    <span>{item.date}</span>
-                  </span>
-                  {item.fonte && (
-                    <span className="truncate max-w-[120px] font-sans font-bold dark:text-cyan-400 text-cyan-700">
-                      {item.fonte}
+                <div>
+                  <div className="flex items-center justify-between text-[10px] font-mono dark:text-slate-400 text-slate-500 pt-2 dark:border-slate-800 border-slate-200 border-t mb-2">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      <span>{item.date}</span>
                     </span>
-                  )}
-                </div>
+                    {item.fonte && (
+                      <span className="truncate max-w-[120px] font-sans font-bold dark:text-cyan-400 text-cyan-700">
+                        {item.fonte}
+                      </span>
+                    )}
+                  </div>
 
-                <a
-                  href={item.link_original || '#'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!item.link_original) {
-                      e.preventDefault();
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setSelectedArticle(item);
-                    }
-                  }}
-                  className="w-full bg-cyan-600/10 hover:bg-cyan-600 text-cyan-700 dark:text-cyan-300 hover:text-white text-[11px] font-bold py-1.5 px-3 rounded-xl border border-cyan-500/30 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                >
-                  <span>Acessar fonte oficial</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+                    }}
+                    className="w-full bg-cyan-600/10 hover:bg-cyan-600 text-cyan-700 dark:text-cyan-300 hover:text-white text-[11px] font-bold py-1.5 px-3 rounded-xl border border-cyan-500/30 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <span>Saber mais</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+
+        {renderArticleModal()}
+      </>
     );
   }
 
@@ -257,13 +365,7 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ news, onViewAllNews, i
           {searchedNews.map((item) => (
             <div
               key={item.id}
-              onClick={() => {
-                if (item.link_original) {
-                  window.open(item.link_original, '_blank', 'noopener,noreferrer');
-                } else {
-                  setSelectedArticle(item);
-                }
-              }}
+              onClick={() => setSelectedArticle(item)}
               className="dark:bg-[#0F172A] bg-white border dark:border-slate-800 border-slate-200 hover:border-cyan-500 rounded-2xl p-4 sm:p-5 cursor-pointer shadow-lg transition-all hover:-translate-y-1 flex flex-col justify-between group"
             >
               <div>
@@ -306,22 +408,17 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ news, onViewAllNews, i
                 <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 font-mono">
                   Fonte Oficial
                 </span>
-                <a
-                  href={item.link_original || '#'}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (!item.link_original) {
-                      e.preventDefault();
-                      setSelectedArticle(item);
-                    }
+                    setSelectedArticle(item);
                   }}
-                  className="bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-1.5 rounded-xl flex items-center gap-1 transition-all shadow cursor-pointer text-xs font-bold"
+                  className="bg-cyan-600 hover:bg-cyan-500 text-white px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 transition-all shadow cursor-pointer text-xs font-bold"
                 >
-                  <span>Acessar fonte oficial</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
+                  <span>Saber mais</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
           ))}
@@ -329,103 +426,7 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ news, onViewAllNews, i
       )}
 
       {/* FULL READ ARTICLE MODAL */}
-      {selectedArticle && (
-        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative animate-fade-in max-h-[90vh] overflow-y-auto text-slate-900">
-            <button
-              onClick={() => setSelectedArticle(null)}
-              className="absolute top-4 right-4 p-2.5 text-slate-500 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-full cursor-pointer z-20 transition-colors"
-              title="Fechar notícia"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-center gap-2 flex-wrap mb-3">
-              <span
-                className={`inline-block px-3 py-1 rounded-md text-xs font-bold border uppercase tracking-wider ${getCategoryBadge(
-                  selectedArticle.category
-                )}`}
-              >
-                {selectedArticle.category}
-              </span>
-
-              {selectedArticle.manter_permanente && (
-                <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 border border-amber-300 text-xs font-bold px-3 py-1 rounded-md uppercase">
-                  <Pin className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Comunicado Permanente</span>
-                </span>
-              )}
-
-              {getPriorityBadge(selectedArticle.prioridade)}
-            </div>
-
-            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 mb-3 leading-snug">
-              {selectedArticle.title}
-            </h2>
-
-            <div className="flex items-center justify-between text-xs text-slate-500 mb-5 pb-4 border-b border-slate-200 flex-wrap gap-2">
-              <div className="flex items-center gap-4">
-                <span className="flex items-center gap-1.5 font-bold text-cyan-700">
-                  <User className="w-4 h-4 text-cyan-600" />
-                  {selectedArticle.fonte || selectedArticle.author}
-                </span>
-                <span className="flex items-center gap-1.5 font-mono text-slate-600">
-                  <Clock className="w-4 h-4 text-slate-400" />
-                  {selectedArticle.date}
-                </span>
-              </div>
-
-              <button
-                onClick={() => handleShare(selectedArticle)}
-                className="flex items-center gap-1.5 text-xs font-bold text-cyan-700 hover:text-cyan-900 cursor-pointer bg-cyan-50 px-3 py-1.5 rounded-lg border border-cyan-200 transition-colors"
-              >
-                {copiedLink ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <Share2 className="w-4 h-4" />}
-                <span>{copiedLink ? 'Link Copiado!' : 'Compartilhar'}</span>
-              </button>
-            </div>
-
-            {selectedArticle.image && (
-              <div className="mb-5 rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
-                <img
-                  src={selectedArticle.image}
-                  alt={selectedArticle.title}
-                  className="w-full h-64 sm:h-80 object-cover"
-                />
-              </div>
-            )}
-
-            <div className="text-sm sm:text-base text-slate-800 leading-relaxed font-sans space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Resumo da Publicação Oficial:</h4>
-              <p className="text-slate-700 font-medium">
-                {selectedArticle.summary || selectedArticle.content}
-              </p>
-            </div>
-
-            <div className="mt-8 pt-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
-              {selectedArticle.link_original ? (
-                <a
-                  href={selectedArticle.link_original}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full sm:w-auto bg-cyan-700 hover:bg-cyan-600 text-white text-xs font-bold px-6 py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-cyan-900/30"
-                >
-                  <span>Acessar fonte oficial</span>
-                  <ExternalLink className="w-4 h-4" />
-                </a>
-              ) : (
-                <div />
-              )}
-
-              <button
-                onClick={() => setSelectedArticle(null)}
-                className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold px-6 py-3 rounded-xl cursor-pointer transition-colors text-center"
-              >
-                Fechar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {renderArticleModal()}
     </div>
   );
 };
