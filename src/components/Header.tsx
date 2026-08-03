@@ -72,7 +72,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </span>
               )}
             </div>
-            <p className="text-[11px] font-medium tracking-widest text-cyan-600 dark:text-cyan-400 uppercase">
+            <p className="text-[8.5px] font-bold tracking-[0.15em] text-cyan-600 dark:text-cyan-400 uppercase whitespace-nowrap leading-tight mt-0.5">
               {settings.site_subtitle || 'MONITORAMENTO HIDROLÓGICO'}
             </p>
           </div>
