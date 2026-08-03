@@ -1,6 +1,6 @@
 -- Migration 014: Supabase Cron & Edge Function Automation Setup
 -- Purpose: Replaces GitHub Actions scheduled collector with native Supabase Cron execution
--- Schedule: Every 15 minutes ('*/15 * * * *')
+-- Schedule: Every 5 minutes ('*/5 * * * *')
 
 -- 1. Enable required PostgreSQL extensions if available
 DO $$
@@ -112,7 +112,7 @@ $$;
 GRANT EXECUTE ON FUNCTION public.trigger_river_data_collection(text, text) TO service_role;
 GRANT EXECUTE ON FUNCTION public.trigger_river_data_collection(text, text) TO postgres;
 
--- 3. Agendamento do Cron a cada 15 minutos ('*/15 * * * *')
+-- 3. Agendamento do Cron a cada 5 minutos ('*/5 * * * *')
 DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
@@ -128,10 +128,10 @@ BEGIN
     IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
         PERFORM cron.schedule(
             'collect-river-data-cron',
-            '*/15 * * * *',
+            '*/5 * * * *',
             'SELECT public.trigger_river_data_collection();'
         );
-        RAISE NOTICE 'Supabase Cron "collect-river-data-cron" agendado a cada 15 minutos.';
+        RAISE NOTICE 'Supabase Cron "collect-river-data-cron" agendado a cada 5 minutos.';
     ELSE
         RAISE NOTICE 'Extensão pg_cron não instalada nesta instância. A Edge Function pode ser invocada via webhook externo.';
     END IF;

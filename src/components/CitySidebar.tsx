@@ -57,7 +57,7 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
           </div>
           <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 px-1.5 py-0.5 rounded flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-ping" />
-            15 min
+            5 min
           </span>
         </div>
 

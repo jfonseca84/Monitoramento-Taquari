@@ -29,7 +29,7 @@ export const TechnicalData: React.FC<TechnicalDataProps> = ({ selectedCity }) =>
             <RefreshCw className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
             <span>Frequência de Atualização</span>
           </div>
-          <span className="font-semibold dark:text-white text-slate-900">A cada 15 minutos</span>
+          <span className="font-semibold dark:text-white text-slate-900">A cada 5 minutos</span>
         </div>
 
         {/* PRECISAO DO SENSOR */}

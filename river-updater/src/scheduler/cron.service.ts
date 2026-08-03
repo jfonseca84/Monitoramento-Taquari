@@ -2,6 +2,7 @@ import cron, { ScheduledTask } from 'node-cron';
 import { LoggerService } from '../logs/logger.service.js';
 import { RiverCollector } from '../collectors/river.collector.js';
 import { HealthService } from '../services/health.service.js';
+import { CacheService } from '../services/cache.service.js';
 
 export class CronService {
   private static PREFIX = 'CronService';
@@ -57,6 +58,13 @@ export class CronService {
       if (result.success) {
         LoggerService.info('SYNC', 'Dados salvos no Supabase com sucesso');
         HealthService.markExecutionSuccess(result.durationMs);
+
+        // Renovação automática do cache em memória após atualização do worker
+        try {
+          await CacheService.refreshTelemetryCache();
+        } catch (cacheErr: any) {
+          LoggerService.warn('SYNC', `Erro ao renovar cache pós-coleta: ${cacheErr?.message || cacheErr}`);
+        }
       } else {
         LoggerService.error('ERROR', `Falha na sincronização: ${result.errors.join('; ')}`);
         HealthService.markExecutionFailure(result.errors.join('; '), result.durationMs);
@@ -83,7 +91,7 @@ export class CronService {
   }
 
   /**
-   * Inicializa o agendador interno node-cron
+   * Inicializa o agendador interno node-cron (padrão: a cada 5 minutos)
    */
   public static startScheduler(): void {
     const cronExpr = this.getCronExpression();

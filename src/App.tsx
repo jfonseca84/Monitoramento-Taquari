@@ -22,7 +22,7 @@ import { SituationBanner } from './components/SituationBanner';
 import { SituationDetailModal } from './components/SituationDetailModal';
 
 import { City, NewsItem, Timeframe, ChartDataPoint, AlertItem } from './types';
-import { fetchCities, fetchNews, fetchCityHistory, fetchAlerts, localStore, subscribeToRealtimeChanges, ConnectionStatusType } from './lib/supabase';
+import { fetchBootstrapData, fetchCities, fetchNews, fetchCityHistory, fetchAlerts, localStore, subscribeToRealtimeChanges, ConnectionStatusType } from './lib/supabase';
 import { getBrasiliaFullDateTimeString } from './lib/dateUtils';
 import { AlertTriangle, X, Radio, Video, ChevronRight } from 'lucide-react';
 
@@ -121,7 +121,8 @@ export default function App() {
       setConnectionStatus('updating');
     }
     try {
-      const cityList = await fetchCities();
+      const bootstrap = await fetchBootstrapData(isRealtimeTrigger);
+      const cityList = bootstrap.cities;
       setCities(cityList);
 
       const currentSel = selectedCityRef.current;
@@ -135,11 +136,8 @@ export default function App() {
         if (updated) setSelectedCity(updated);
       }
 
-      const newsList = await fetchNews();
-      setNews(newsList);
-
-      const alertList = await fetchAlerts();
-      setAlerts(alertList);
+      setNews(bootstrap.news);
+      setAlerts(bootstrap.alerts);
 
       if (currentSel || selectedCity) {
         const targetCity = currentSel || selectedCity;
@@ -174,10 +172,10 @@ export default function App() {
       }
     );
 
-    // Periodic safety fallback poll every 30s
+    // Periodic safety fallback poll every 3 minutes (180,000 ms)
     const fallbackInterval = setInterval(() => {
       loadData(false);
-    }, 30000);
+    }, 180000);
 
     return () => {
       unsubscribe();

@@ -21,7 +21,7 @@ export const AboutView: React.FC = () => {
           </h2>
 
           <p className="text-xs lg:text-sm dark:text-slate-300 text-slate-700 leading-relaxed font-sans">
-            {settings.site_subtitle || 'Desenvolvido para oferecer previsibilidade, segurança e transparência em tempo real.'} Sincronizado a cada 15 minutos com dados da rede telemétrica oficial.
+            {settings.site_subtitle || 'Desenvolvido para oferecer previsibilidade, segurança e transparência em tempo real.'} Sincronizado a cada 5 minutos com dados da rede telemétrica oficial.
           </p>
         </div>
       </div>

@@ -1322,7 +1322,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-5 space-y-3">
                     <h4 className="text-xs font-bold text-slate-300 uppercase">Arquitetura Desacoplada do Sistema</h4>
                     <p className="text-xs text-slate-400 leading-relaxed">
-                      O frontend opera de modo 100% estático e consome dados do <strong>Supabase</strong>. A atualização telemétrica da Agência Nacional de Águas (ANA) ocorre de forma autônoma através do serviço independente <strong>river-updater</strong> via Cron Job a cada 15 minutos.
+                      O frontend opera de modo 100% estático e consome dados do <strong>Supabase</strong>. A atualização telemétrica da Agência Nacional de Águas (ANA) ocorre de forma autônoma através do serviço independente <strong>river-updater</strong> via Cron Job a cada 5 minutos.
                     </p>
                   </div>
                 </div>
@@ -3657,7 +3657,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <input
                             type="number"
                             value={updateFreq}
-                            onChange={(e) => setUpdateFreq(parseInt(e.target.value) || 15)}
+                            onChange={(e) => setUpdateFreq(parseInt(e.target.value) || 5)}
                             className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-white"
                           />
                         </div>

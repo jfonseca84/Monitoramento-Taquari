@@ -7,6 +7,7 @@ import { LoggerService } from './logs/logger.service.js';
 import { SupabaseService } from './services/supabase.service.js';
 import { CronService } from './scheduler/cron.service.js';
 import { HealthService } from './services/health.service.js';
+import { CacheService } from './services/cache.service.js';
 
 // Carrega variáveis de ambiente locais sem sobrescrever as variáveis injetadas na Railway
 try {
@@ -80,7 +81,95 @@ function startHttpServer() {
       return;
     }
 
-    // Servir arquivos estáticos do Frontend (dist)
+    // API ENDPOINTS COM CACHE EM MEMÓRIA DE ALTA PERFORMANCE
+    if (pathname === '/api/telemetry' || pathname === '/api/bootstrap') {
+      CacheService.getTelemetryData()
+        .then((data) => {
+          res.writeHead(200, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+          });
+          res.end(JSON.stringify(data));
+        })
+        .catch((err) => {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Erro ao buscar telemetria', details: err?.message || err }));
+        });
+      return;
+    }
+
+    if (pathname === '/api/cities') {
+      CacheService.getTelemetryData()
+        .then((data) => {
+          res.writeHead(200, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'public, max-age=60, s-maxage=300'
+          });
+          res.end(JSON.stringify(data.cities));
+        })
+        .catch((err) => {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: err?.message || err }));
+        });
+      return;
+    }
+
+    if (pathname === '/api/news') {
+      CacheService.getTelemetryData()
+        .then((data) => {
+          res.writeHead(200, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'public, max-age=120'
+          });
+          res.end(JSON.stringify(data.news));
+        })
+        .catch((err) => {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: err?.message || err }));
+        });
+      return;
+    }
+
+    if (pathname === '/api/alerts') {
+      CacheService.getTelemetryData()
+        .then((data) => {
+          res.writeHead(200, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'public, max-age=60'
+          });
+          res.end(JSON.stringify(data.alerts));
+        })
+        .catch((err) => {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: err?.message || err }));
+        });
+      return;
+    }
+
+    if (pathname === '/api/history') {
+      const cityId = parsedUrl.searchParams.get('cityId') || '';
+      const timeframe = parsedUrl.searchParams.get('timeframe') || '24h';
+      if (!cityId) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'cityId é obrigatório' }));
+        return;
+      }
+      CacheService.getCityHistory(cityId, timeframe)
+        .then((data) => {
+          res.writeHead(200, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'public, max-age=180'
+          });
+          res.end(JSON.stringify(data));
+        })
+        .catch((err) => {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: err?.message || err }));
+        });
+      return;
+    }
+
+    // Servir arquivos estáticos do Frontend (dist) com Políticas de Cache do Navegador
     let filePath = path.join(distDir, pathname);
 
     // Segurança contra Directory Traversal
@@ -95,7 +184,36 @@ function startHttpServer() {
       if (!err && stats.isFile()) {
         const ext = path.extname(filePath).toLowerCase();
         const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-        res.writeHead(200, { 'Content-Type': contentType });
+        
+        // Estratégia Otimizada de Cache de Arquivos Estáticos:
+        // 1. JS/CSS e Fontes com HASH de versão: cache longo e imutável (1 ano)
+        // 2. index.html: no-cache / must-revalidate para propagar novos deploys imediatamente
+        // 3. Imagens/Mídias: 24 horas de cache
+        const headers: Record<string, string> = {
+          'Content-Type': contentType,
+          'Last-Modified': stats.mtime.toUTCString(),
+          'ETag': `"${stats.size}-${stats.mtime.getTime()}"`,
+        };
+
+        if (pathname === '/index.html' || ext === '.html') {
+          headers['Cache-Control'] = 'public, max-age=0, must-revalidate';
+        } else if (pathname.startsWith('/assets/') || ['.js', '.css', '.woff2', '.woff', '.ttf', '.wasm'].includes(ext)) {
+          headers['Cache-Control'] = 'public, max-age=31536000, immutable';
+        } else {
+          headers['Cache-Control'] = 'public, max-age=86400, stale-while-revalidate=3600';
+        }
+
+        // Resposta HTTP 304 Not Modified se o navegador já tiver o arquivo
+        const ifNoneMatch = req.headers['if-none-match'];
+        const ifModifiedSince = req.headers['if-modified-since'];
+
+        if (ifNoneMatch === headers['ETag'] || (ifModifiedSince && new Date(ifModifiedSince) >= stats.mtime)) {
+          res.writeHead(304, headers);
+          res.end();
+          return;
+        }
+
+        res.writeHead(200, headers);
         fs.createReadStream(filePath).pipe(res);
         return;
       }
@@ -120,7 +238,10 @@ function startHttpServer() {
           return;
         }
 
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.writeHead(200, {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'public, max-age=0, must-revalidate'
+        });
         res.end(content);
       });
     });

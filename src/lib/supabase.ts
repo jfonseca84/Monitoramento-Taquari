@@ -535,42 +535,29 @@ function getBestImage(dbValue1?: any, dbValue2?: any, fallback?: string): string
   return fallback || '';
 }
 
-export async function fetchCities(): Promise<City[]> {
-  let dbCities: any[] = [];
-  let latestRiverLevelsMap = new Map<string, any>();
+// ==========================================
+// CLIENT-SIDE MEMORY CACHE ENGINE
+// ==========================================
+let cachedBootstrap: {
+  cities: City[];
+  news: NewsItem[];
+  alerts: AlertItem[];
+  timestamp: number;
+} | null = null;
 
-  if (isSupabaseConfigured && supabase) {
-    try {
-      // 1. Fetch cities from Supabase
-      const { data: cData, error: cError } = await supabase
-        .from('cities')
-        .select('*')
-        .order('ordem', { ascending: true });
+const CLIENT_CACHE_TTL = 60 * 1000; // 60 segundos no cliente
+const historyClientCache = new Map<string, { data: any[]; timestamp: number }>();
+const HISTORY_CACHE_TTL = 3 * 60 * 1000; // 3 minutos para gráficos
 
-      if (!cError && cData) {
-        dbCities = cData;
-      }
+export function invalidateClientCache(): void {
+  cachedBootstrap = null;
+  historyClientCache.clear();
+}
 
-      // 2. Fetch recent river_levels measurements for the latest readings
-      const { data: rData, error: rError } = await supabase
-        .from('river_levels')
-        .select('*')
-        .order('recorded_at', { ascending: false })
-        .limit(300);
-
-      if (!rError && rData && rData.length > 0) {
-        for (const row of rData) {
-          if (row.city_id && !latestRiverLevelsMap.has(String(row.city_id))) {
-            latestRiverLevelsMap.set(String(row.city_id), row);
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('Supabase fetchCities failed, falling back to catalog merge:', e);
-    }
-  }
-
-  // Index DB cities by normalized keys (slug, id, name)
+/**
+ * Mescla dados de cidades vindos do banco/API com a lista oficial de catálogo e parâmetros locais.
+ */
+export function mergeDbCitiesWithCatalog(dbCities: any[], latestRiverLevelsMap = new Map<string, any>()): City[] {
   const dbCityMap = new Map<string, any>();
   for (const c of dbCities) {
     if (c.slug) dbCityMap.set(normalizeCityKey(c.slug), c);
@@ -580,7 +567,6 @@ export async function fetchCities(): Promise<City[]> {
 
   const matchedDbCityKeys = new Set<string>();
 
-  // Map each city in INITIAL_CITIES (preserving official names, order, images, thresholds)
   const mergedCities: City[] = INITIAL_CITIES.map((initCity, index) => {
     const slugKey = normalizeCityKey(initCity.slug);
     const idKey = normalizeCityKey(initCity.id);
@@ -597,14 +583,12 @@ export async function fetchCities(): Promise<City[]> {
     const cityDbId = dbCity?.id ? String(dbCity.id) : initCity.id;
     const latestMeasurement = latestRiverLevelsMap.get(cityDbId) || latestRiverLevelsMap.get(initCity.id);
 
-    // Threshold levels: prioritize database custom values set by admin, fallback to official catalog
     const thresholds = getCityThresholds(dbCity || initCity);
     const normal_level = thresholds.normal;
     const attention_level = thresholds.attention;
     const alert_level = thresholds.alert;
     const flood_level = thresholds.flood;
 
-    // Real-time Telemetry
     const rawLevel = latestMeasurement?.level ?? dbCity?.current_level ?? initCity.current_level;
     const current_level = typeof rawLevel === 'number' && !isNaN(rawLevel) ? rawLevel : (Number(rawLevel) || 3.12);
 
@@ -652,7 +636,6 @@ export async function fetchCities(): Promise<City[]> {
     };
   });
 
-  // Append any extra DB cities that were not in INITIAL_CITIES
   let extraCount = 0;
   for (const dbCity of dbCities) {
     const slugKey = normalizeCityKey(dbCity.slug);
@@ -715,8 +698,93 @@ export async function fetchCities(): Promise<City[]> {
   return mergedCities;
 }
 
+/**
+ * Busca consolidada (Bootstrap) de todos os dados essenciais da página inicial em 1 única chamada.
+ * Utiliza o endpoint /api/telemetry com fallback transparente para o Supabase.
+ */
+export async function fetchBootstrapData(forceRefresh = false): Promise<{
+  cities: City[];
+  news: NewsItem[];
+  alerts: AlertItem[];
+}> {
+  const now = Date.now();
+  if (!forceRefresh && cachedBootstrap && (now - cachedBootstrap.timestamp < CLIENT_CACHE_TTL)) {
+    return cachedBootstrap;
+  }
+
+  // 1. Tentar buscar pelo endpoint do backend worker (1 única requisição HTTP para o servidor)
+  try {
+    const res = await fetch('/api/telemetry');
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data.cities)) {
+        const cities = mergeDbCitiesWithCatalog(data.cities);
+        const news = (data.news || []) as NewsItem[];
+        const alerts = (data.alerts || []) as AlertItem[];
+
+        cachedBootstrap = { cities, news, alerts, timestamp: now };
+        return cachedBootstrap;
+      }
+    }
+  } catch {
+    // Silently fallback to direct queries if /api/telemetry is unavailable
+  }
+
+  // 2. Fallback: Consultas diretas ao Supabase
+  const [cities, news, alerts] = await Promise.all([
+    fetchCitiesDirect(),
+    fetchNewsDirect(),
+    fetchAlertsDirect()
+  ]);
+
+  cachedBootstrap = { cities, news, alerts, timestamp: now };
+  return cachedBootstrap;
+}
+
+export async function fetchCities(): Promise<City[]> {
+  const bootstrap = await fetchBootstrapData();
+  return bootstrap.cities;
+}
+
+export async function fetchCitiesDirect(): Promise<City[]> {
+  let dbCities: any[] = [];
+  let latestRiverLevelsMap = new Map<string, any>();
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data: cData, error: cError } = await supabase
+        .from('cities')
+        .select('*')
+        .order('ordem', { ascending: true });
+
+      if (!cError && cData) {
+        dbCities = cData;
+      }
+
+      const { data: rData, error: rError } = await supabase
+        .from('river_levels')
+        .select('*')
+        .order('recorded_at', { ascending: false })
+        .limit(300);
+
+      if (!rError && rData && rData.length > 0) {
+        for (const row of rData) {
+          if (row.city_id && !latestRiverLevelsMap.has(String(row.city_id))) {
+            latestRiverLevelsMap.set(String(row.city_id), row);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Supabase fetchCities failed, falling back to catalog merge:', e);
+    }
+  }
+
+  return mergeDbCitiesWithCatalog(dbCities, latestRiverLevelsMap);
+}
+
 
 export async function saveCity(cityData: Partial<City>): Promise<City> {
+  invalidateClientCache();
   let updatedCity: City | null = null;
   const imageUrl = cityData.image || (cityData as any).image_url || '';
   const cameraImageUrl = cityData.camera_image || (cityData as any).camera_image_url || '';
@@ -1106,6 +1174,11 @@ export async function deleteCamera(cameraId: string): Promise<void> {
 // NEWS QUERY & MUTATIONS
 // ==========================================
 export async function fetchNews(): Promise<NewsItem[]> {
+  const bootstrap = await fetchBootstrapData();
+  return bootstrap.news;
+}
+
+export async function fetchNewsDirect(): Promise<NewsItem[]> {
   if (isSupabaseConfigured && supabase) {
     try {
       const { data, error } = await supabase
@@ -1123,6 +1196,7 @@ export async function fetchNews(): Promise<NewsItem[]> {
 }
 
 export async function saveNews(newsData: Partial<NewsItem>): Promise<NewsItem> {
+  invalidateClientCache();
   if (isSupabaseConfigured && supabase) {
     if (newsData.id && !newsData.id.startsWith('news-')) {
       const { data, error } = await supabase
@@ -1146,6 +1220,7 @@ export async function saveNews(newsData: Partial<NewsItem>): Promise<NewsItem> {
 }
 
 export async function deleteNews(newsId: string): Promise<void> {
+  invalidateClientCache();
   if (isSupabaseConfigured && supabase) {
     await supabase.from('news').delete().eq('id', newsId);
   }
@@ -1156,6 +1231,11 @@ export async function deleteNews(newsId: string): Promise<void> {
 // ALERTS QUERY & MUTATIONS
 // ==========================================
 export async function fetchAlerts(): Promise<AlertItem[]> {
+  const bootstrap = await fetchBootstrapData();
+  return bootstrap.alerts;
+}
+
+export async function fetchAlertsDirect(): Promise<AlertItem[]> {
   if (isSupabaseConfigured && supabase) {
     try {
       const { data, error } = await supabase
@@ -1174,6 +1254,7 @@ export async function fetchAlerts(): Promise<AlertItem[]> {
 }
 
 export async function saveAlert(alertData: Partial<AlertItem>): Promise<AlertItem> {
+  invalidateClientCache();
   if (isSupabaseConfigured && supabase) {
     if (alertData.id && !alertData.id.startsWith('alert-')) {
       const { data, error } = await supabase
@@ -1197,6 +1278,7 @@ export async function saveAlert(alertData: Partial<AlertItem>): Promise<AlertIte
 }
 
 export async function deleteAlert(alertId: string): Promise<void> {
+  invalidateClientCache();
   if (isSupabaseConfigured && supabase) {
     await supabase.from('alerts').delete().eq('id', alertId);
   }
@@ -1282,7 +1364,7 @@ export async function fetchSettings(): Promise<Record<string, any>> {
   }
   return {
     site_name: 'Rio Taquari - Monitoramento Hidrológico',
-    update_frequency_minutes: 15,
+    update_frequency_minutes: 5,
     official_source_url: 'https://niveldosrios.guerreirosdohumaita.com.br/',
     emergency_contacts: { defesa_civil: '199', bombeiros: '193', brigada: '190' }
   };
@@ -1429,6 +1511,14 @@ export async function fetchRiverLevels(cityId: string, limit: number = 50) {
 }
 
 export async function fetchCityHistory(cityId: string, timeframe: string = '24h') {
+  const cacheKey = `${cityId}_${timeframe}`;
+  const cached = historyClientCache.get(cacheKey);
+  if (cached && (Date.now() - cached.timestamp < HISTORY_CACHE_TTL)) {
+    return cached.data;
+  }
+
+  let resultChartData: any[] = [];
+
   if (isSupabaseConfigured && supabase) {
     try {
       const { data: city } = await supabase
@@ -1497,7 +1587,7 @@ export async function fetchCityHistory(cityId: string, timeframe: string = '24h'
             processedLevels = processedLevels.filter((_, idx) => idx % step === 0 || idx === processedLevels.length - 1);
           }
 
-          return processedLevels.map((l) => {
+          resultChartData = processedLevels.map((l) => {
             const dateObj = new Date(l.recorded_at);
             let timeStr = '';
             if (!isNaN(dateObj.getTime())) {
@@ -1526,6 +1616,9 @@ export async function fetchCityHistory(cityId: string, timeframe: string = '24h'
               flood: city.flood_level ?? thresholds.flood
             };
           });
+
+          historyClientCache.set(cacheKey, { data: resultChartData, timestamp: Date.now() });
+          return resultChartData;
         }
       }
     } catch (e) {
@@ -1536,7 +1629,9 @@ export async function fetchCityHistory(cityId: string, timeframe: string = '24h'
   const cities = await fetchCities();
   const city = cities.find((c) => c.id === cityId || c.slug === cityId);
   const currentVal = city?.current_level || 3.12;
-  return generateHistoryForCity(cityId, currentVal, timeframe);
+  resultChartData = generateHistoryForCity(cityId, currentVal, timeframe);
+  historyClientCache.set(cacheKey, { data: resultChartData, timestamp: Date.now() });
+  return resultChartData;
 }
 
 // ==========================================
