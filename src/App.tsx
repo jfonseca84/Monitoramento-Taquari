@@ -27,7 +27,29 @@ import { getBrasiliaFullDateTimeString } from './lib/dateUtils';
 import { AlertTriangle, X, Radio, Video, ChevronRight } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<string>('inicio');
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      if (window.location.pathname === '/defesa-civil' || window.location.hash === '#defesa-civil') {
+        return 'defesa-civil';
+      }
+    }
+    return 'inicio';
+  });
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    if (typeof window !== 'undefined') {
+      if (tab === 'defesa-civil') {
+        try {
+          window.history.pushState({}, '', '/defesa-civil');
+        } catch (e) {}
+      } else if (window.location.pathname === '/defesa-civil') {
+        try {
+          window.history.pushState({}, '', '/');
+        } catch (e) {}
+      }
+    }
+  };
   const [cities, setCities] = useState<City[]>([]);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [news, setNews] = useState<NewsItem[]>([]);
@@ -88,6 +110,9 @@ export default function App() {
     const handlePopState = () => {
       if (window.location.pathname === '/admin' || window.location.hash === '#admin') {
         setIsAdminOpen(true);
+      } else if (window.location.pathname === '/defesa-civil' || window.location.hash === '#defesa-civil') {
+        setIsAdminOpen(false);
+        setActiveTab('defesa-civil');
       } else {
         setIsAdminOpen(false);
       }
@@ -211,7 +236,7 @@ export default function App() {
       {/* HEADER */}
       <Header
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleTabChange}
         onOpenAdmin={openAdmin}
         isSyncing={isSyncing}
         theme={theme}
@@ -299,17 +324,19 @@ export default function App() {
             selectedCity={selectedCity}
             onSelectCity={(city) => setSelectedCity(city)}
           />
-        ) : activeTab === 'alertas' || activeTab === 'defesa-civil' ? (
-          <div className="space-y-8">
-            <RiskAlertSignup cities={cities} />
-            <DefesaCivilView />
-          </div>
+        ) : activeTab === 'defesa-civil' ? (
+          <DefesaCivilView
+            cities={cities}
+            onNavigateToContact={() => handleTabChange('contato')}
+          />
+        ) : activeTab === 'alertas' || activeTab === 'receber-alertas' ? (
+          <RiskAlertSignup cities={cities} />
         ) : activeTab === 'prefeituras' ? (
           <PrefeiturasView cities={cities} />
         ) : activeTab === 'sobre' ? (
           <AboutView />
         ) : activeTab === 'contato' ? (
-          <ContactView />
+          <ContactView onNavigateToDefesaCivil={() => handleTabChange('defesa-civil')} />
         ) : (
           <NewsSection news={news} isFullPage={true} />
         )}
