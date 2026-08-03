@@ -8,6 +8,7 @@ import { SupabaseService } from './services/supabase.service.js';
 import { CronService } from './scheduler/cron.service.js';
 import { HealthService } from './services/health.service.js';
 import { CacheService } from './services/cache.service.js';
+import { NewsCollector } from './collectors/news.collector.js';
 
 // Carrega variáveis de ambiente locais sem sobrescrever as variáveis injetadas na Railway
 try {
@@ -126,6 +127,23 @@ function startHttpServer() {
         .catch((err) => {
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: err?.message || err }));
+        });
+      return;
+    }
+
+    if (pathname === '/api/news/collect') {
+      const sourceId = parsedUrl.searchParams.get('sourceId') || undefined;
+      NewsCollector.checkAndCollectNews(sourceId)
+        .then((result) => {
+          res.writeHead(200, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'no-cache'
+          });
+          res.end(JSON.stringify({ success: true, ...result }));
+        })
+        .catch((err) => {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: err?.message || err }));
         });
       return;
     }

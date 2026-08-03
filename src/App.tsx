@@ -311,7 +311,7 @@ export default function App() {
         ) : activeTab === 'contato' ? (
           <ContactView />
         ) : (
-          <NewsSection news={news} />
+          <NewsSection news={news} isFullPage={true} />
         )}
 
       </main>

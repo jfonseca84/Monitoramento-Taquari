@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { City, NewsItem, AlertItem, Sponsor, AdminUser, AlertSubscriber, AlertNotification, AlertStats, AlertHistoryItem, LevelStatus, CityCamera } from '../types';
+import { City, NewsItem, NewsSource, AlertItem, Sponsor, AdminUser, AlertSubscriber, AlertNotification, AlertStats, AlertHistoryItem, LevelStatus, CityCamera } from '../types';
 import { getCityThresholds } from '../data/cityThresholds';
 import {
   supabase,
@@ -21,6 +21,11 @@ import {
   fetchNews,
   saveNews,
   deleteNews,
+  fetchNewsSources,
+  saveNewsSource,
+  deleteNewsSource,
+  toggleNewsSourceActive,
+  triggerNewsCollectorNow,
   fetchAlerts,
   saveAlert,
   deleteAlert,
@@ -56,6 +61,14 @@ import {
   Video,
   Pencil,
   Newspaper,
+  Rss,
+  Globe,
+  Clock,
+  Play,
+  Check,
+  ExternalLink,
+  ToggleLeft,
+  ToggleRight,
   Bell,
   FileText,
   RefreshCw,
@@ -73,8 +86,6 @@ import {
   Link as LinkIcon,
   Edit2,
   ShieldAlert,
-  Globe,
-  Clock,
   Phone,
   Users,
   Sliders,
@@ -309,10 +320,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [editingNewsId, setEditingNewsId] = useState<string | null>(null);
   const [newsTitle, setNewsTitle] = useState('');
   const [newsSummary, setNewsSummary] = useState('');
-  const [newsCategory, setNewsCategory] = useState<'Defesa Civil' | 'Prefeituras' | 'Meteorologia'>('Defesa Civil');
+  const [newsCategory, setNewsCategory] = useState<'Defesa Civil' | 'Prefeituras' | 'Meteorologia' | 'Comunicados' | 'Alertas'>('Defesa Civil');
   const [newsImage, setNewsImage] = useState('');
   const [newsAuthor, setNewsAuthor] = useState('Defesa Civil');
+  const [newsManterPermanente, setNewsManterPermanente] = useState<boolean>(false);
+  const [newsExibirNoMenu, setNewsExibirNoMenu] = useState<boolean>(true);
+  const [newsPrioridade, setNewsPrioridade] = useState<'baixa' | 'media' | 'alta'>('media');
   const [newsUploading, setNewsUploading] = useState<boolean>(false);
+
+  // News Sources state
+  const [newsSourcesList, setNewsSourcesList] = useState<NewsSource[]>([]);
+  const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
+  const [sourceNome, setSourceNome] = useState('');
+  const [sourceDescricao, setSourceDescricao] = useState('');
+  const [newsSourceUrl, setNewsSourceUrl] = useState('');
+  const [sourceTipo, setSourceTipo] = useState<'rss' | 'api' | 'html'>('rss');
+  const [sourceAtivo, setSourceAtivo] = useState<boolean>(true);
+  const [sourceFrequencia, setSourceFrequencia] = useState<'hourly' | 'multiple_daily' | 'daily' | 'weekly' | 'manual'>('hourly');
+  const [sourceTimes, setSourceTimes] = useState<string[]>(['08:00', '18:00']);
+  const [sourceTime, setSourceTime] = useState('08:00');
+  const [sourceDayOfWeek, setSourceDayOfWeek] = useState<number>(1);
+  const [sourceCountPerDay, setSourceCountPerDay] = useState<number>(2);
+  const [sourceCategoriaPadrao, setSourceCategoriaPadrao] = useState<string>('Comunicados');
+  const [sourceKeywordsIncluir, setSourceKeywordsIncluir] = useState<string>('taquari, enchente, cheia, inundação, rio, chuva, alerta, emergência, defesa civil, evacuação, nível, cota, prefeitura, boletim, decreto');
+  const [sourceKeywordsIgnorar, setSourceKeywordsIgnorar] = useState<string>('esporte, eventos, cultura, entretenimento, futebol, carnaval');
+  const [sourceImportarTodas, setSourceImportarTodas] = useState<boolean>(false);
+  const [sourceTestingId, setSourceTestingId] = useState<string | null>(null);
+  const [sourceTestFeedback, setSourceTestFeedback] = useState<string | null>(null);
 
   // Alert form state
   const [alertTitle, setAlertTitle] = useState('');
@@ -395,6 +429,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       const newsData = await fetchNews();
       setNewsList(newsData);
+
+      const sourcesData = await fetchNewsSources();
+      setNewsSourcesList(sourcesData);
 
       const alertsData = await fetchAlerts();
       setAlertsList(alertsData);
@@ -860,7 +897,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       category: newsCategory,
       author: newsAuthor,
       image: newsImage || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80',
-      published: true
+      published: true,
+      manter_permanente: newsManterPermanente,
+      exibir_no_menu: newsExibirNoMenu,
+      prioridade: newsPrioridade
     };
 
     await saveNews(newsData);
@@ -870,6 +910,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setNewsTitle('');
     setNewsSummary('');
     setNewsImage('');
+    setNewsManterPermanente(false);
+    setNewsExibirNoMenu(true);
+    setNewsPrioridade('media');
 
     await loadAllAdminData();
     onRefreshData();
@@ -882,6 +925,107 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       await addAuditLog('DELETE', 'noticias', `Notícia "${title}" excluída`);
       await loadAllAdminData();
       onRefreshData();
+    }
+  };
+
+  const handleSaveNewsSourceSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sourceNome || !newsSourceUrl) return alert('Preencha o nome e a URL da fonte de notícias.');
+
+    const scheduleData = {
+      times: sourceFrequencia === 'multiple_daily' ? sourceTimes : undefined,
+      time: (sourceFrequencia === 'daily' || sourceFrequencia === 'weekly') ? sourceTime : undefined,
+      day_of_week: sourceFrequencia === 'weekly' ? sourceDayOfWeek : undefined,
+      count_per_day: sourceFrequencia === 'multiple_daily' ? sourceCountPerDay : undefined
+    };
+
+    const sourcePayload: Partial<NewsSource> = {
+      id: editingSourceId || undefined,
+      nome: sourceNome,
+      descricao: sourceDescricao,
+      url: newsSourceUrl,
+      tipo: sourceTipo,
+      ativo: sourceAtivo,
+      frequencia: sourceFrequencia,
+      horarios_configurados: scheduleData,
+      categoria_padrao: sourceCategoriaPadrao,
+      keywords_incluir: sourceKeywordsIncluir,
+      keywords_ignorar: sourceKeywordsIgnorar,
+      importar_todas: sourceImportarTodas
+    };
+
+    await saveNewsSource(sourcePayload);
+    await addAuditLog(
+      editingSourceId ? 'UPDATE' : 'CREATE',
+      'fontes_noticias',
+      `Fonte de notícia "${sourceNome}" salva (${sourceFrequencia})`
+    );
+
+    // Reset form
+    setEditingSourceId(null);
+    setSourceNome('');
+    setSourceDescricao('');
+    setNewsSourceUrl('');
+    setSourceTipo('rss');
+    setSourceAtivo(true);
+    setSourceFrequencia('hourly');
+    setSourceCategoriaPadrao('Comunicados');
+    setSourceKeywordsIncluir('taquari, enchente, cheia, inundação, rio, chuva, alerta, emergência, defesa civil, evacuação, nível, cota, prefeitura, boletim, decreto');
+    setSourceKeywordsIgnorar('esporte, eventos, cultura, entretenimento, futebol, carnaval');
+    setSourceImportarTodas(false);
+
+    await loadAllAdminData();
+    alert('Fonte de notícias salva com sucesso!');
+  };
+
+  const handleEditNewsSource = (source: NewsSource) => {
+    setEditingSourceId(source.id);
+    setSourceNome(source.nome);
+    setSourceDescricao(source.descricao || '');
+    setNewsSourceUrl(source.url);
+    setSourceTipo(source.tipo);
+    setSourceAtivo(source.ativo);
+    setSourceFrequencia(source.frequencia);
+    setSourceCategoriaPadrao(source.categoria_padrao || 'Comunicados');
+    setSourceKeywordsIncluir(source.keywords_incluir || '');
+    setSourceKeywordsIgnorar(source.keywords_ignorar || '');
+    setSourceImportarTodas(source.importar_todas ?? false);
+    if (source.horarios_configurados?.times) setSourceTimes(source.horarios_configurados.times);
+    if (source.horarios_configurados?.time) setSourceTime(source.horarios_configurados.time);
+    if (source.horarios_configurados?.day_of_week !== undefined) setSourceDayOfWeek(source.horarios_configurados.day_of_week);
+    if (source.horarios_configurados?.count_per_day !== undefined) setSourceCountPerDay(source.horarios_configurados.count_per_day);
+  };
+
+  const handleDeleteNewsSource = async (id: string, nome: string) => {
+    if (!confirm(`Tem certeza que deseja remover a fonte "${nome}"?`)) return;
+    await deleteNewsSource(id);
+    await addAuditLog('DELETE', 'fontes_noticias', `Fonte de notícia "${nome}" excluída`);
+    await loadAllAdminData();
+    alert('Fonte removida.');
+  };
+
+  const handleToggleNewsSourceActive = async (id: string, currentAtivo: boolean, nome: string) => {
+    const newAtivo = !currentAtivo;
+    await toggleNewsSourceActive(id, newAtivo);
+    await addAuditLog('UPDATE', 'fontes_noticias', `Fonte "${nome}" ${newAtivo ? 'ativada' : 'desativada'}`);
+    await loadAllAdminData();
+  };
+
+  const handleTriggerCollectorNow = async (sourceId?: string, sourceName?: string) => {
+    setSourceTestingId(sourceId || 'all');
+    setSourceTestFeedback('Iniciando consulta à fonte oficial...');
+
+    try {
+      const result = await triggerNewsCollectorNow(sourceId);
+      setSourceTestFeedback(result.message || 'Consulta concluída.');
+      await loadAllAdminData();
+      onRefreshData();
+      alert(result.message || 'Busca de notícias executada!');
+    } catch (e: any) {
+      setSourceTestFeedback(`Erro: ${e?.message || e}`);
+      alert(`Falha ao consultar fonte: ${e?.message || e}`);
+    } finally {
+      setSourceTestingId(null);
     }
   };
 
@@ -1266,7 +1410,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 { id: 'cidades', label: 'Cidades', icon: Building2 },
                 { id: 'cotas', label: 'Cotas Oficiais', icon: Sliders },
                 { id: 'cameras', label: 'Câmeras', icon: Camera },
-                { id: 'noticias', label: 'Notícias', icon: Newspaper },
+                { id: 'noticias', label: 'Notícias Publicadas', icon: Newspaper },
+                { id: 'fontes_noticias', label: 'Fontes de Notícias', icon: Rss },
                 { id: 'alertas', label: 'Alertas', icon: Bell },
                 { id: 'sincronizacao', label: 'Sincronização', icon: RefreshCw },
                 { id: 'logs', label: 'Registros', icon: FileText },
@@ -3206,9 +3351,466 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               )}
 
+              {/* TAB 5.1: FONTES DE NOTÍCIAS */}
+              {activeTab === 'fontes_noticias' && (
+                <div className="space-y-6">
+                  {/* Top Notice & Global Action */}
+                  <div className="bg-[#0F172A] border border-cyan-900/50 p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Rss className="w-5 h-5 text-cyan-400" />
+                        <h3 className="text-sm font-bold text-white uppercase tracking-wider">Fontes Oficiais de Notícias e Comunicados</h3>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1 max-w-2xl">
+                        Cadastre e autorize fontes oficiais (Defesa Civil, Prefeituras, Órgãos Públicos). 
+                        O coletor automático só consultará fontes ativas e nos horários e frequências explicitamente configurados por você.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => handleTriggerCollectorNow()}
+                      disabled={sourceTestingId === 'all'}
+                      className="bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 text-xs shrink-0 transition-all cursor-pointer shadow-lg shadow-cyan-900/30"
+                    >
+                      {sourceTestingId === 'all' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                      <span>Executar Coleta Agora em Todas as Fontes</span>
+                    </button>
+                  </div>
+
+                  {sourceTestFeedback && (
+                    <div className="p-3 bg-cyan-950/60 border border-cyan-800 text-cyan-200 text-xs rounded-xl flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0" />
+                      <span>{sourceTestFeedback}</span>
+                    </div>
+                  )}
+
+                  {/* Form: Adicionar / Editar Fonte */}
+                  <form onSubmit={handleSaveNewsSourceSubmit} className="bg-[#0F172A] border border-slate-800 p-5 rounded-2xl space-y-4 text-xs">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                      <h4 className="text-xs font-bold text-slate-200 uppercase flex items-center gap-2">
+                        <Plus className="w-4 h-4 text-cyan-400" />
+                        <span>{editingSourceId ? 'Editar Fonte de Notícia Oficial' : 'Cadastrar Nova Fonte Oficial de Notícias'}</span>
+                      </h4>
+                      {editingSourceId && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingSourceId(null);
+                            setSourceNome('');
+                            setSourceDescricao('');
+                            setNewsSourceUrl('');
+                            setSourceTipo('rss');
+                            setSourceAtivo(true);
+                            setSourceFrequencia('hourly');
+                          }}
+                          className="text-xs text-slate-400 hover:text-white"
+                        >
+                          Cancelar Edição
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-slate-300 font-medium mb-1">Nome da Fonte Oficial *</label>
+                        <input
+                          type="text"
+                          value={sourceNome}
+                          onChange={(e) => setSourceNome(e.target.value)}
+                          placeholder="Ex: Defesa Civil RS, Prefeitura de Lajeado"
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 font-medium mb-1">Tipo de Integração *</label>
+                        <select
+                          value={sourceTipo}
+                          onChange={(e) => setSourceTipo(e.target.value as any)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-500"
+                        >
+                          <option value="rss">Feed RSS / XML (Recomendado)</option>
+                          <option value="api">API JSON</option>
+                          <option value="html">Página Web HTML</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-300 font-medium mb-1">URL Oficial do Feed ou Fonte *</label>
+                      <input
+                        type="url"
+                        value={newsSourceUrl}
+                        onChange={(e) => setNewsSourceUrl(e.target.value)}
+                        placeholder="https://defesacivil.rs.gov.br/feed ou https://prefeitura.gov.br/noticias"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-300 font-medium mb-1">Descrição / Finalidade</label>
+                      <input
+                        type="text"
+                        value={sourceDescricao}
+                        onChange={(e) => setSourceDescricao(e.target.value)}
+                        placeholder="Ex: Comunicados oficiais sobre cheias e alertas meteorológicos no Vale do Taquari"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-800 pt-4">
+                      <div>
+                        <label className="block text-slate-300 font-medium mb-1">Frequência de Atualização Automática *</label>
+                        <select
+                          value={sourceFrequencia}
+                          onChange={(e) => setSourceFrequencia(e.target.value as any)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-500 font-medium"
+                        >
+                          <option value="hourly">A cada hora</option>
+                          <option value="multiple_daily">Várias vezes ao dia</option>
+                          <option value="daily">Uma vez ao dia</option>
+                          <option value="weekly">Uma vez por semana</option>
+                          <option value="manual">Apenas Manual (Sem agendamento)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 font-medium mb-1">Status da Fonte *</label>
+                        <select
+                          value={sourceAtivo ? 'true' : 'false'}
+                          onChange={(e) => setSourceAtivo(e.target.value === 'true')}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-500 font-medium"
+                        >
+                          <option value="true">🟢 Ativa (Autorizada para Coleta)</option>
+                          <option value="false">🔴 Inativa (Bloqueada pelo Admin)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Campos condicionais baseados na frequência selecionada */}
+                    {sourceFrequencia === 'multiple_daily' && (
+                      <div className="p-4 bg-slate-900/90 border border-slate-700 rounded-xl space-y-3">
+                        <p className="font-bold text-cyan-400">Configuração de múltiplos horários no dia:</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-slate-300 mb-1">Consultas por dia (quantidade)</label>
+                            <input
+                              type="number"
+                              min={1}
+                              max={12}
+                              value={sourceCountPerDay}
+                              onChange={(e) => setSourceCountPerDay(parseInt(e.target.value) || 2)}
+                              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-slate-300 mb-1">Horários fixos (separados por vírgula)</label>
+                            <input
+                              type="text"
+                              value={sourceTimes.join(', ')}
+                              onChange={(e) => setSourceTimes(e.target.value.split(',').map(s => s.trim()))}
+                              placeholder="08:00, 12:00, 18:00"
+                              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-white"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {sourceFrequencia === 'daily' && (
+                      <div className="p-4 bg-slate-900/90 border border-slate-700 rounded-xl space-y-3">
+                        <p className="font-bold text-cyan-400">Configuração de horário diário:</p>
+                        <div className="w-48">
+                          <label className="block text-slate-300 mb-1">Horário fixo da consulta</label>
+                          <input
+                            type="time"
+                            value={sourceTime}
+                            onChange={(e) => setSourceTime(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-white"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {sourceFrequencia === 'weekly' && (
+                      <div className="p-4 bg-slate-900/90 border border-slate-700 rounded-xl space-y-3">
+                        <p className="font-bold text-cyan-400">Configuração semanal:</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-slate-300 mb-1">Dia da semana</label>
+                            <select
+                              value={sourceDayOfWeek}
+                              onChange={(e) => setSourceDayOfWeek(parseInt(e.target.value))}
+                              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-white"
+                            >
+                              <option value={0}>Domingo</option>
+                              <option value={1}>Segunda-feira</option>
+                              <option value={2}>Terça-feira</option>
+                              <option value={3}>Quarta-feira</option>
+                              <option value={4}>Quinta-feira</option>
+                              <option value={5}>Sexta-feira</option>
+                              <option value={6}>Sábado</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-slate-300 mb-1">Horário da consulta</label>
+                            <input
+                              type="time"
+                              value={sourceTime}
+                              onChange={(e) => setSourceTime(e.target.value)}
+                              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-white"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {sourceFrequencia === 'manual' && (
+                      <div className="p-3 bg-amber-950/40 border border-amber-800/60 text-amber-300 rounded-xl text-xs flex items-center gap-2">
+                        <Clock className="w-4 h-4 shrink-0 text-amber-400" />
+                        <span>A fonte ficará salva no painel, mas o sistema NUNCA fará consultas automáticas. Você poderá acionar manualmente a qualquer momento.</span>
+                      </div>
+                    )}
+
+                    {/* Regras de Filtragem e Relevância da Fonte */}
+                    <div className="p-4 bg-slate-900/90 border border-slate-700/80 rounded-xl space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                        <span className="font-bold text-cyan-400 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                          <Filter className="w-4 h-4 text-cyan-400" />
+                          <span>Filtros de Relevância e Classificação da Fonte</span>
+                        </span>
+
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={sourceImportarTodas}
+                            onChange={(e) => setSourceImportarTodas(e.target.checked)}
+                            className="w-4 h-4 rounded text-cyan-500 bg-slate-950 border-slate-700 focus:ring-cyan-500 cursor-pointer"
+                          />
+                          <span className="text-xs font-bold text-amber-300">
+                            Importar todas as publicações sem filtrar
+                          </span>
+                        </label>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-slate-300 mb-1 font-semibold">
+                            Categoria Padrão da Fonte
+                          </label>
+                          <select
+                            value={sourceCategoriaPadrao}
+                            onChange={(e) => setSourceCategoriaPadrao(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-xs"
+                          >
+                            <option value="Comunicados">🔵 Comunicados Oficiais</option>
+                            <option value="Alertas">🔴 Alertas & Defesa Civil</option>
+                            <option value="Monitoramento">🟠 Monitoramento Hidrológico</option>
+                            <option value="Meteorologia">🟢 Meteorologia & Previsão</option>
+                          </select>
+                          <p className="text-[10px] text-slate-400 mt-1">
+                            Categoria atribuída quando o conteúdo for genérico.
+                          </p>
+                        </div>
+
+                        <div className={sourceImportarTodas ? 'opacity-40 pointer-events-none' : ''}>
+                          <label className="block text-slate-300 mb-1 font-semibold">
+                            Palavras-chave de Relevância (Incluir)
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={sourceKeywordsIncluir}
+                            onChange={(e) => setSourceKeywordsIncluir(e.target.value)}
+                            placeholder="enchente, cheia, inundação, rio, chuva, alerta, Taquari"
+                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-xs font-mono"
+                          />
+                          <p className="text-[10px] text-slate-400 mt-1">
+                            Apenas notícias contendo estes termos (separados por vírgula) serão aceitas.
+                          </p>
+                        </div>
+
+                        <div className={sourceImportarTodas ? 'opacity-40 pointer-events-none' : ''}>
+                          <label className="block text-slate-300 mb-1 font-semibold">
+                            Termos de Bloqueio (Ignorar)
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={sourceKeywordsIgnorar}
+                            onChange={(e) => setSourceKeywordsIgnorar(e.target.value)}
+                            placeholder="esporte, eventos, cultura, entretenimento, futebol"
+                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-xs font-mono"
+                          />
+                          <p className="text-[10px] text-slate-400 mt-1">
+                            Notícias contendo estes termos serão automaticamente descartadas.
+                          </p>
+                        </div>
+                      </div>
+
+                      {sourceImportarTodas && (
+                        <div className="p-2.5 bg-amber-950/40 border border-amber-800/50 rounded-lg text-[11px] text-amber-300">
+                          ⚡ <b>Modo Auto-Importar Ativado:</b> O coletor importará todas as publicações publicadas nesta fonte sem aplicar filtro de palavras-chave.
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-2 flex items-center justify-end">
+                      <button type="submit" className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-6 py-2.5 rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-lg shadow-cyan-900/20">
+                        <Save className="w-4 h-4" />
+                        <span>{editingSourceId ? 'Atualizar Fonte' : 'Salvar e Autorizar Fonte'}</span>
+                      </button>
+                    </div>
+                  </form>
+
+                  {/* Lista de Fontes Cadastradas */}
+                  <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-5 text-xs">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-xs font-bold text-slate-200 uppercase flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-cyan-400" />
+                        <span>Fontes de Notícias Cadastradas ({newsSourcesList.length})</span>
+                      </h4>
+                    </div>
+
+                    {newsSourcesList.length === 0 ? (
+                      <div className="p-8 text-center text-slate-500 bg-slate-900/50 rounded-xl border border-slate-800">
+                        <Rss className="w-8 h-8 text-slate-600 mx-auto mb-2 opacity-50" />
+                        <p className="font-medium text-slate-400">Nenhuma fonte oficial cadastrada até o momento.</p>
+                        <p className="text-[11px] text-slate-500 mt-1">Conforme as diretrizes, o sistema não consulta nenhuma fonte automaticamente enquanto nenhuma for cadastrada e ativada acima.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-3">
+                        {newsSourcesList.map((source) => (
+                          <div
+                            key={source.id}
+                            className={`p-4 bg-slate-900/90 border ${source.ativo ? 'border-slate-800 hover:border-cyan-800' : 'border-red-900/30 bg-red-950/10'} rounded-xl transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-4`}
+                          >
+                            <div className="space-y-1.5 flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${source.ativo ? 'bg-emerald-950 text-emerald-400 border border-emerald-800/50' : 'bg-red-950 text-red-400 border border-red-800/50'}`}>
+                                  {source.ativo ? '🟢 Ativa' : '🔴 Inativa'}
+                                </span>
+
+                                <span className="text-[10px] bg-slate-800 text-cyan-300 px-2 py-0.5 rounded font-mono uppercase border border-slate-700">
+                                  {source.tipo.toUpperCase()}
+                                </span>
+
+                                <span className="text-[10px] bg-blue-950 text-blue-300 px-2 py-0.5 rounded font-medium border border-blue-900/50 flex items-center gap-1">
+                                  <Clock className="w-3 h-3 text-blue-400" />
+                                  <span>
+                                    {source.frequencia === 'hourly' && 'A cada hora'}
+                                    {source.frequencia === 'multiple_daily' && `Várias vezes ao dia (${source.horarios_configurados?.count_per_day || 2}x)`}
+                                    {source.frequencia === 'daily' && `Diário às ${source.horarios_configurados?.time || '08:00'}`}
+                                    {source.frequencia === 'weekly' && `Semanal (${['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][source.horarios_configurados?.day_of_week || 1]} às ${source.horarios_configurados?.time || '08:00'})`}
+                                    {source.frequencia === 'manual' && 'Manual (Sem coleta auto)'}
+                                  </span>
+                                </span>
+
+                                <span className="text-[10px] bg-slate-800 text-purple-300 px-2 py-0.5 rounded font-medium border border-purple-800/50">
+                                  📂 {source.categoria_padrao || 'Comunicados'}
+                                </span>
+
+                                {source.importar_todas ? (
+                                  <span className="text-[10px] bg-amber-950 text-amber-300 px-2 py-0.5 rounded font-bold border border-amber-800/50">
+                                    ⚡ Importa Todas
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] bg-cyan-950 text-cyan-300 px-2 py-0.5 rounded font-medium border border-cyan-800/50 flex items-center gap-1">
+                                    <Filter className="w-2.5 h-2.5 text-cyan-400" />
+                                    <span>Filtro de Relevância Ativo</span>
+                                  </span>
+                                )}
+                              </div>
+
+                              <h5 className="font-bold text-white text-sm flex items-center gap-2">
+                                <span>{source.nome}</span>
+                              </h5>
+
+                              {source.descricao && (
+                                <p className="text-slate-400 text-xs">{source.descricao}</p>
+                              )}
+
+                              <a
+                                href={source.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-cyan-400 hover:underline text-[11px] font-mono flex items-center gap-1 truncate max-w-lg"
+                              >
+                                <span>{source.url}</span>
+                                <ExternalLink className="w-3 h-3 shrink-0" />
+                              </a>
+
+                              <div className="flex items-center gap-4 text-[10px] text-slate-500 pt-1">
+                                <span>Última verificação: {source.ultima_verificacao ? new Date(source.ultima_verificacao).toLocaleString('pt-BR') : 'Nunca'}</span>
+                                {source.proxima_verificacao && source.ativo && source.frequencia !== 'manual' && (
+                                  <span>Próxima agendada: {new Date(source.proxima_verificacao).toLocaleString('pt-BR')}</span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Controles da Fonte */}
+                            <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+                              <button
+                                onClick={() => handleToggleNewsSourceActive(source.id, source.ativo, source.nome)}
+                                title={source.ativo ? 'Desativar fonte' : 'Ativar fonte'}
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                                  source.ativo ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/60 hover:bg-emerald-900' : 'bg-slate-800 text-slate-400 hover:text-white'
+                                }`}
+                              >
+                                {source.ativo ? <ToggleRight className="w-4 h-4 text-emerald-400" /> : <ToggleLeft className="w-4 h-4 text-slate-500" />}
+                                <span>{source.ativo ? 'Ativa' : 'Inativa'}</span>
+                              </button>
+
+                              <button
+                                onClick={() => handleTriggerCollectorNow(source.id, source.nome)}
+                                disabled={sourceTestingId === source.id}
+                                title="Executar busca de notícias imediatamente"
+                                className="p-2 bg-cyan-950 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 rounded-lg flex items-center gap-1 text-xs cursor-pointer"
+                              >
+                                {sourceTestingId === source.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+                                <span>Consultar</span>
+                              </button>
+
+                              <button
+                                onClick={() => handleEditNewsSource(source)}
+                                title="Editar fonte"
+                                className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg cursor-pointer"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                onClick={() => handleDeleteNewsSource(source.id, source.nome)}
+                                title="Remover fonte"
+                                className="p-2 bg-red-950 hover:bg-red-900 border border-red-900/50 text-red-400 rounded-lg cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* TAB 5: NOTÍCIAS */}
               {activeTab === 'noticias' && (
                 <div className="space-y-6">
+                  <div className="bg-[#0F172A] border border-cyan-900/40 p-4 rounded-2xl flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <Rss className="w-4 h-4 text-cyan-400" />
+                      <span className="text-slate-300">Deseja automatizar a coleta de comunicados de sites oficiais?</span>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab('fontes_noticias')}
+                      className="bg-cyan-950 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <span>Gerenciar Fontes Oficiais</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                   <form onSubmit={handleSaveNewsSubmit} className="bg-[#0F172A] border border-slate-800 p-5 rounded-2xl space-y-4 text-xs">
                     <h4 className="text-xs font-bold text-slate-200 uppercase">Publicar Notícia Oficial</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -3233,38 +3835,97 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <option value="Defesa Civil">Defesa Civil</option>
                           <option value="Prefeituras">Prefeituras</option>
                           <option value="Meteorologia">Meteorologia</option>
+                          <option value="Comunicados">Comunicados Oficiais</option>
+                          <option value="Alertas">Alertas de Emergência</option>
+                          <option value="Monitoramento">Monitoramento Hidrológico</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 mb-1">Prioridade *</label>
+                        <select
+                          value={newsPrioridade}
+                          onChange={(e) => setNewsPrioridade(e.target.value as any)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-500 font-medium"
+                        >
+                          <option value="baixa">Baixa</option>
+                          <option value="media">Média (Padrão)</option>
+                          <option value="alta">🔴 Alta / Destaque Principal</option>
                         </select>
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-slate-300 mb-1">Resumo / Conteúdo</label>
+                      <label className="block text-slate-300 mb-1">Resumo / Conteúdo *</label>
                       <textarea
                         rows={3}
                         value={newsSummary}
                         onChange={(e) => setNewsSummary(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                        placeholder="Insira a íntegra ou resumo do comunicado oficial..."
                         required
                       />
                     </div>
 
-                    <button type="submit" className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-5 py-2.5 rounded-xl flex items-center gap-2">
+                    {/* Regras de Permanência e Exibição */}
+                    <div className="p-4 bg-slate-900/90 border border-slate-800 rounded-xl space-y-3">
+                      <p className="font-bold text-cyan-400 text-xs">Controle de Permanência e Exibição</p>
+                      
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                        <label className="flex items-center gap-2 cursor-pointer text-slate-200">
+                          <input
+                            type="checkbox"
+                            checked={newsManterPermanente}
+                            onChange={(e) => setNewsManterPermanente(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-cyan-500 focus:ring-cyan-500"
+                          />
+                          <span className="font-medium">Manter notícia permanentemente</span>
+                        </label>
+
+                        <label className="flex items-center gap-2 cursor-pointer text-slate-200">
+                          <input
+                            type="checkbox"
+                            checked={newsExibirNoMenu}
+                            onChange={(e) => setNewsExibirNoMenu(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-cyan-500 focus:ring-cyan-500"
+                          />
+                          <span className="font-medium">Exibir no menu Notícias</span>
+                        </label>
+                      </div>
+
+                      <p className="text-[11px] text-slate-400">
+                        * Se a opção <b>Manter notícia permanentemente</b> não estiver marcada, a notícia será removida automaticamente pela rotina de limpeza após 7 dias de sua publicação.
+                      </p>
+                    </div>
+
+                    <button type="submit" className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-6 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer shadow-lg shadow-cyan-900/20">
                       <Plus className="w-4 h-4" />
-                      <span>Publicar Notícia</span>
+                      <span>Publicar Notícia Oficial</span>
                     </button>
                   </form>
 
                   <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-5 text-xs">
-                    <h4 className="text-xs font-bold text-slate-200 uppercase mb-3">Notícias Publicadas ({newsList.length})</h4>
+                    <h4 className="text-xs font-bold text-slate-200 uppercase mb-3">Notícias Publicadas no Sistema ({newsList.length})</h4>
                     <div className="space-y-2">
                       {newsList.map((item) => (
-                        <div key={item.id} className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl flex items-center justify-between">
-                          <div>
-                            <span className="text-[10px] bg-cyan-950 text-cyan-400 px-2 py-0.5 rounded font-bold">{item.category}</span>
-                            <p className="font-bold text-white mt-1">{item.title}</p>
+                        <div key={item.id} className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl flex items-center justify-between gap-3">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-[10px] bg-cyan-950 text-cyan-400 border border-cyan-800/50 px-2 py-0.5 rounded font-bold">{item.category}</span>
+                              {item.manter_permanente ? (
+                                <span className="text-[10px] bg-amber-950 text-amber-300 border border-amber-800/50 px-2 py-0.5 rounded font-medium">📌 Permanente</span>
+                              ) : (
+                                <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-medium">⏳ 7 dias</span>
+                              )}
+                              {item.prioridade === 'alta' && (
+                                <span className="text-[10px] bg-red-950 text-red-400 border border-red-800/50 px-2 py-0.5 rounded font-bold">🔴 Alta Prioridade</span>
+                              )}
+                            </div>
+                            <p className="font-bold text-white text-sm">{item.title}</p>
+                            <p className="text-slate-400 text-xs line-clamp-1">{item.summary}</p>
                           </div>
-                          <button onClick={() => handleDeleteNews(item.id, item.title)} className="p-1.5 bg-slate-800 text-red-400 rounded-lg">
-                            <Trash2 className="w-3.5 h-3.5" />
+                          <button onClick={() => handleDeleteNews(item.id, item.title)} className="p-2 bg-slate-800 hover:bg-red-950 text-red-400 rounded-lg shrink-0 cursor-pointer">
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       ))}

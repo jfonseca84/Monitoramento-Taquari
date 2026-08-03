@@ -496,9 +496,11 @@ export const INITIAL_NEWS: NewsItem[] = [
     category: 'Defesa Civil',
     title: 'Defesa Civil monitora elevação do nível do Rio Taquari',
     summary: 'Equipes seguem em alerta devido à previsão de chuvas para os próximos dias na região alta da bacia.',
-    content: 'A Defesa Civil Regional ativou o protocolo de monitoramento contínuo em virtude do volume pluvial acumulado na serra gaúcha. As leituras das últimas duas horas indicam uma taxa moderada de subida de 8 cm/h na estação de Lajeado.',
+    content: 'Equipes seguem em alerta devido à previsão de chuvas para os próximos dias na região alta da bacia.',
     image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80',
     author: 'Defesa Civil Lajeado',
+    fonte: 'Defesa Civil RS',
+    link_original: 'https://defesacivil.rs.gov.br',
     date: 'há 2 horas',
     published: true
   },
@@ -508,9 +510,11 @@ export const INITIAL_NEWS: NewsItem[] = [
     category: 'Prefeituras',
     title: 'Prefeitura de Lajeado reforça orientações à população',
     summary: 'Evite áreas de risco e fique atento aos comunicados oficiais da Defesa Civil do município.',
-    content: 'A Prefeitura Municipal de Lajeado recomenda que moradores próximos à cota de atenção mantenham-se informados através deste portal oficial e sigam as rotas pré-estabelecidas caso haja alteração de cota.',
+    content: 'Evite áreas de risco e fique atento aos comunicados oficiais da Defesa Civil do município.',
     image: 'https://images.unsplash.com/photo-1511497584788-876761c11969?auto=format&fit=crop&w=600&q=80',
     author: 'Assessoria de Imprensa',
+    fonte: 'Prefeitura de Lajeado',
+    link_original: 'https://lajeado.rs.gov.br',
     date: 'há 5 horas',
     published: true
   },
@@ -520,9 +524,11 @@ export const INITIAL_NEWS: NewsItem[] = [
     category: 'Defesa Civil',
     title: 'Novo boletim meteorológico indica mais chuvas',
     summary: 'Previsão indica acumulado significativo entre quarta e sexta-feira nas cabeceiras dos rios.',
-    content: 'Os modelos meteorológicos indicam nova frente fria trazendo acumulados entre 40mm e 80mm nas próximas 48 horas. Os radares mantêm a calha em estado de vigilância.',
+    content: 'Previsão indica acumulado significativo entre quarta e sexta-feira nas cabeceiras dos rios.',
     image: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=600&q=80',
     author: 'Defesa Civil Estadual',
+    fonte: 'Defesa Civil RS',
+    link_original: 'https://defesacivil.rs.gov.br',
     date: 'há 1 dia',
     published: true
   }

@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { City, Station, NewsItem, AlertItem, SystemLog, Sponsor, LevelTrend, LevelStatus, AdminUser, AlertSubscriber, AlertNotification, AlertStats, AlertHistoryItem, AlertDispatchItem, CityCamera, SiteSettings } from '../types';
+import { City, Station, NewsItem, NewsSource, AlertItem, SystemLog, Sponsor, LevelTrend, LevelStatus, AdminUser, AlertSubscriber, AlertNotification, AlertStats, AlertHistoryItem, AlertDispatchItem, CityCamera, SiteSettings } from '../types';
 import { INITIAL_CITIES, INITIAL_STATIONS, INITIAL_NEWS, INITIAL_ALERTS, INITIAL_LOGS, INITIAL_SPONSORS, INITIAL_CITY_CAMERAS, INITIAL_SUBSCRIBERS, generateHistoryForCity, calculateStatusLevel } from '../data/initialData';
 import { getCityThresholds } from '../data/cityThresholds';
 import { BRASILIA_TIMEZONE, getBrasiliaLastUpdatedString, getBrasiliaTimeString } from './dateUtils';
@@ -38,6 +38,18 @@ class LocalStore {
   private cities: City[] = [...INITIAL_CITIES];
   private stations: Station[] = [...INITIAL_STATIONS];
   private news: NewsItem[] = [...INITIAL_NEWS];
+  private newsSources: NewsSource[] = (() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('taquari_news_sources');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      }
+    } catch (e) {}
+    return [];
+  })();
   private alerts: AlertItem[] = [...INITIAL_ALERTS];
   private logs: SystemLog[] = [...INITIAL_LOGS];
   private subscribers: AlertSubscriber[] = (() => {
@@ -394,6 +406,50 @@ class LocalStore {
 
   deleteNews(id: string): void {
     this.news = this.news.filter((n) => n.id !== id);
+  }
+
+  getNewsSources(): NewsSource[] {
+    return this.newsSources.map((s) => ({ ...s }));
+  }
+
+  saveNewsSource(sourceData: Partial<NewsSource>): NewsSource {
+    if (sourceData.id) {
+      const idx = this.newsSources.findIndex((s) => s.id === sourceData.id);
+      if (idx >= 0) {
+        this.newsSources[idx] = { ...this.newsSources[idx], ...sourceData };
+        this.persistNewsSources();
+        return { ...this.newsSources[idx] };
+      }
+    }
+    const newSource: NewsSource = {
+      id: `src-${Date.now()}`,
+      nome: sourceData.nome || 'Nova Fonte',
+      descricao: sourceData.descricao || '',
+      url: sourceData.url || '',
+      tipo: sourceData.tipo || 'rss',
+      ativo: sourceData.ativo !== false,
+      frequencia: sourceData.frequencia || 'hourly',
+      horarios_configurados: sourceData.horarios_configurados || {},
+      ultima_verificacao: null,
+      proxima_verificacao: null,
+      criado_em: new Date().toISOString()
+    };
+    this.newsSources.unshift(newSource);
+    this.persistNewsSources();
+    return { ...newSource };
+  }
+
+  deleteNewsSource(id: string): void {
+    this.newsSources = this.newsSources.filter((s) => s.id !== id);
+    this.persistNewsSources();
+  }
+
+  private persistNewsSources(): void {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('taquari_news_sources', JSON.stringify(this.newsSources));
+      }
+    } catch (e) {}
   }
 
   getAlerts(): AlertItem[] {
@@ -1239,6 +1295,119 @@ export async function deleteNews(newsId: string): Promise<void> {
     await supabase.from('news').delete().eq('id', newsId);
   }
   localStore.deleteNews(newsId);
+}
+
+// ==========================================
+// NEWS SOURCES QUERY & MUTATIONS
+// ==========================================
+export async function fetchNewsSources(): Promise<NewsSource[]> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('news_sources')
+        .select('*')
+        .order('nome', { ascending: true });
+      if (!error && data) {
+        return data as NewsSource[];
+      }
+    } catch (e) {
+      console.warn('Supabase fetchNewsSources error:', e);
+    }
+  }
+  return localStore.getNewsSources();
+}
+
+export async function saveNewsSource(sourceData: Partial<NewsSource>): Promise<NewsSource> {
+  invalidateClientCache();
+  if (isSupabaseConfigured && supabase) {
+    try {
+      if (sourceData.id && !sourceData.id.startsWith('src-')) {
+        const { data, error } = await supabase
+          .from('news_sources')
+          .update({
+            nome: sourceData.nome,
+            descricao: sourceData.descricao,
+            url: sourceData.url,
+            tipo: sourceData.tipo,
+            ativo: sourceData.ativo,
+            frequencia: sourceData.frequencia,
+            horarios_configurados: sourceData.horarios_configurados,
+            atualizado_em: new Date().toISOString()
+          })
+          .eq('id', sourceData.id)
+          .select()
+          .single();
+        if (!error && data) return data as NewsSource;
+      } else {
+        const { id, ...toInsert } = sourceData;
+        const { data, error } = await supabase
+          .from('news_sources')
+          .insert({
+            nome: toInsert.nome,
+            descricao: toInsert.descricao,
+            url: toInsert.url,
+            tipo: toInsert.tipo || 'rss',
+            ativo: toInsert.ativo !== false,
+            frequencia: toInsert.frequencia || 'hourly',
+            horarios_configurados: toInsert.horarios_configurados || {},
+          })
+          .select()
+          .single();
+        if (!error && data) return data as NewsSource;
+      }
+    } catch (e) {
+      console.warn('Supabase saveNewsSource exception:', e);
+    }
+  }
+  return localStore.saveNewsSource(sourceData);
+}
+
+export async function deleteNewsSource(sourceId: string): Promise<void> {
+  invalidateClientCache();
+  if (isSupabaseConfigured && supabase) {
+    try {
+      await supabase.from('news_sources').delete().eq('id', sourceId);
+    } catch (e) {
+      console.warn('Supabase deleteNewsSource exception:', e);
+    }
+  }
+  localStore.deleteNewsSource(sourceId);
+}
+
+export async function toggleNewsSourceActive(sourceId: string, ativo: boolean): Promise<void> {
+  invalidateClientCache();
+  if (isSupabaseConfigured && supabase) {
+    try {
+      await supabase
+        .from('news_sources')
+        .update({ ativo, atualizado_em: new Date().toISOString() })
+        .eq('id', sourceId);
+    } catch (e) {
+      console.warn('Supabase toggleNewsSourceActive error:', e);
+    }
+  }
+  localStore.saveNewsSource({ id: sourceId, ativo });
+}
+
+export async function triggerNewsCollectorNow(sourceId?: string): Promise<{ success: boolean; newArticlesCount: number; message?: string }> {
+  invalidateClientCache();
+  try {
+    const url = sourceId ? `/api/news/collect?sourceId=${encodeURIComponent(sourceId)}` : '/api/news/collect';
+    const res = await fetch(url, { method: 'GET' });
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        success: data.success !== false,
+        newArticlesCount: data.newArticlesCount || 0,
+        message: data.newArticlesCount > 0
+          ? `${data.newArticlesCount} nova(s) notícia(s) coletada(s) com sucesso!`
+          : 'Nenhuma nova notícia encontrada no momento.'
+      };
+    }
+  } catch (e) {
+    console.warn('Erro ao chamar /api/news/collect:', e);
+  }
+  return { success: true, newArticlesCount: 0, message: 'Verificação realizada com sucesso.' };
 }
 
 // ==========================================

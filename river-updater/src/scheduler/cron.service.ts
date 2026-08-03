@@ -3,6 +3,7 @@ import { LoggerService } from '../logs/logger.service.js';
 import { RiverCollector } from '../collectors/river.collector.js';
 import { HealthService } from '../services/health.service.js';
 import { CacheService } from '../services/cache.service.js';
+import { NewsCollector } from '../collectors/news.collector.js';
 
 export class CronService {
   private static PREFIX = 'CronService';
@@ -58,6 +59,13 @@ export class CronService {
       if (result.success) {
         LoggerService.info('SYNC', 'Dados salvos no Supabase com sucesso');
         HealthService.markExecutionSuccess(result.durationMs);
+
+        // Executar verificação programada de fontes de notícias ativas
+        try {
+          await NewsCollector.checkAndCollectNews();
+        } catch (newsErr: any) {
+          LoggerService.warn('SYNC', `Aviso na coleta de notícias: ${newsErr?.message || newsErr}`);
+        }
 
         // Renovação automática do cache em memória após atualização do worker
         try {

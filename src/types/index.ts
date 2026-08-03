@@ -95,10 +95,39 @@ export interface AlertItem {
   expires_at?: string;
 }
 
+export type NewsSourceType = 'rss' | 'api' | 'html';
+export type NewsSourceFrequency = 'hourly' | 'multiple_daily' | 'daily' | 'weekly' | 'manual';
+
+export interface NewsSourceSchedule {
+  times?: string[]; // e.g. ["08:00", "18:00"]
+  time?: string; // e.g. "08:00"
+  day_of_week?: number; // 0 = Domingo, 1 = Segunda, etc.
+  count_per_day?: number;
+}
+
+export interface NewsSource {
+  id: string;
+  nome: string;
+  descricao?: string;
+  url: string;
+  tipo: NewsSourceType;
+  ativo: boolean;
+  frequencia: NewsSourceFrequency;
+  horarios_configurados?: NewsSourceSchedule;
+  categoria_padrao?: 'Alertas' | 'Monitoramento' | 'Comunicados' | 'Meteorologia' | string;
+  keywords_incluir?: string;
+  keywords_ignorar?: string;
+  importar_todas?: boolean;
+  ultima_verificacao?: string | null;
+  proxima_verificacao?: string | null;
+  criado_em?: string;
+  atualizado_em?: string;
+}
+
 export interface NewsItem {
   id: string;
   city_id?: string;
-  category: 'Defesa Civil' | 'Prefeituras' | 'Meteorologia' | 'Infraestrutura' | 'Comunicados';
+  category: 'Defesa Civil' | 'Prefeituras' | 'Meteorologia' | 'Infraestrutura' | 'Comunicados' | 'Alertas' | 'Monitoramento' | string;
   title: string;
   summary: string;
   content: string;
@@ -106,6 +135,15 @@ export interface NewsItem {
   author: string;
   date: string;
   published: boolean;
+  link_original?: string;
+  fonte?: string;
+  source_id?: string;
+  created_at?: string;
+  is_critical?: boolean;
+  manter_permanente?: boolean;
+  exibir_no_menu?: boolean;
+  prioridade?: 'baixa' | 'media' | 'alta';
+  expires_at?: string;
 }
 
 export interface GalleryItem {
