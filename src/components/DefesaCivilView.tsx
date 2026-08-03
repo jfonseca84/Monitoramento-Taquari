@@ -231,8 +231,20 @@ export const DefesaCivilView: React.FC<DefesaCivilViewProps> = ({ cities = [], o
       });
     }
 
-    // Sort alphabetically by cityName
-    list.sort((a, b) => a.cityName.localeCompare(b.cityName, 'pt-BR'));
+    // Sort with priority: Lajeado -> Vale do Taquari -> Other regions (alphabetical)
+    list.sort((a, b) => {
+      const isLajeadoA = a.cityName.toLowerCase() === 'lajeado';
+      const isLajeadoB = b.cityName.toLowerCase() === 'lajeado';
+      if (isLajeadoA && !isLajeadoB) return -1;
+      if (!isLajeadoA && isLajeadoB) return 1;
+
+      const isTaquariA = a.region === 'Vale do Taquari';
+      const isTaquariB = b.region === 'Vale do Taquari';
+      if (isTaquariA && !isTaquariB) return -1;
+      if (!isTaquariA && isTaquariB) return 1;
+
+      return a.cityName.localeCompare(b.cityName, 'pt-BR');
+    });
 
     // Apply search filter
     if (searchTerm.trim()) {
