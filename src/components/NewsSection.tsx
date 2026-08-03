@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { NewsItem } from '../types';
+import { INITIAL_NEWS } from '../data/initialData';
 import { Newspaper, ChevronRight, Clock, User, X } from 'lucide-react';
 
 interface NewsSectionProps {
@@ -9,6 +10,7 @@ interface NewsSectionProps {
 
 export const NewsSection: React.FC<NewsSectionProps> = ({ news, onViewAllNews }) => {
   const [selectedArticle, setSelectedArticle] = useState<NewsItem | null>(null);
+  const displayNews = news && news.length > 0 ? news : INITIAL_NEWS;
 
   const getCategoryBadge = (category: string) => {
     switch (category) {
@@ -42,7 +44,7 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ news, onViewAllNews })
 
       {/* NEWS CARDS GRID */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {news.slice(0, 3).map((item) => (
+        {displayNews.slice(0, 3).map((item) => (
           <div
             key={item.id}
             onClick={() => setSelectedArticle(item)}

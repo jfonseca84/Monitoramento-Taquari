@@ -719,8 +719,15 @@ export async function fetchBootstrapData(forceRefresh = false): Promise<{
       const data = await res.json();
       if (data && Array.isArray(data.cities)) {
         const cities = mergeDbCitiesWithCatalog(data.cities);
-        const news = (data.news || []) as NewsItem[];
-        const alerts = (data.alerts || []) as AlertItem[];
+        let news = (data.news || []) as NewsItem[];
+        let alerts = (data.alerts || []) as AlertItem[];
+
+        if (!news || news.length === 0) {
+          news = localStore.getNews();
+        }
+        if (!alerts || alerts.length === 0) {
+          alerts = localStore.getAlerts();
+        }
 
         cachedBootstrap = { cities, news, alerts, timestamp: now };
         return cachedBootstrap;
@@ -731,11 +738,18 @@ export async function fetchBootstrapData(forceRefresh = false): Promise<{
   }
 
   // 2. Fallback: Consultas diretas ao Supabase
-  const [cities, news, alerts] = await Promise.all([
+  let [cities, news, alerts] = await Promise.all([
     fetchCitiesDirect(),
     fetchNewsDirect(),
     fetchAlertsDirect()
   ]);
+
+  if (!news || news.length === 0) {
+    news = localStore.getNews();
+  }
+  if (!alerts || alerts.length === 0) {
+    alerts = localStore.getAlerts();
+  }
 
   cachedBootstrap = { cities, news, alerts, timestamp: now };
   return cachedBootstrap;
