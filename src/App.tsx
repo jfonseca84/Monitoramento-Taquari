@@ -14,12 +14,14 @@ import { DefesaCivilView } from './components/DefesaCivilView';
 import { PrefeiturasView } from './components/PrefeiturasView';
 import { AboutView } from './components/AboutView';
 import { ContactView } from './components/ContactView';
+import { CentroAnalisesView } from './components/CentroAnalisesView';
 import { RiverLevelDetailModal } from './components/RiverLevelDetailModal';
 import { LiveCamerasView } from './components/LiveCamerasView';
 import { RiskAlertSignup } from './components/RiskAlertSignup';
 
 import { SituationBanner } from './components/SituationBanner';
 import { SituationDetailModal } from './components/SituationDetailModal';
+import { AssistantChatWidget } from './components/AssistantChatWidget';
 
 import { City, NewsItem, Timeframe, ChartDataPoint, AlertItem } from './types';
 import { fetchBootstrapData, fetchCities, fetchNews, fetchCityHistory, fetchAlerts, localStore, subscribeToRealtimeChanges, ConnectionStatusType } from './lib/supabase';
@@ -258,7 +260,7 @@ export default function App() {
       <main className="max-w-[1600px] w-full mx-auto px-4 lg:px-8 py-6 flex-1">
         
         {/* VIEW ROUTER */}
-        {activeTab === 'inicio' || activeTab === 'nivel' ? (
+        {activeTab === 'inicio' ? (
           /* PRIMARY OPERATIONAL DASHBOARD (MATCHING ATTACHED SCREENSHOT) */
           <div className="flex flex-col lg:flex-row gap-6">
             
@@ -310,6 +312,8 @@ export default function App() {
             </div>
 
           </div>
+        ) : activeTab === 'nivel' || activeTab === 'centro-analises' ? (
+          <CentroAnalisesView />
         ) : activeTab === 'receber-alertas' ? (
           <RiskAlertSignup cities={cities} />
         ) : activeTab === 'cameras' ? (
@@ -450,6 +454,9 @@ export default function App() {
           setActiveTab('inicio');
         }}
       />
+
+      {/* GLOBAL FLOATING ASSISTANT CHAT WIDGET */}
+      <AssistantChatWidget currentCityName={selectedCity?.name} />
 
     </div>
   );

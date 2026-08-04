@@ -51,10 +51,12 @@ import {
 } from '../lib/supabase';
 import { AlertDispatchItem } from '../types';
 import { ResidentsIntelligenceView } from './ResidentsIntelligenceView';
+import { AdminCentroAnalisesView } from './AdminCentroAnalisesView';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import {
   X,
   LayoutDashboard,
+  BarChart3,
   Home,
   Building2,
   Camera,
@@ -1403,6 +1405,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <aside className="w-full md:w-64 bg-[#0B132B] border-r border-slate-800 p-3 flex flex-row md:flex-col gap-1 overflow-x-auto shrink-0">
               {[
                 { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+                { id: 'centro_analises', label: 'Centro de Análises', icon: BarChart3 },
                 { id: 'moradores', label: 'Moradores Cadastrados', icon: Home },
                 { id: 'central_alertas', label: 'Central de Alertas', icon: Radio },
                 { id: 'rede_alertas', label: 'Alertas de Moradores', icon: BellRing },
@@ -1471,6 +1474,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </p>
                   </div>
                 </div>
+              )}
+
+              {/* TAB: CENTRO DE ANÁLISES */}
+              {activeTab === 'centro_analises' && (
+                <AdminCentroAnalisesView />
               )}
 
               {/* TAB: MORADORES CADASTRADOS */}

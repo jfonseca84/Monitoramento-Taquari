@@ -316,4 +316,50 @@ export interface SiteSettings {
   updated_at?: string;
 }
 
+export type CotaAttachmentType = 'imagem' | 'video' | 'pdf';
+
+export interface CotaAttachment {
+  id: string;
+  cota_id: string;
+  tipo: CotaAttachmentType;
+  titulo: string;
+  url: string;
+  descricao?: string;
+  ordem?: number;
+  created_at?: string;
+}
+
+export interface CotaAnalise {
+  id: string;
+  cota_m: number;
+  titulo: string;
+  resumo_ia: string;
+  descricao: string;
+  observacoes?: string;
+  nivel_risco: LevelStatus;
+  status: 'publicado' | 'rascunho';
+  ordem?: number;
+  anexos?: CotaAttachment[];
+  pdf_oficial_url?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface HistoricalFlood {
+  id: string;
+  nome: string;
+  data: string;
+  cota_m: number;
+  detalhes: string;
+  cidade_referencia: string;
+}
+
+export interface ProjectionParameter {
+  id: string;
+  horas: number;
+  variacao_estimada_m: number;
+  confianca_porcentagem: number;
+  fator_chuva_upstream: number;
+  modelo_nome: string;
+}
 

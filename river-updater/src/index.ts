@@ -83,6 +83,26 @@ function startHttpServer() {
     }
 
     // API ENDPOINTS COM CACHE EM MEMÓRIA DE ALTA PERFORMANCE
+    if (pathname === '/api/chat' || pathname === '/api/gemini/chat') {
+      if (req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => { body += chunk; });
+        req.on('end', async () => {
+          try {
+            const { askHydrologicalAssistant } = await import('../../src/server/geminiService.js');
+            const { question, context } = JSON.parse(body || '{}');
+            const answer = await askHydrologicalAssistant(question, context);
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ text: answer }));
+          } catch (err: any) {
+            res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ error: err?.message || 'Erro ao processar requisição do assistente' }));
+          }
+        });
+        return;
+      }
+    }
+
     if (pathname === '/api/telemetry' || pathname === '/api/bootstrap') {
       CacheService.getTelemetryData()
         .then((data) => {
