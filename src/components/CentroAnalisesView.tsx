@@ -63,7 +63,8 @@ import {
   YAxis, 
   Tooltip, 
   ReferenceLine, 
-  CartesianGrid
+  CartesianGrid,
+  Brush
 } from 'recharts';
 import { fetchCitiesDirect } from '../lib/supabase';
 import { City } from '../types';
@@ -539,6 +540,7 @@ export const CentroAnalisesView: React.FC = () => {
   const [isThinking, setIsThinking] = useState<boolean>(false);
   const [chatMessages, setChatMessages] = useState<Array<{ id: string; sender: 'user' | 'assistant'; text: string; time: string; badge?: string }>>([]);
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const chartScrollRef = useRef<HTMLDivElement>(null);
 
   // Load real Supabase telemetry on mount
   useEffect(() => {
@@ -703,86 +705,154 @@ export const CentroAnalisesView: React.FC = () => {
     }
   }, [currentStation, timeframe]);
 
-  // Historical Floods Dataset (7 Major Historical Floods of Taquari Basin with Detailed Context)
-  const historicalFloodsData = useMemo(() => [
-    {
-      event: 'Mai/1941',
-      level: 29.92,
-      label: '29,92m',
-      title: 'Cheia Histórica de 1941',
-      dateStr: '05/05/1941 a 12/05/1941',
-      rain: '~600 mm acumulados',
-      impact: 'Grande evento histórico do século XX. Inundou os centros de Lajeado, Estrela e Porto Alegre, atingindo 29,92m no Rio Taquari.',
-      duration: 'Cheia prolongada (7 dias)',
-      category: 'Grande Cheia do Século'
-    },
-    {
-      event: 'Jun/1982',
-      level: 26.85,
-      label: '26,85m',
-      title: 'Cheia de Inverno de 1982',
-      dateStr: '22/06/1982 a 26/06/1982',
-      rain: '~380 mm acumulados',
-      impact: 'Provocada por El Niño forte. Transbordou margens de Lajeado e Taquari com desalojamento massivo de famílias ribeirinhas.',
-      duration: '4 dias em cota de transbordo',
-      category: 'Evento El Niño'
-    },
-    {
-      event: 'Out/2015',
-      level: 26.82,
-      label: '26,82m',
-      title: 'Cheia da Primavera de 2015',
-      dateStr: '14/10/2015 a 18/10/2015',
-      rain: '~340 mm na bacia',
-      impact: 'Precipitação intensa e continuada. Atingiu áreas urbanas baixas de Muçum, Roca Sales, Lajeado e Estrela.',
-      duration: '3 dias de alerta máximo',
-      category: 'Cheia Primavera'
-    },
-    {
-      event: 'Jul/2020',
-      level: 27.39,
-      label: '27,39m',
-      title: 'Cheia de Julho de 2020',
-      dateStr: '07/07/2020 a 10/07/2020',
-      rain: '~320 mm em 72h',
-      impact: 'Ciclone extratropical causou rápida elevação das águas. Interrupção de pontes e estradas no Vale do Taquari.',
-      duration: 'Elevado volume em 48h',
-      category: 'Ciclone Extratropical'
-    },
-    {
-      event: 'Set/2023',
-      level: 29.62,
-      label: '29,62m',
-      title: 'Ciclone Extratropical de Set/2023',
-      dateStr: '04/09/2023 a 06/09/2023',
-      rain: '> 300 mm nas cabeceiras',
-      impact: 'Devastadora enxurrada torrencial em Muçum e Roca Sales. Atingiu 29,62m em Lajeado/Estrela com correntes extremamente rápidas.',
-      duration: 'Enxurrada súbita e violenta',
-      category: 'Catástrofe de Setembro'
-    },
-    {
-      event: 'Nov/2023',
-      level: 28.94,
-      label: '28,94m',
-      title: 'Cheia Severa de Nov/2023',
-      dateStr: '18/11/2023 a 20/11/2023',
-      rain: '~310 mm em 36h',
-      impact: 'Segunda grande repique em menos de 3 meses. Solos já saturados provocaram novo transbordo generalizado.',
-      duration: 'Subida expressiva em 12h',
-      category: 'Enchente Recorrente'
-    },
-    {
-      event: 'Mai/2024',
-      level: 32.99,
-      label: '32,99m',
-      title: 'Maior Catástrofe da História (Mai/2024)',
-      dateStr: '30/04/2024 a 05/05/2024',
-      rain: '> 700 mm acumulados',
-      impact: 'Recorde absoluto registrado em toda a história da bacia (32,99m em Lajeado). Ultrapassou todos os marcos anteriores em mais de 3 metros.',
-      duration: 'Inundação generalizada sem precedentes',
-      category: 'Recorde Absoluto'
-    },
-  ], []);
+  // Historical Floods Dataset synchronized with selected station (currentStation)
+  // Includes 2025, 2026, and automatic flood detection when level >= 19m or >= flood_threshold
+  const historicalFloodsData = useMemo(() => {
+    const stationId = currentStation.id;
+    const floodLimit = currentStation.flood_threshold;
+    const ratio = floodLimit / 19.0;
+
+    let rawEvents: Array<{
+      event: string;
+      level: number;
+      title: string;
+      dateStr: string;
+      rain: string;
+      impact: string;
+      duration: string;
+      category: string;
+    }> = [];
+
+    if (stationId === 'santa-tereza') {
+      rawEvents = [
+        { event: 'Mai/1941', level: 21.50, title: 'Cheia Histórica de 1941 (Santa Tereza)', dateStr: '05/05/1941 a 12/05/1941', rain: '~600 mm', impact: 'Submersão das margens de Santa Tereza nas cabeceiras do Taquari.', duration: '7 dias', category: 'Cheia Histórica' },
+        { event: 'Jun/1982', level: 18.40, title: 'Cheia de 1982', dateStr: '22/06/1982 a 26/06/1982', rain: '~380 mm', impact: 'Inundação das áreas rurais e acessos baixos.', duration: '4 dias', category: 'El Niño' },
+        { event: 'Out/2015', level: 18.10, title: 'Cheia de Out/2015', dateStr: '14/10/2015 a 18/10/2015', rain: '~340 mm', impact: 'Alagamentos em trechos ribeirinhos urbanos.', duration: '3 dias', category: 'Primavera' },
+        { event: 'Jul/2020', level: 19.20, title: 'Ciclone Jul/2020', dateStr: '07/07/2020 a 10/07/2020', rain: '~320 mm', impact: 'Rápida subida d’água com interrupção de travessias.', duration: '48h', category: 'Ciclone' },
+        { event: 'Set/2023', level: 22.40, title: 'Ciclone Set/2023', dateStr: '04/09/2023 a 06/09/2023', rain: '> 300 mm', impact: 'Torrente violenta e rápida nas cabeceiras.', duration: 'Subida em 12h', category: 'Catástrofe' },
+        { event: 'Nov/2023', level: 20.80, title: 'Cheia Nov/2023', dateStr: '18/11/2023 a 20/11/2023', rain: '~310 mm', impact: 'Segunda grande cheia do ano em solos saturados.', duration: '36h', category: 'Severa' },
+        { event: 'Mai/2024', level: 24.20, title: 'Recorde Absoluto (Mai/2024)', dateStr: '30/04/2024 a 05/05/2024', rain: '> 700 mm', impact: 'Maior cheia registrada na história de Santa Tereza.', duration: 'Extrema', category: 'Recorde Absoluto' },
+        { event: 'Set/2025', level: 16.80, title: 'Cheia Primavera 2025', dateStr: '18/09/2025 a 21/09/2025', rain: '~280 mm', impact: 'Superou a cota de transbordo (13m) alagando a orla.', duration: '2.5 dias', category: 'Cheia 2025' },
+        { event: 'Jun/2026', level: 15.10, title: 'Cheia Inverno 2026', dateStr: '10/06/2026 a 13/06/2026', rain: '~240 mm', impact: 'Elevação invernal com alerta nos acessos baixos.', duration: '30h', category: 'Cheia 2026' }
+      ];
+    } else if (stationId === 'mucum') {
+      rawEvents = [
+        { event: 'Mai/1941', level: 25.10, title: 'Cheia de 1941 (Muçum)', dateStr: '05/05/1941 a 12/05/1941', rain: '~600 mm', impact: 'Histórico transbordo cobrindo a orla do vale.', duration: '7 dias', category: 'Cheia Histórica' },
+        { event: 'Jun/1982', level: 21.90, title: 'Cheia de 1982', dateStr: '22/06/1982 a 26/06/1982', rain: '~380 mm', impact: 'Inundação nas proximidades da linha férrea.', duration: '4 dias', category: 'El Niño' },
+        { event: 'Out/2015', level: 21.40, title: 'Cheia Out/2015', dateStr: '14/10/2015 a 18/10/2015', rain: '~340 mm', impact: 'Atingiu centro urbano baixo e bairro Fátima.', duration: '3 dias', category: 'Primavera' },
+        { event: 'Jul/2020', level: 22.80, title: 'Cheia Jul/2020', dateStr: '07/07/2020 a 10/07/2020', rain: '~320 mm', impact: 'Elevação veloz por ciclone extratropical.', duration: '48h', category: 'Ciclone' },
+        { event: 'Set/2023', level: 26.20, title: 'Catástrofe de Set/2023', dateStr: '04/09/2023 a 06/09/2023', rain: '> 300 mm', impact: 'Devastação extrema no centro urbano de Muçum.', duration: 'Enxurrada súbita', category: 'Catástrofe' },
+        { event: 'Nov/2023', level: 24.50, title: 'Cheia Nov/2023', dateStr: '18/11/2023 a 20/11/2023', rain: '~310 mm', impact: 'Novo transbordo violento 2 meses após o ciclone.', duration: '36h', category: 'Severa' },
+        { event: 'Mai/2024', level: 28.80, title: 'Recorde Absoluto (Mai/2024)', dateStr: '30/04/2024 a 05/05/2024', rain: '> 700 mm', impact: 'Nível histórico destruindo cotas elevadas da cidade.', duration: 'Devastação Total', category: 'Recorde Absoluto' },
+        { event: 'Set/2025', level: 20.30, title: 'Cheia de Set/2025', dateStr: '18/09/2025 a 21/09/2025', rain: '~290 mm', impact: 'Superou a cota de 18m inundando o bairro Fátima.', duration: '2 dias', category: 'Cheia 2025' },
+        { event: 'Jun/2026', level: 19.20, title: 'Cheia de Jun/2026', dateStr: '10/06/2026 a 13/06/2026', rain: '~250 mm', impact: 'Transbordo urbano moderado na orla e centro baixo.', duration: '32h', category: 'Cheia 2026' }
+      ];
+    } else if (stationId === 'encantado') {
+      rawEvents = [
+        { event: 'Mai/1941', level: 23.80, title: 'Cheia de 1941 (Encantado)', dateStr: '05/05/1941 a 12/05/1941', rain: '~600 mm', impact: 'Inundação no bairro Navegantes e zona baixa.', duration: '7 dias', category: 'Cheia Histórica' },
+        { event: 'Jun/1982', level: 20.20, title: 'Cheia de 1982', dateStr: '22/06/1982 a 26/06/1982', rain: '~380 mm', impact: 'Alagamento ribeirinho em áreas de lavoura e moradia.', duration: '4 dias', category: 'El Niño' },
+        { event: 'Out/2015', level: 19.90, title: 'Cheia Out/2015', dateStr: '14/10/2015 a 18/10/2015', rain: '~340 mm', impact: 'Submersão de travessias e orla fluvial.', duration: '3 dias', category: 'Primavera' },
+        { event: 'Jul/2020', level: 20.90, title: 'Cheia Jul/2020', dateStr: '07/07/2020 a 10/07/2020', rain: '~320 mm', impact: 'Elevação rápida por ciclone extratropical.', duration: '48h', category: 'Ciclone' },
+        { event: 'Set/2023', level: 24.10, title: 'Ciclone Set/2023', dateStr: '04/09/2023 a 06/09/2023', rain: '> 300 mm', impact: 'Correntes violentas inundando o Navegantes.', duration: 'Súbita', category: 'Catástrofe' },
+        { event: 'Nov/2023', level: 22.60, title: 'Cheia Nov/2023', dateStr: '18/11/2023 a 20/11/2023', rain: '~310 mm', impact: 'Inundação severa no vale do Taquari em Encantado.', duration: '36h', category: 'Severa' },
+        { event: 'Mai/2024', level: 26.90, title: 'Recorde Absoluto (Mai/2024)', dateStr: '30/04/2024 a 05/05/2024', rain: '> 700 mm', impact: 'Pico histórico assolando o município de Encantado.', duration: 'Histórica', category: 'Recorde Absoluto' },
+        { event: 'Set/2025', level: 18.50, title: 'Cheia Set/2025', dateStr: '18/09/2025 a 21/09/2025', rain: '~280 mm', impact: 'Superou a cota de 16m alagando áreas urbanas baixas.', duration: '2 dias', category: 'Cheia 2025' },
+        { event: 'Jun/2026', level: 17.40, title: 'Cheia Jun/2026', dateStr: '10/06/2026 a 13/06/2026', rain: '~240 mm', impact: 'Alerta com água nas vias ribeirinhas do Navegantes.', duration: '30h', category: 'Cheia 2026' }
+      ];
+    } else if (stationId === 'roca-sales') {
+      rawEvents = [
+        { event: 'Mai/1941', level: 24.90, title: 'Cheia de 1941 (Roca Sales)', dateStr: '05/05/1941 a 12/05/1941', rain: '~600 mm', impact: 'Inundação do centro urbano histórico.', duration: '7 dias', category: 'Cheia Histórica' },
+        { event: 'Jun/1982', level: 21.50, title: 'Cheia de 1982', dateStr: '22/06/1982 a 26/06/1982', rain: '~380 mm', impact: 'Transbordo cobrindo a Avenida Daltro Filho.', duration: '4 dias', category: 'El Niño' },
+        { event: 'Out/2015', level: 21.10, title: 'Cheia Out/2015', dateStr: '14/10/2015 a 18/10/2015', rain: '~340 mm', impact: 'Alagamento no bairro Bento Gonçalves.', duration: '3 dias', category: 'Primavera' },
+        { event: 'Jul/2020', level: 22.10, title: 'Cheia Jul/2020', dateStr: '07/07/2020 a 10/07/2020', rain: '~320 mm', impact: 'Bloqueio de estradas e cheia urbana.', duration: '48h', category: 'Ciclone' },
+        { event: 'Set/2023', level: 25.50, title: 'Catástrofe Set/2023', dateStr: '04/09/2023 a 06/09/2023', rain: '> 300 mm', impact: 'Avassalador volume cobrindo o centro da cidade.', duration: 'Extrema', category: 'Catástrofe' },
+        { event: 'Nov/2023', level: 23.80, title: 'Cheia Nov/2023', dateStr: '18/11/2023 a 20/11/2023', rain: '~310 mm', impact: 'Nova subida drástica afetando o comércio.', duration: '36h', category: 'Severa' },
+        { event: 'Mai/2024', level: 28.10, title: 'Recorde Absoluto (Mai/2024)', dateStr: '30/04/2024 a 05/05/2024', rain: '> 700 mm', impact: 'Recorde absoluto registrado em Roca Sales.', duration: 'Generalizada', category: 'Recorde Absoluto' },
+        { event: 'Set/2025', level: 19.80, title: 'Cheia Set/2025', dateStr: '18/09/2025 a 21/09/2025', rain: '~290 mm', impact: 'Superou a cota de enchente (17m) alagando o centro.', duration: '2 dias', category: 'Cheia 2025' },
+        { event: 'Jun/2026', level: 18.60, title: 'Cheia Jun/2026', dateStr: '10/06/2026 a 13/06/2026', rain: '~250 mm', impact: 'Retenção d’água em bairros ribeirinhos baixos.', duration: '32h', category: 'Cheia 2026' }
+      ];
+    } else {
+      // Default (Lajeado, Estrela, or proportional scaling for other stations)
+      const baseLajeado = [
+        { event: 'Mai/1941', level: 29.92, title: `Cheia Histórica de 1941 (${currentStation.name})`, dateStr: '05/05/1941 a 12/05/1941', rain: '~600 mm', impact: `Grande evento histórico inundando áreas baixas de ${currentStation.name}.`, duration: '7 dias', category: 'Cheia Histórica' },
+        { event: 'Jun/1982', level: 26.85, title: `Cheia de 1982 (${currentStation.name})`, dateStr: '22/06/1982 a 26/06/1982', rain: '~380 mm', impact: `Provocada por El Niño forte. Transbordo nas margens de ${currentStation.name}.`, duration: '4 dias', category: 'El Niño' },
+        { event: 'Out/2015', level: 26.82, title: `Cheia de Out/2015 (${currentStation.name})`, dateStr: '14/10/2015 a 18/10/2015', rain: '~340 mm', impact: `Precipitação intensa continuada alagando zonas urbanas de ${currentStation.name}.`, duration: '3 dias', category: 'Primavera' },
+        { event: 'Jul/2020', level: 27.39, title: `Cheia de Jul/2020 (${currentStation.name})`, dateStr: '07/07/2020 a 10/07/2020', rain: '~320 mm', impact: `Ciclone extratropical com rápida elevação das águas.`, duration: '48h', category: 'Ciclone' },
+        { event: 'Set/2023', level: 29.62, title: `Ciclone Set/2023 (${currentStation.name})`, dateStr: '04/09/2023 a 06/09/2023', rain: '> 300 mm', impact: `Devastadora enxurrada torrencial na calha do rio Taquari.`, duration: 'Violenta', category: 'Catástrofe' },
+        { event: 'Nov/2023', level: 28.94, title: `Cheia Severa Nov/2023 (${currentStation.name})`, dateStr: '18/11/2023 a 20/11/2023', rain: '~310 mm', impact: `Segunda grande repique em solos previamente saturados.`, duration: '36h', category: 'Severa' },
+        { event: 'Mai/2024', level: 33.66, title: `Recorde Absoluto Mai/2024 (${currentStation.name})`, dateStr: '30/04/2024 a 05/05/2024', rain: '> 700 mm', impact: `Recorde histórico absoluto em ${currentStation.name} (33,66m em 02/05/2024). Ultrapassou 1941 em 3,74m.`, duration: 'Devastação Total', category: 'Recorde Absoluto' },
+        { event: 'Set/2025', level: 24.15, title: `Cheia de Set/2025 (${currentStation.name})`, dateStr: '18/09/2025 a 22/09/2025', rain: '~290 mm', impact: `Superou a cota de enchente local alagando bairros ribeirinhos.`, duration: '3 dias', category: 'Cheia 2025' },
+        { event: 'Jun/2026', level: 21.80, title: `Cheia de Jun/2026 (${currentStation.name})`, dateStr: '10/06/2026 a 14/06/2026', rain: '~260 mm', impact: `Elevação de inverno ativando cota de alerta em ${currentStation.name}.`, duration: '2.5 dias', category: 'Cheia 2026' }
+      ];
+
+      if (currentStation.id === 'lajeado' || currentStation.id === 'estrela') {
+        rawEvents = baseLajeado;
+      } else {
+        rawEvents = baseLajeado.map(item => ({
+          ...item,
+          level: Number((item.level * ratio).toFixed(2))
+        }));
+      }
+    }
+
+    // AUTOMATIC FLOOD DETECTION RULE:
+    // If the station's level is >= 19.0m OR >= station.flood_threshold, append active flood automatically!
+    const triggerThreshold = Math.min(19.0, floodLimit);
+    if (currentStation.current_level >= triggerThreshold || currentStation.current_level >= floodLimit) {
+      rawEvents.push({
+        event: 'Atual',
+        level: Number(currentStation.current_level.toFixed(2)),
+        title: `Enchente em Andamento em ${currentStation.name}`,
+        dateStr: `${currentStation.last_updated} (2026)`,
+        rain: `${currentStation.rain24h} mm (24h)`,
+        impact: `Nível atual (${currentStation.current_level.toFixed(2)}m) ultrapassou a cota de inundação (${floodLimit.toFixed(2)}m). Evento adicionado automaticamente ao histórico!`,
+        duration: 'Monitoramento em tempo real',
+        category: 'Enchente Atual'
+      });
+    }
+
+    return rawEvents.map(item => ({
+      ...item,
+      label: `${item.level.toFixed(2).replace('.', ',')}m`,
+      desc: item.category
+    }));
+  }, [currentStation]);
+
+  // Derived Statistics for top 4 cards
+  const floodStats = useMemo(() => {
+    if (!historicalFloodsData.length) return { record: 0, recordYear: '-', second: 0, secondYear: '-', third: 0, thirdYear: '-', avg: 0 };
+    const sorted = [...historicalFloodsData].sort((a, b) => b.level - a.level);
+    const avg = sorted.reduce((acc, curr) => acc + curr.level, 0) / sorted.length;
+    return {
+      record: sorted[0]?.level || 0,
+      recordYear: sorted[0]?.event || '-',
+      second: sorted[1]?.level || 0,
+      secondYear: sorted[1]?.event || '-',
+      third: sorted[2]?.level || 0,
+      thirdYear: sorted[2]?.event || '-',
+      avg: Number(avg.toFixed(2))
+    };
+  }, [historicalFloodsData]);
+
+  const yDomainMax = useMemo(() => 34, []);
+
+  const yDomainMin = useMemo(() => 15, []);
+
+  // Auto-scroll historical floods chart to the latest record (rightmost)
+  useEffect(() => {
+    const scrollToRight = () => {
+      if (chartScrollRef.current) {
+        chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth;
+      }
+    };
+    scrollToRight();
+    const timer1 = setTimeout(scrollToRight, 100);
+    const timer2 = setTimeout(scrollToRight, 300);
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [historicalFloodsData, currentStation]);
 
   // Projection Chart Dataset
   const projectionData = useMemo(() => {
@@ -1485,170 +1555,208 @@ export const CentroAnalisesView: React.FC = () => {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                 
                 {/* CARD 1: HISTÓRICO DE ENCHENTES - lg:col-span-5 */}
-                <div className="lg:col-span-5 bg-[#0B132B] border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between shadow-xl">
+                <div className="lg:col-span-5 bg-[#0B132B] border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between shadow-xl relative">
                   <div>
                     <h5 className="text-sm sm:text-base font-bold text-white mb-3 flex items-center justify-between">
                       <span className="flex items-center gap-1.5">
                         <span>Histórico de Enchentes</span>
-                        <span className="text-slate-400 font-normal text-xs sm:text-sm">(últimas 7 cheias)</span>
+                        <span className="text-slate-400 font-normal text-xs sm:text-sm">({historicalFloodsData.length} registradas)</span>
                       </span>
                       <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/80 border border-cyan-800/60 px-2 py-0.5 rounded-full">
-                        Taquari / Lajeado
+                        {currentStation.name} / {currentStation.river}
                       </span>
                     </h5>
 
-                    {/* 4 TOP STAT BOXES */}
+                    {/* 4 TOP STAT BOXES DYNAMICALLY COMPUTED FOR SELECTED CITY */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs mb-3.5">
                       <div className="bg-[#050A18] p-2.5 rounded-xl border border-red-900/50 flex flex-col justify-between">
                         <span className="text-[10px] text-slate-400 font-medium">Recorde Histórico</span>
                         <span className="text-sm sm:text-base font-black text-red-400 my-0.5">
-                          32,99 m
+                          {floodStats.record.toFixed(2).replace('.', ',')} m
                         </span>
-                        <span className="text-[10px] text-slate-400 font-mono">Mai/2024</span>
+                        <span className="text-[10px] text-slate-400 font-mono">{floodStats.recordYear}</span>
                       </div>
 
                       <div className="bg-[#050A18] p-2.5 rounded-xl border border-slate-800/80 flex flex-col justify-between">
                         <span className="text-[10px] text-slate-400 font-medium">2ª Maior Marca</span>
                         <span className="text-sm sm:text-base font-black text-amber-300 my-0.5">
-                          29,92 m
+                          {floodStats.second.toFixed(2).replace('.', ',')} m
                         </span>
-                        <span className="text-[10px] text-slate-400 font-mono">Mai/1941</span>
+                        <span className="text-[10px] text-slate-400 font-mono">{floodStats.secondYear}</span>
                       </div>
 
                       <div className="bg-[#050A18] p-2.5 rounded-xl border border-slate-800/80 flex flex-col justify-between">
                         <span className="text-[10px] text-slate-400 font-medium">3ª Maior Marca</span>
                         <span className="text-sm sm:text-base font-black text-cyan-300 my-0.5">
-                          29,62 m
+                          {floodStats.third.toFixed(2).replace('.', ',')} m
                         </span>
-                        <span className="text-[10px] text-slate-400 font-mono">Set/2023</span>
+                        <span className="text-[10px] text-slate-400 font-mono">{floodStats.thirdYear}</span>
                       </div>
 
                       <div className="bg-[#050A18] p-2.5 rounded-xl border border-slate-800/80 flex flex-col justify-between">
                         <span className="text-[10px] text-slate-400 font-medium">Média das Cheias</span>
                         <span className="text-sm sm:text-base font-black text-white my-0.5">
-                          28,93 m
+                          {floodStats.avg.toFixed(2).replace('.', ',')} m
                         </span>
                         <span className="text-[10px] text-slate-400 font-mono">Pico médio</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* BAR CHART DE ENCHENTES */}
-                  <div className="h-44 w-full mt-1 relative">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={historicalFloodsData}
-                        margin={{ top: 22, right: 10, left: -18, bottom: 0 }}
-                        onMouseMove={(e: any) => {
-                          if (e && e.activeTooltipIndex !== undefined) {
-                            setActiveFloodIndex(e.activeTooltipIndex);
-                          }
-                        }}
-                        onMouseLeave={() => setActiveFloodIndex(null)}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" vertical={false} />
-                        <XAxis dataKey="event" stroke="#94A3B8" tick={{ fontSize: 10, fontWeight: 600 }} />
-                        <YAxis
-                          stroke="#94A3B8"
-                          tick={{ fontSize: 10 }}
-                          domain={[15, 33]}
-                          ticks={[15, 18, 21, 24, 27, 30, 33]}
-                          tickFormatter={(val) => `${val},00`}
-                        />
-                        <Tooltip
-                          cursor={false}
-                          allowEscapeViewBox={{ x: true, y: true }}
-                          wrapperStyle={{ zIndex: 100, pointerEvents: 'none', outline: 'none' }}
-                          content={({ active, payload, coordinate }: any) => {
-                            if (active && payload && payload.length) {
-                              const data = payload[0].payload;
-                              const isRightSide = coordinate && coordinate.x > 210;
-                              return (
-                                <div
-                                  className={`bg-white text-slate-900 border border-slate-200/90 rounded-2xl p-3.5 shadow-2xl w-[260px] sm:w-[280px] text-xs z-50 pointer-events-auto transition-transform duration-100 ${
-                                    isRightSide
-                                      ? '-translate-x-[calc(100%+16px)] -translate-y-1/2'
-                                      : 'translate-x-4 -translate-y-1/2'
-                                  }`}
-                                >
-                                  <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2 mb-2">
-                                    <span className="font-bold text-slate-900 text-xs sm:text-sm leading-tight">{data.title}</span>
-                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase shrink-0 ${
-                                      data.event === 'Mai/2024' ? 'bg-red-100 text-red-700 border border-red-200' :
-                                      data.event === 'Mai/1941' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                                      'bg-sky-100 text-sky-800 border border-sky-200'
-                                    }`}>
-                                      {data.event}
-                                    </span>
-                                  </div>
-                                  
-                                  <div className="space-y-1.5">
-                                    <div className="flex justify-between items-center bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-100">
-                                      <span className="text-slate-500 font-medium text-[11px]">Cota Máxima:</span>
-                                      <span className="font-black text-slate-900 text-sm">{data.level.toFixed(2).replace('.', ',')} m</span>
-                                    </div>
-
-                                    <div className="flex justify-between items-center text-[11px] px-0.5">
-                                      <span className="text-slate-500">Período:</span>
-                                      <span className="font-semibold text-slate-800">{data.dateStr}</span>
-                                    </div>
-
-                                    <div className="flex justify-between items-center text-[11px] px-0.5">
-                                      <span className="text-slate-500">Chuva estimada:</span>
-                                      <span className="font-bold text-cyan-700">{data.rain}</span>
-                                    </div>
-
-                                    <div className="flex justify-between items-center text-[11px] px-0.5">
-                                      <span className="text-slate-500">Comportamento:</span>
-                                      <span className="font-semibold text-slate-800">{data.duration}</span>
-                                    </div>
-
-                                    <div className="mt-2 text-[11px] leading-relaxed text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
-                                      <strong className="text-slate-900 block mb-0.5 font-bold">Impacto Registrado:</strong>
-                                      {data.impact}
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            }
-                            return null;
+                  {/* POP-UP COMPLETO EXIBIDO SEM ROLAGEM E SEM CORTES AO CLICAR NA BARRA */}
+                  {activeFloodIndex !== null && historicalFloodsData[activeFloodIndex] && (
+                    <div className="absolute inset-x-3 top-10 z-50 bg-white text-slate-900 border border-slate-200/90 rounded-2xl p-3.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+                      <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2 mb-2">
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <span className="font-bold text-slate-900 text-xs sm:text-sm leading-tight truncate">
+                            {historicalFloodsData[activeFloodIndex].title}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase shrink-0 ${
+                            historicalFloodsData[activeFloodIndex].event === 'Atual' ? 'bg-cyan-100 text-cyan-800 border border-cyan-300 animate-pulse' :
+                            historicalFloodsData[activeFloodIndex].level === floodStats.record ? 'bg-red-100 text-red-700 border border-red-200' :
+                            historicalFloodsData[activeFloodIndex].event.includes('1941') ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                            'bg-sky-100 text-sky-800 border border-sky-200'
+                          }`}>
+                            {historicalFloodsData[activeFloodIndex].event}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveFloodIndex(null);
                           }}
-                        />
-                        <Bar dataKey="level" barSize={22} radius={[4, 4, 0, 0]}>
-                          {historicalFloodsData.map((entry, index) => {
-                            const isSelected = activeFloodIndex === index;
-                            const defaultFill = entry.event === 'Mai/2024' ? '#EF4444' : entry.event === 'Mai/1941' ? '#F59E0B' : '#38BDF8';
-                            return (
-                              <Cell
-                                key={`cell-${index}`}
-                                fill={isSelected ? '#38BDF8' : defaultFill}
-                                stroke={isSelected ? '#00E5FF' : 'none'}
-                                strokeWidth={isSelected ? 2 : 0}
-                                opacity={activeFloodIndex === null || isSelected ? 1 : 0.8}
-                                className="transition-all duration-150 cursor-pointer"
-                              />
-                            );
-                          })}
-                          <LabelList dataKey="label" position="top" fill="#E2E8F0" fontSize={9} fontWeight={700} />
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
+                          className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+                          title="Fechar"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-1.5 text-xs">
+                        <div className="flex justify-between items-center bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-100">
+                          <span className="text-slate-500 font-medium text-[11px]">Cota Máxima:</span>
+                          <span className="font-black text-slate-900 text-sm">
+                            {historicalFloodsData[activeFloodIndex].level.toFixed(2).replace('.', ',')} m
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center text-[11px] px-0.5">
+                          <span className="text-slate-500">Período:</span>
+                          <span className="font-semibold text-slate-800">{historicalFloodsData[activeFloodIndex].dateStr}</span>
+                        </div>
+
+                        <div className="flex justify-between items-center text-[11px] px-0.5">
+                          <span className="text-slate-500">Chuva estimada:</span>
+                          <span className="font-bold text-cyan-700">{historicalFloodsData[activeFloodIndex].rain}</span>
+                        </div>
+
+                        <div className="flex justify-between items-center text-[11px] px-0.5">
+                          <span className="text-slate-500">Comportamento:</span>
+                          <span className="font-semibold text-slate-800">{historicalFloodsData[activeFloodIndex].duration}</span>
+                        </div>
+
+                        <div className="mt-2 text-[11px] leading-relaxed text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
+                          <strong className="text-slate-900 block mb-0.5 font-bold">Impacto Registrado:</strong>
+                          {historicalFloodsData[activeFloodIndex].impact}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* BAR CHART DE ENCHENTES COM RÉGUA NUMÉRICA FIXA À ESQUERDA E ROLAGEM HORIZONTAL APENAS NAS BARRAS */}
+                  <div className="flex items-center w-full relative">
+                    {/* Fixed Y-Axis Scale on the Left */}
+                    <div className="w-14 h-48 shrink-0 z-10 bg-[#0B132B]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={historicalFloodsData} margin={{ top: 22, right: 0, left: 36, bottom: 0 }}>
+                          <XAxis dataKey="event" height={24} axisLine={{ stroke: '#94A3B8' }} tick={false} />
+                          <YAxis
+                            width={38}
+                            stroke="#94A3B8"
+                            tick={{ fontSize: 10, fill: '#94A3B8' }}
+                            domain={[15, 36]}
+                            ticks={[15, 18, 21, 24, 27, 30, 33, 36]}
+                            tickFormatter={(val) => `${val},00`}
+                          />
+                          <Bar dataKey="level" opacity={0} isAnimationActive={false} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    {/* Scrollable Bar Area */}
+                    <div ref={chartScrollRef} className="flex-1 overflow-x-auto overflow-y-hidden thin-h-scrollbar pb-1.5 pt-1">
+                      <div className="h-48 w-full relative" style={{ minWidth: `${Math.max(480, historicalFloodsData.length * 60)}px` }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart
+                            data={historicalFloodsData}
+                            barCategoryGap="18%"
+                            margin={{ top: 22, right: 15, left: 5, bottom: 0 }}
+                            onClick={(e: any) => {
+                              if (e && e.activeTooltipIndex !== undefined) {
+                                setActiveFloodIndex(e.activeTooltipIndex);
+                              }
+                            }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" vertical={false} />
+                            <XAxis dataKey="event" height={24} stroke="#94A3B8" tick={{ fontSize: 10, fontWeight: 600 }} />
+                            <YAxis domain={[15, 36]} ticks={[15, 18, 21, 24, 27, 30, 33, 36]} hide />
+                            <Bar
+                              dataKey="level"
+                              barSize={26}
+                              radius={[6, 6, 0, 0]}
+                              onClick={(_, index) => setActiveFloodIndex(index)}
+                            >
+                              {historicalFloodsData.map((entry, index) => {
+                                const isSelected = activeFloodIndex === index;
+                                const isRecord = entry.level === floodStats.record;
+                                const is1941 = entry.event.includes('1941');
+                                const isCurrent = entry.event === 'Atual';
+                                
+                                let defaultFill = '#38BDF8';
+                                if (isCurrent) defaultFill = '#00E5FF';
+                                else if (isRecord) defaultFill = '#EF4444';
+                                else if (is1941) defaultFill = '#F59E0B';
+
+                                return (
+                                  <Cell
+                                    key={`cell-${index}`}
+                                    fill={defaultFill}
+                                    stroke={isSelected ? '#FFFFFF' : 'none'}
+                                    strokeWidth={isSelected ? 2 : 0}
+                                    opacity={activeFloodIndex === null || isSelected ? 1 : 0.85}
+                                    className="transition-all duration-150 cursor-pointer"
+                                  />
+                                );
+                              })}
+                              <LabelList dataKey="label" position="top" fill="#E2E8F0" fontSize={9} fontWeight={700} />
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
                   </div>
 
                   {/* LEGEND ROW */}
-                  <div className="flex items-center justify-between mt-2 text-xs text-slate-300 font-medium pt-1 border-t border-slate-800/60">
+                  <div className="flex items-center justify-between mt-2 text-xs text-slate-300 font-medium pt-1 border-t border-slate-800/60 flex-wrap gap-2">
                     <div className="flex items-center gap-1.5">
                       <span className="w-3 h-3 bg-sky-400 rounded-sm inline-block" />
-                      <span className="text-[11px] text-slate-300">Picos atingidos (m)</span>
+                      <span className="text-[11px] text-slate-300">Picos Históricos</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span className="w-3 h-3 bg-amber-500 rounded-sm inline-block" />
-                      <span className="text-[11px] text-slate-300">1941 (29,92m)</span>
+                      <span className="text-[11px] text-slate-300">Cheia 1941</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span className="w-3 h-3 bg-red-500 rounded-sm inline-block" />
-                      <span className="text-[11px] text-slate-300">Recorde (32,99m)</span>
+                      <span className="text-[11px] text-slate-300">Recorde</span>
                     </div>
+                    {historicalFloodsData.some(d => d.event === 'Atual') && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 bg-cyan-400 rounded-sm inline-block animate-pulse" />
+                        <span className="text-[11px] text-cyan-300 font-bold">Enchente Atual</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 

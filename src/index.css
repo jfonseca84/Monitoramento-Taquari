@@ -130,4 +130,22 @@ body {
   scrollbar-width: none;
 }
 
+.thin-h-scrollbar::-webkit-scrollbar {
+  height: 5px;
+}
+
+.thin-h-scrollbar::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.8);
+  border-radius: 9999px;
+}
+
+.thin-h-scrollbar::-webkit-scrollbar-thumb {
+  background: #0284c7;
+  border-radius: 9999px;
+}
+
+.thin-h-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #38bdf8;
+}
+
 
