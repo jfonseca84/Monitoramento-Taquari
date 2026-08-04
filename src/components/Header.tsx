@@ -27,7 +27,6 @@ export const Header: React.FC<HeaderProps> = ({
   const { settings } = useSiteSettings();
   const navItems = [
     { id: 'inicio', label: 'INÍCIO' },
-    { id: 'nivel', label: 'NÍVEL DO RIO' },
     { id: 'centro-analises', label: 'CENTRO DE ANÁLISES' },
     { id: 'cameras', label: 'CÂMERAS AO VIVO' },
     { id: 'historico', label: 'HISTÓRICO' },
