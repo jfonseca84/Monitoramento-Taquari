@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FolderOpen, Search, FileText, ExternalLink, X } from 'lucide-react';
+import { FolderOpen, Search, FileText, ExternalLink, Download, X } from 'lucide-react';
 
 export const CotasLibrarySection: React.FC = () => {
   const [librarySearchTerm, setLibrarySearchTerm] = useState('');
@@ -53,16 +53,35 @@ export const CotasLibrarySection: React.FC = () => {
   });
 
   const handleOpenDirectCotaFile = (item: typeof cotasLibrarySimplified[0]) => {
-    try {
-      window.open(item.fileUrl, '_blank', 'noopener,noreferrer');
-    } catch (e) {
-      console.warn('Popup blocked, displaying document inline viewer', e);
-    }
     setSelectedDirectDocument({
       cotaNum: item.cotaNum,
       cotaTitle: item.cota,
       fileUrl: item.fileUrl
     });
+  };
+
+  const handleDownload = async (fileUrl: string, fileName: string) => {
+    try {
+      const response = await fetch(fileUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (e) {
+      // Fallback
+      const a = document.createElement('a');
+      a.href = fileUrl;
+      a.download = fileName;
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
   };
 
   return (
@@ -85,7 +104,7 @@ export const CotasLibrarySection: React.FC = () => {
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5 max-w-3xl">
-                Cards de acesso direto por elevação de cota (19m a 34m). Clique sobre qualquer cota para abrir diretamente o arquivo técnico correspondente no Supabase.
+                Cards de acesso direto por elevação de cota (19m a 34m). Clique sobre qualquer cota para abrir a caixa de exibição do documento técnico.
               </p>
             </div>
           </div>
@@ -142,11 +161,11 @@ export const CotasLibrarySection: React.FC = () => {
         </div>
       </div>
 
-      {/* VISUALIZADOR DIRETO DE ARQUIVO DA COTA (SUPABASE) */}
+      {/* VISUALIZADOR DIRETO DE ARQUIVO DA COTA (CAIXA DE EXIBIÇÃO) */}
       {selectedDirectDocument && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6">
           <div className="bg-[#0A1226] border-2 border-cyan-500/80 rounded-3xl p-5 max-w-5xl w-full h-[85vh] flex flex-col justify-between shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800 flex-wrap gap-2">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-xl bg-cyan-950 text-cyan-300 border border-cyan-700">
                   <FileText className="w-5 h-5 text-cyan-400" />
@@ -160,19 +179,30 @@ export const CotasLibrarySection: React.FC = () => {
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+
+              <div className="flex items-center gap-2 flex-wrap">
                 <a
                   href={selectedDirectDocument.fileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3.5 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs rounded-xl flex items-center gap-1.5 transition-colors shadow"
+                  className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/40 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span>Abrir em Nova Guia</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Abrir em nova aba</span>
                 </a>
+
+                <button
+                  onClick={() => handleDownload(selectedDirectDocument.fileUrl, `cota_${selectedDirectDocument.cotaNum}m.pdf`)}
+                  className="px-3.5 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs rounded-xl flex items-center gap-1.5 transition-colors shadow cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download</span>
+                </button>
+
                 <button
                   onClick={() => setSelectedDirectDocument(null)}
-                  className="text-slate-400 hover:text-white p-1.5 rounded-xl bg-slate-900 border border-slate-800 cursor-pointer"
+                  className="text-slate-400 hover:text-white p-1.5 rounded-xl bg-slate-900 border border-slate-800 cursor-pointer ml-1"
+                  title="Fechar"
                 >
                   <X className="w-5 h-5" />
                 </button>
