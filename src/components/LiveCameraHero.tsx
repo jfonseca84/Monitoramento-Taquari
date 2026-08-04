@@ -3,6 +3,7 @@ import { City, LevelStatus } from '../types';
 import { Info, Video, MapPin } from 'lucide-react';
 import { getBrasiliaDateString, getBrasiliaTimeString } from '../lib/dateUtils';
 import { fetchCamerasByCity } from '../lib/supabase';
+import { getCityThresholds } from '../data/cityThresholds';
 
 interface LiveCameraHeroProps {
   selectedCity: City;
@@ -33,7 +34,6 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({
 
     async function loadCityCameraHero() {
       try {
-        // If city image is uploaded directly to Supabase storage, prefer city's custom image
         if (currentCityImg.includes('supabase.co/storage')) {
           return;
         }
@@ -58,14 +58,18 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({
     };
   }, [selectedCity.slug, selectedCity.camera_image, selectedCity.image]);
 
+  // Threshold Quotas for Cotas de Nível bar
+  const thresholds = getCityThresholds(selectedCity);
+  const normalQuotaStr = thresholds.normal.toFixed(2).replace('.', ',');
+  const attentionQuotaStr = thresholds.attention.toFixed(2).replace('.', ',');
+  const alertQuotaStr = thresholds.alert.toFixed(2).replace('.', ',');
+  const floodQuotaStr = thresholds.flood.toFixed(2).replace('.', ',');
+
   // Quota values
   const rawRiverName = selectedCity.river || 'Taquari';
   const riverName = rawRiverName.toLowerCase().startsWith('rio ')
     ? rawRiverName.slice(4).trim()
     : rawRiverName;
-  const floodQuota = typeof selectedCity.flood_level === 'number' && !isNaN(selectedCity.flood_level) ? selectedCity.flood_level.toFixed(2).replace('.', ',') : '19,00';
-  const alertQuota = typeof selectedCity.alert_level === 'number' && !isNaN(selectedCity.alert_level) ? selectedCity.alert_level.toFixed(2).replace('.', ',') : '17,00';
-  const attentionQuota = typeof selectedCity.attention_level === 'number' && !isNaN(selectedCity.attention_level) ? selectedCity.attention_level.toFixed(2).replace('.', ',') : '15,00';
 
   const getStatusStyle = (status?: LevelStatus) => {
     switch (status) {
@@ -73,25 +77,25 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({
         return {
           boxClass: 'bg-[#B90E37] border-2 border-[#E52B50] shadow-2xl shadow-red-600/60 animate-pulse',
           title: 'EM INUNDAÇÃO',
-          subtitle: `Cota de Inundação Atingida (${floodQuota}m)!`
+          subtitle: `Cota de Inundação Atingida (${floodQuotaStr}m)!`
         };
       case 'alerta':
         return {
           boxClass: 'bg-[#C25E00] border-2 border-[#FF8800] shadow-xl shadow-orange-950/80',
           title: 'EM ALERTA',
-          subtitle: `Cota de Alerta Atingida (${alertQuota}m)!`
+          subtitle: `Cota de Alerta Atingida (${alertQuotaStr}m)!`
         };
       case 'atencao':
         return {
           boxClass: 'bg-[#855B00] border-2 border-[#FFC107] shadow-xl shadow-amber-950/80',
           title: 'EM ATENÇÃO',
-          subtitle: `Cota de Atenção Atingida (${attentionQuota}m)!`
+          subtitle: `Cota de Atenção Atingida (${attentionQuotaStr}m)!`
         };
       default:
         return {
           boxClass: 'bg-[#0B3D2C] border-2 border-[#2AE89B]/60 shadow-xl shadow-emerald-950/80',
           title: 'NÍVEL NORMAL',
-          subtitle: `Dentro da cota de segurança (${attentionQuota}m)`
+          subtitle: `Dentro da cota de segurança (${attentionQuotaStr}m)`
         };
     }
   };
@@ -121,14 +125,13 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({
   const displayDate = getBrasiliaDateString(validDate);
   const displayTime = getBrasiliaTimeString(validDate).replace(':', 'h');
 
-
   // Station location name
   const stationLocation = selectedCity.slug === 'lajeado' || selectedCity.name.toLowerCase().includes('lajeado')
     ? 'Ponte da BR-386'
     : (selectedCity.station_id ? `Estação ${selectedCity.name}` : 'Ponte Principal');
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-[#0F172A] border border-slate-800 shadow-2xl min-h-[320px] flex flex-col justify-between p-6 sm:p-8">
+    <div className="relative overflow-hidden rounded-3xl bg-[#0F172A] border border-slate-800 shadow-2xl flex flex-col justify-between p-6 sm:p-8 transition-all">
       
       {/* BACKGROUND CAMERA IMAGE OVERLAY */}
       <div className="absolute inset-0 z-0">
@@ -215,7 +218,7 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({
       </div>
 
       {/* BOTTOM SECTION */}
-      <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-4 mb-2">
         {/* BOTTOM LEFT: STATUS PILL BADGE */}
         <div className={`rounded-2xl px-5 py-3.5 border flex flex-col justify-center min-w-[260px] max-w-sm ${statusStyle.boxClass}`}>
           <span className="text-sm sm:text-base font-black tracking-wider uppercase text-white">
@@ -240,8 +243,54 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({
         </div>
       </div>
 
+      {/* COTAS DE NÍVEL HORIZONTAL BAR */}
+      <div className="relative z-10 mt-3 pt-3 border-t border-slate-700/60 flex flex-wrap items-center gap-x-2 sm:gap-x-2.5 gap-y-1 text-[10px] sm:text-[11px] font-semibold text-slate-200 leading-none">
+        <span className="uppercase tracking-wider text-slate-300 font-extrabold text-[10px] sm:text-[11px] shrink-0">
+          COTAS DE NÍVEL:
+        </span>
+
+        {/* NÍVEL NORMAL */}
+        <div className="flex items-center gap-1 shrink-0">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.8)] shrink-0" />
+          <span className="text-slate-300">Nível normal</span>
+          <span className="text-emerald-400 font-bold font-mono">{normalQuotaStr}m</span>
+        </div>
+
+        <span className="text-slate-600 font-bold select-none shrink-0">|</span>
+
+        {/* COTA DE ATENÇÃO */}
+        <div className="flex items-center gap-1 shrink-0">
+          <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shadow-[0_0_6px_rgba(251,191,36,0.8)] shrink-0" />
+          <span className="text-slate-300">Cota de atenção</span>
+          <span className="text-amber-400 font-bold font-mono">{attentionQuotaStr}m</span>
+        </div>
+
+        <span className="text-slate-600 font-bold select-none shrink-0">|</span>
+
+        {/* COTA DE ALERTA */}
+        <div className="flex items-center gap-1 shrink-0">
+          <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse shadow-[0_0_6px_rgba(251,146,60,0.8)] shrink-0" />
+          <span className="text-slate-300">Cota de alerta</span>
+          <span className="text-orange-400 font-bold font-mono">{alertQuotaStr}m</span>
+        </div>
+
+        <span className="text-slate-600 font-bold select-none shrink-0">|</span>
+
+        {/* COTA DE INUNDAÇÃO */}
+        <div className="flex items-center gap-1 shrink-0">
+          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_6px_rgba(239,68,68,0.8)] shrink-0" />
+          <span className="text-slate-300">Cota de inundação</span>
+          <span className="text-red-400 font-bold font-mono">{floodQuotaStr}m</span>
+        </div>
+
+        <span className="text-slate-400 font-bold uppercase shrink-0">
+          - {selectedCity.name}
+        </span>
+      </div>
+
     </div>
   );
 };
+
 
 

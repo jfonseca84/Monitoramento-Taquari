@@ -20,9 +20,21 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const tileLayerRef = useRef<L.TileLayer | null>(null);
 
   const [mapType, setMapType] = useState<'sat' | 'dark'>('sat');
+  const [selectedBasin, setSelectedBasin] = useState<'taquari' | 'guaiba' | 'all'>('taquari');
 
-  // Display all active catalog cities on map
-  const displayCities = cities.filter((c) => c.active !== false && c.latitude && c.longitude);
+  // Sync basin when selected city changes if city is from another basin
+  useEffect(() => {
+    if (selectedCity && selectedCity.basin && selectedBasin !== 'all' && selectedCity.basin !== selectedBasin) {
+      setSelectedBasin(selectedCity.basin as 'taquari' | 'guaiba');
+    }
+  }, [selectedCity]);
+
+  // Display active catalog cities filtered by selected basin
+  const displayCities = cities.filter((c) => {
+    if (c.active === false || !c.latitude || !c.longitude) return false;
+    if (selectedBasin === 'all') return true;
+    return (c.basin || 'taquari') === selectedBasin;
+  });
 
   // Tile layer URLs
   const satTileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
@@ -137,42 +149,122 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     }
   }, [selectedCity]);
 
+  // Handle map resizing automatically
+  useEffect(() => {
+    if (!mapRef.current || !mapContainerRef.current) return;
+    const resizeObserver = new ResizeObserver(() => {
+      mapRef.current?.invalidateSize();
+    });
+    resizeObserver.observe(mapContainerRef.current);
+    return () => resizeObserver.disconnect();
+  }, []);
+
   const handleZoomIn = () => mapRef.current?.zoomIn();
   const handleZoomOut = () => mapRef.current?.zoomOut();
-  const handleRecenter = () => {
-    if (mapRef.current) {
+
+  const handleBasinChange = (basin: 'taquari' | 'guaiba' | 'all') => {
+    setSelectedBasin(basin);
+    if (!mapRef.current) return;
+    if (basin === 'taquari') {
       mapRef.current.setView([-29.38, -51.88], 10, { animate: true });
+    } else if (basin === 'guaiba') {
+      mapRef.current.setView([-29.80, -51.30], 9, { animate: true });
+    } else {
+      mapRef.current.setView([-29.55, -51.60], 9, { animate: true });
+    }
+  };
+
+  const handleRecenter = () => {
+    if (!mapRef.current) return;
+    if (selectedBasin === 'taquari') {
+      mapRef.current.setView([-29.38, -51.88], 10, { animate: true });
+    } else if (selectedBasin === 'guaiba') {
+      mapRef.current.setView([-29.80, -51.30], 9, { animate: true });
+    } else {
+      mapRef.current.setView([-29.55, -51.60], 9, { animate: true });
     }
   };
 
   return (
-    <div className="dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-3xl p-5 shadow-2xl flex flex-col justify-between relative overflow-hidden h-[480px] transition-colors">
+    <div className="w-full dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-3xl p-5 shadow-2xl flex flex-col justify-between relative overflow-hidden h-[500px] transition-all border">
       
       {/* HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 z-10 shrink-0">
-        <h3 className="text-xs font-bold dark:text-slate-300 text-slate-700 tracking-wider uppercase flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-cyan-500 dark:text-cyan-400 shrink-0" />
-          <span>MAPA HIDROLÓGICO REGIONAL</span>
-        </h3>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4 z-10 shrink-0 border-b dark:border-slate-800/80 border-slate-200 pb-3">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+            <MapPin className="w-5 h-5 shrink-0" />
+          </div>
+          <div>
+            <h3 className="text-sm font-extrabold dark:text-slate-100 text-slate-800 tracking-wider uppercase flex items-center gap-2">
+              <span>
+                MAPA HIDROLÓGICO REGIONAL — {selectedBasin === 'taquari' ? 'BACIA DO RIO TAQUARI' : selectedBasin === 'guaiba' ? 'BACIA DE PORTO ALEGRE' : 'TODAS AS BACIAS'}
+              </span>
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Visualização geoespacial telemétrica das {displayCities.length} estações ativas {selectedBasin === 'taquari' ? 'na Bacia do Taquari' : selectedBasin === 'guaiba' ? 'na Bacia de Porto Alegre' : 'no Rio Grande do Sul'}
+            </p>
+          </div>
+        </div>
 
-        {/* SATELLITE / DARK MAP SWITCH */}
-        <div className="flex items-center dark:bg-slate-900 bg-slate-100 dark:border-slate-800 border-slate-200 border rounded-lg p-0.5 text-[10px] font-bold self-start sm:self-auto">
-          <button
-            onClick={() => setMapType('sat')}
-            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-              mapType === 'sat' ? 'dark:bg-cyan-950 bg-cyan-100 text-cyan-800 dark:text-cyan-300 dark:border-cyan-800 border-cyan-300 border shadow-sm' : 'dark:text-slate-400 text-slate-600 hover:text-slate-900 dark:hover:text-slate-200'
-            }`}
-          >
-            Satélite
-          </button>
-          <button
-            onClick={() => setMapType('dark')}
-            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-              mapType === 'dark' ? 'dark:bg-cyan-950 bg-cyan-100 text-cyan-800 dark:text-cyan-300 dark:border-cyan-800 border-cyan-300 border shadow-sm' : 'dark:text-slate-400 text-slate-600 hover:text-slate-900 dark:hover:text-slate-200'
-            }`}
-          >
-            Mapa Escuro
-          </button>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="hidden xl:inline-flex text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20 items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            {displayCities.length} Estações On-line
+          </span>
+
+          {/* BACIA SELECTOR SWITCH */}
+          <div className="flex items-center dark:bg-slate-900 bg-slate-100 dark:border-slate-800 border-slate-200 border rounded-xl p-1 text-xs font-bold">
+            <button
+              onClick={() => handleBasinChange('taquari')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                selectedBasin === 'taquari'
+                  ? 'dark:bg-cyan-950 bg-cyan-100 text-cyan-800 dark:text-cyan-300 dark:border-cyan-800 border-cyan-300 border shadow-sm font-bold'
+                  : 'dark:text-slate-400 text-slate-600 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+            >
+              Bacia do Taquari
+            </button>
+            <button
+              onClick={() => handleBasinChange('guaiba')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                selectedBasin === 'guaiba'
+                  ? 'dark:bg-cyan-950 bg-cyan-100 text-cyan-800 dark:text-cyan-300 dark:border-cyan-800 border-cyan-300 border shadow-sm font-bold'
+                  : 'dark:text-slate-400 text-slate-600 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+            >
+              Bacia de Porto Alegre
+            </button>
+            <button
+              onClick={() => handleBasinChange('all')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                selectedBasin === 'all'
+                  ? 'dark:bg-cyan-950 bg-cyan-100 text-cyan-800 dark:text-cyan-300 dark:border-cyan-800 border-cyan-300 border shadow-sm font-bold'
+                  : 'dark:text-slate-400 text-slate-600 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+            >
+              Todas
+            </button>
+          </div>
+
+          {/* SATELLITE / DARK MAP SWITCH */}
+          <div className="flex items-center dark:bg-slate-900 bg-slate-100 dark:border-slate-800 border-slate-200 border rounded-xl p-1 text-xs font-bold">
+            <button
+              onClick={() => setMapType('sat')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                mapType === 'sat' ? 'dark:bg-cyan-950 bg-cyan-100 text-cyan-800 dark:text-cyan-300 dark:border-cyan-800 border-cyan-300 border shadow-sm font-bold' : 'dark:text-slate-400 text-slate-600 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+            >
+              Satélite
+            </button>
+            <button
+              onClick={() => setMapType('dark')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                mapType === 'dark' ? 'dark:bg-cyan-950 bg-cyan-100 text-cyan-800 dark:text-cyan-300 dark:border-cyan-800 border-cyan-300 border shadow-sm font-bold' : 'dark:text-slate-400 text-slate-600 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+            >
+              Mapa Escuro
+            </button>
+          </div>
         </div>
       </div>
 
@@ -181,25 +273,25 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         <div ref={mapContainerRef} className="w-full h-full z-0" />
 
         {/* MAP CONTROLS OVERLAY */}
-        <div className="absolute right-3 bottom-3 z-20 flex flex-col gap-1">
+        <div className="absolute right-4 bottom-4 z-20 flex flex-col gap-1.5">
           <button 
             onClick={handleRecenter}
             title="Recentrar no Vale do Taquari"
-            className="w-8 h-8 dark:bg-slate-900/90 bg-white/90 hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-200 text-slate-800 rounded-lg flex items-center justify-center dark:border-slate-700 border-slate-300 border shadow-lg text-xs transition-colors cursor-pointer"
+            className="w-9 h-9 dark:bg-slate-900/90 bg-white/90 hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-200 text-slate-800 rounded-xl flex items-center justify-center dark:border-slate-700 border-slate-300 border shadow-xl text-xs transition-colors cursor-pointer"
           >
             <Navigation className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
           </button>
           <button 
             onClick={handleZoomIn}
             title="Aumentar Zoom"
-            className="w-8 h-8 dark:bg-slate-900/90 bg-white/90 hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-200 text-slate-800 rounded-lg flex items-center justify-center dark:border-slate-700 border-slate-300 border shadow-lg text-xs transition-colors cursor-pointer"
+            className="w-9 h-9 dark:bg-slate-900/90 bg-white/90 hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-200 text-slate-800 rounded-xl flex items-center justify-center dark:border-slate-700 border-slate-300 border shadow-xl text-xs transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4 dark:text-slate-200 text-slate-800" />
           </button>
           <button 
             onClick={handleZoomOut}
             title="Diminuir Zoom"
-            className="w-8 h-8 dark:bg-slate-900/90 bg-white/90 hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-200 text-slate-800 rounded-lg flex items-center justify-center dark:border-slate-700 border-slate-300 border shadow-lg text-xs transition-colors cursor-pointer"
+            className="w-9 h-9 dark:bg-slate-900/90 bg-white/90 hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-200 text-slate-800 rounded-xl flex items-center justify-center dark:border-slate-700 border-slate-300 border shadow-xl text-xs transition-colors cursor-pointer"
           >
             <Minus className="w-4 h-4 dark:text-slate-200 text-slate-800" />
           </button>

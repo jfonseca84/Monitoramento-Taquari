@@ -18,7 +18,12 @@ export interface City {
   station_id?: string;
   river?: string;
   basin?: string; // 'taquari' | 'guaiba'
-  source_origin?: string; // Origem da coleta (ex: niveldosrios.guerreirosdohumaita.com.br ou nivelguaiba.com.br)
+  basin_section?: 'cabeceira' | 'montante' | 'medio' | 'jusante'; // Seção da bacia
+  classification?: 'rio_principal' | 'afluente' | 'cabeceira'; // Classificação do trecho
+  station_type?: string; // Ex: Telemétrica SGB/SACE, Radar, Fluviométrica
+  municipality?: string; // Município da estação
+  influence_notes?: string; // Relação de influência na bacia
+  source_origin?: string; // Origem da coleta (ex: SGB/SACE, nivelguaiba.com.br, etc.)
   current_level?: number;
   trend?: LevelTrend;
   rate_of_change?: number; // m/h

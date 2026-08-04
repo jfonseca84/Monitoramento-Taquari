@@ -364,11 +364,13 @@ export function classifyIntent(question: string): IntentType {
 }
 
 // ==========================================
-// CADEIA FLUVIOMÉTRICA DO RIO TAQUARI
+// CADEIA FLUVIOMÉTRICA DA BACIA DO RIO TAQUARI
 // ==========================================
 export interface ChainStation {
   key: string;
   name: string;
+  river: string;
+  section: 'cabeceira' | 'montante' | 'medio' | 'jusante';
   order: number;
   currentLevel: number;
   floodThreshold: number;
@@ -380,89 +382,222 @@ export interface ChainStation {
 }
 
 export const TAQUARI_RIVER_CHAIN: ChainStation[] = [
+  // --- CABECEIRAS DA BACIA (RIO DAS ANTAS, CARREIRO, GUAPORÉ, TAINHAS) ---
+  {
+    key: 'linhajosejulio',
+    name: 'Linha José Júlio',
+    river: 'Rio das Antas',
+    section: 'cabeceira',
+    order: 0,
+    currentLevel: 3.20,
+    floodThreshold: 10.50,
+    warningThreshold: 8.00,
+    trend: 'estavel',
+    rateOfChangeCm: 0,
+    statusLevel: 'NORMAL',
+    propagationInfo: 'Cabeceira do Rio das Antas no Alto Taquari'
+  },
+  {
+    key: 'passocarreiro',
+    name: 'Passo Carreiro',
+    river: 'Rio Carreiro',
+    section: 'cabeceira',
+    order: 1,
+    currentLevel: 2.10,
+    floodThreshold: 8.50,
+    warningThreshold: 6.50,
+    trend: 'estavel',
+    rateOfChangeCm: 0,
+    statusLevel: 'NORMAL',
+    propagationInfo: 'Afluente direto formador do Rio Taquari'
+  },
+  {
+    key: 'linhacolombo',
+    name: 'Linha Colombo',
+    river: 'Rio Guaporé',
+    section: 'cabeceira',
+    order: 2,
+    currentLevel: 2.40,
+    floodThreshold: 8.50,
+    warningThreshold: 6.50,
+    trend: 'estavel',
+    rateOfChangeCm: 0,
+    statusLevel: 'NORMAL',
+    propagationInfo: 'Sub-bacia do Rio Guaporé no alto vale'
+  },
+  {
+    key: 'passotainhas',
+    name: 'Passo Tainhas',
+    river: 'Rio Tainhas',
+    section: 'cabeceira',
+    order: 3,
+    currentLevel: 1.85,
+    floodThreshold: 7.50,
+    warningThreshold: 5.50,
+    trend: 'estavel',
+    rateOfChangeCm: 0,
+    statusLevel: 'NORMAL',
+    propagationInfo: 'Nascentes leste nos Campos de Cima da Serra'
+  },
+
+  // --- TRECHO MONTANTE (SANTA TEREZA A ROCA SALES + BARRA DO FÃO) ---
   {
     key: 'santatereza',
     name: 'Santa Tereza',
-    order: 0,
-    currentLevel: 10.21,
-    floodThreshold: 13.00,
-    warningThreshold: 11.50,
+    river: 'Rio Taquari / Antas',
+    section: 'montante',
+    order: 4,
+    currentLevel: 5.08,
+    floodThreshold: 10.00,
+    warningThreshold: 8.00,
     trend: 'descendo',
-    rateOfChangeCm: -2,
+    rateOfChangeCm: -5,
     statusLevel: 'NORMAL',
-    propagationInfo: 'Cabeceira inicial de monitoramento da Bacia do Taquari'
+    propagationInfo: 'Entrada das águas da serra na calha do Taquari'
+  },
+  {
+    key: 'barradofao',
+    name: 'Barra do Fão',
+    river: 'Rio Forqueta',
+    section: 'montante',
+    order: 5,
+    currentLevel: 2.90,
+    floodThreshold: 9.00,
+    warningThreshold: 7.00,
+    trend: 'descendo',
+    rateOfChangeCm: -4,
+    statusLevel: 'NORMAL',
+    propagationInfo: 'Sub-bacia do Rio Forqueta desaguando acima de Lajeado'
   },
   {
     key: 'mucum',
     name: 'Muçum',
-    order: 1,
-    currentLevel: 11.32,
+    river: 'Rio Taquari',
+    section: 'montante',
+    order: 6,
+    currentLevel: 5.06,
     floodThreshold: 18.00,
-    warningThreshold: 15.00,
+    warningThreshold: 16.00,
     trend: 'descendo',
-    rateOfChangeCm: -1.5,
+    rateOfChangeCm: -8,
     statusLevel: 'NORMAL',
     propagationInfo: '~2 a 3h após oscilações de Santa Tereza'
   },
   {
     key: 'encantado',
     name: 'Encantado',
-    order: 2,
-    currentLevel: 11.89,
-    floodThreshold: 16.00,
-    warningThreshold: 14.00,
-    trend: 'estavel',
-    rateOfChangeCm: -1.2,
+    river: 'Rio Taquari',
+    section: 'montante',
+    order: 7,
+    currentLevel: 3.08,
+    floodThreshold: 12.00,
+    warningThreshold: 10.00,
+    trend: 'descendo',
+    rateOfChangeCm: -6,
     statusLevel: 'NORMAL',
     propagationInfo: '~3 a 4h após passagem por Muçum'
   },
   {
     key: 'rocasales',
     name: 'Roca Sales',
-    order: 3,
-    currentLevel: 12.41,
-    floodThreshold: 17.00,
-    warningThreshold: 14.50,
-    trend: 'estavel',
-    rateOfChangeCm: -1.0,
+    river: 'Rio Taquari',
+    section: 'montante',
+    order: 8,
+    currentLevel: 7.50,
+    floodThreshold: 18.00,
+    warningThreshold: 16.00,
+    trend: 'descendo',
+    rateOfChangeCm: -14,
     statusLevel: 'NORMAL',
     propagationInfo: '~2h após passagem por Encantado'
   },
+
+  // --- MÉDIO TAQUARI (LAJEADO / ESTRELA) ---
   {
     key: 'lajeado',
     name: 'Lajeado',
-    order: 4,
-    currentLevel: 12.95,
+    river: 'Rio Taquari',
+    section: 'medio',
+    order: 9,
+    currentLevel: 13.59,
     floodThreshold: 19.00,
-    warningThreshold: 15.00,
-    trend: 'estavel',
-    rateOfChangeCm: 0,
+    warningThreshold: 17.00,
+    trend: 'descendo',
+    rateOfChangeCm: -5,
     statusLevel: 'NORMAL',
     propagationInfo: '~5 a 6h de deslocamento a partir de Muçum'
   },
   {
+    key: 'estrela',
+    name: 'Estrela',
+    river: 'Rio Taquari',
+    section: 'medio',
+    order: 10,
+    currentLevel: 13.59,
+    floodThreshold: 19.00,
+    warningThreshold: 17.00,
+    trend: 'descendo',
+    rateOfChangeCm: -5,
+    statusLevel: 'NORMAL',
+    propagationInfo: 'Trecho central em conjunto com o porto de Lajeado'
+  },
+
+  // --- TRECHO JUSANTE (CRUZEIRO DO SUL A TAQUARI) ---
+  {
     key: 'cruzeirodosul',
     name: 'Cruzeiro do Sul',
-    order: 5,
+    river: 'Rio Taquari',
+    section: 'jusante',
+    order: 11,
     currentLevel: 12.17,
     floodThreshold: 17.50,
-    warningThreshold: 14.00,
+    warningThreshold: 15.00,
     trend: 'estavel',
-    rateOfChangeCm: -0.8,
+    rateOfChangeCm: -2,
     statusLevel: 'NORMAL',
     propagationInfo: '~2h após passagem pelo porto de Lajeado'
   },
   {
     key: 'bomretirodosul',
     name: 'Bom Retiro do Sul',
-    order: 6,
-    currentLevel: 11.48,
-    floodThreshold: 15.00,
-    warningThreshold: 13.00,
-    trend: 'estavel',
-    rateOfChangeCm: -0.5,
+    river: 'Rio Taquari',
+    section: 'jusante',
+    order: 12,
+    currentLevel: 8.12,
+    floodThreshold: 19.00,
+    warningThreshold: 17.00,
+    trend: 'descendo',
+    rateOfChangeCm: -22,
     statusLevel: 'NORMAL',
-    propagationInfo: '~3h após passagem por Cruzeiro do Sul'
+    propagationInfo: 'Controle de fluxo pela barragem de Bom Retiro'
+  },
+  {
+    key: 'portomariante',
+    name: 'Porto Mariante',
+    river: 'Rio Taquari',
+    section: 'jusante',
+    order: 13,
+    currentLevel: 6.80,
+    floodThreshold: 13.00,
+    warningThreshold: 11.00,
+    trend: 'descendo',
+    rateOfChangeCm: -4,
+    statusLevel: 'NORMAL',
+    propagationInfo: 'Trecho inferior de escoamento'
+  },
+  {
+    key: 'taquari',
+    name: 'Taquari',
+    river: 'Rio Taquari',
+    section: 'jusante',
+    order: 14,
+    currentLevel: 4.80,
+    floodThreshold: 11.00,
+    warningThreshold: 9.00,
+    trend: 'descendo',
+    rateOfChangeCm: -8,
+    statusLevel: 'NORMAL',
+    propagationInfo: 'Desembocadura no Rio Jacuí'
   }
 ];
 
@@ -471,13 +606,21 @@ export function analyzeHydrologicalScenario(cityName: string, context: ChatConte
   
   let targetIndex = TAQUARI_RIVER_CHAIN.findIndex(s => s.key === normalizedKey);
   if (targetIndex === -1) {
-    if (normalizedKey.includes('santatereza')) targetIndex = 0;
-    else if (normalizedKey.includes('mucum')) targetIndex = 1;
-    else if (normalizedKey.includes('encantado')) targetIndex = 2;
-    else if (normalizedKey.includes('rocasales')) targetIndex = 3;
-    else if (normalizedKey.includes('cruzeiro')) targetIndex = 5;
-    else if (normalizedKey.includes('bomretiro')) targetIndex = 6;
-    else targetIndex = 4; // Lajeado por padrão
+    if (normalizedKey.includes('santatereza')) targetIndex = 4;
+    else if (normalizedKey.includes('josejulio') || normalizedKey.includes('linhajose')) targetIndex = 0;
+    else if (normalizedKey.includes('carreiro')) targetIndex = 1;
+    else if (normalizedKey.includes('colombo')) targetIndex = 2;
+    else if (normalizedKey.includes('tainhas')) targetIndex = 3;
+    else if (normalizedKey.includes('barradofao') || normalizedKey.includes('fao')) targetIndex = 5;
+    else if (normalizedKey.includes('mucum')) targetIndex = 6;
+    else if (normalizedKey.includes('encantado')) targetIndex = 7;
+    else if (normalizedKey.includes('rocasales')) targetIndex = 8;
+    else if (normalizedKey.includes('estrela')) targetIndex = 10;
+    else if (normalizedKey.includes('cruzeiro')) targetIndex = 11;
+    else if (normalizedKey.includes('bomretiro')) targetIndex = 12;
+    else if (normalizedKey.includes('portomariante') || normalizedKey.includes('mariante')) targetIndex = 13;
+    else if (normalizedKey.includes('taquari')) targetIndex = 14;
+    else targetIndex = 9; // Lajeado por padrão
   }
 
   const targetStation = TAQUARI_RIVER_CHAIN[targetIndex];
@@ -514,49 +657,48 @@ export function analyzeHydrologicalScenario(cityName: string, context: ChatConte
   let upstreamText = '';
   if (upstreamStations.length > 0) {
     upstreamText = upstreamStations
-      .map(s => `  • **${s.name}:** ${s.currentLevel.toFixed(2)}m (Tendência: ${s.trend.toUpperCase()} | ${s.rateOfChangeCm >= 0 ? '+' : ''}${s.rateOfChangeCm} cm/h)`)
+      .map(s => `  • **${s.name}** (${s.river}): ${s.currentLevel.toFixed(2)}m | Variação: ${s.rateOfChangeCm >= 0 ? '+' : ''}${s.rateOfChangeCm} cm/h (${s.trend.toUpperCase()})`)
       .join('\n');
   } else {
-    upstreamText = '  • *Esta é a estação de cabeceira inicial (extrema montante) no topo da Bacia do Taquari.*';
+    upstreamText = '  • *Estação de cabeceira do sistema (alto vale).*';
   }
 
   let interpretationText = '';
   let trendDiagnosis = '';
 
   if (isUpstreamRising) {
-    trendDiagnosis = 'Possibilidade de Alteração Futura (Propagação de Onda de Cheia)';
+    trendDiagnosis = 'CENÁRIO: Possibilidade de Elevação / Propagação de Onda de Cheia';
     interpretationText = 
-      `• **Alerta em Montante:** Registra-se elevação significativa nas estações superiores (${risingUpstream.map(s => s.name).join(', ')}).\n` +
-      `• **Propagação do Fluxo:** O volume escoado das cabeceiras leva entre 8 a 12 horas para refletir completamente no trecho de ${targetStation.name}.\n` +
-      `• **Recomendação Preventiva:** Recomenda-se acompanhamento constante, pois existe **possibilidade de alteração futura** nos níveis locais devido à propagação da onda de cheia.`;
+      `• **Propagação das Cabeceiras:** Registra-se elevação ou acúmulo nas estações a montante (${risingUpstream.map(s => s.name).join(', ')}).\n` +
+      `• **Tempo de Deslocamento:** O volume escoado do Alto Taquari e afluentes leva de 6 a 12 horas para alcançar a régua de ${targetStation.name}.\n` +
+      `• **Recomendação:** Acompanhar a evolução, pois a estabilidade instantânea local pode ser alterada pela chegada do fluxo de montante.`;
   } else if (isUpstreamFalling) {
-    trendDiagnosis = 'Tendência Favorável de Estabilização';
+    trendDiagnosis = 'CENÁRIO: Tendência de Desaceleração e Estabilização na Calha';
     interpretationText = 
-      `• **Comportamento das Cabeceiras:** As estações localizadas a montante (${upstreamStations.map(s => s.name).join(' → ')}) apresentam queda/desaceleração contínua nas últimas medições.\n` +
-      `• **Análise de Vazão:** A redução da vazão proveniente do Alto Taquari indica uma **tendência favorável de estabilização** em ${targetStation.name}.\n` +
-      `• **Cenário Esperado:** A ausência de novos repiques nas réguas superiores indica estabilização gradativa sem risco de elevação descontrolada nas próximas horas.`;
+      `• **Comportamento das Estações Superiores:** As estações a montante (${upstreamStations.map(s => s.name).slice(-4).join(' → ')}) mantêm recuo continuado.\n` +
+      `• **Análise de Vazão:** A diminuição no aporte de água das cabeceiras (Rio das Antas, Carreiro, Guaporé e Forqueta) favorece a estabilização em ${targetStation.name}.\n` +
+      `• **Cenário Esperado:** Redução gradual dos níveis se não ocorrerem novos acumulados pluviométricos.`;
   } else {
-    trendDiagnosis = 'Cenário de Estabilidade na Bacia';
+    trendDiagnosis = 'CENÁRIO: Estabilidade Instantânea sob Monitoramento';
     interpretationText = 
-      `• **Comportamento de Montante:** As estações superiores (${upstreamStations.length > 0 ? upstreamStations.map(s => s.name).join(', ') : 'Cabeceiras'}) mantêm níveis estáveis no momento.\n` +
-      `• **Diagnóstico de Campo:** Aponta para um **cenário de estabilidade** no fluxo principal do Rio Taquari.\n` +
-      `• **Evolução:** Manutenção da margem de segurança atual, sem projeções de repique artificial.`;
+      `• **Fluxo do Rio:** Estações de montante sem oscilações abruptas no momento.\n` +
+      `• **Atenção:** Uma variação de 0 cm/h representa o diagnóstico no momento e NÃO garante estabilidade absoluta para 24 horas, visto que alterações pluviométricas nas cabeceiras podem mudar a tendência.`;
   }
 
   const rateSign = localRateCm >= 0 ? '+' : '';
   const localRateStr = `${rateSign}${localRateCm} cm/h`;
 
-  return `Análise de Cenário Hidrológico e Bacia para **${targetStation.name}**:\n\n` +
-    `• **Nível Atual no Rio Taquari:** ${targetLevel.toFixed(2)}m (${statusStr})\n` +
-    `• **Última Variação Local Registrada:** ${localRateStr}\n` +
-    `• **Cota de Inundação Inicial:** ${floodThresh.toFixed(2)}m (Margem de Segurança: ${safetyMargin}m)\n\n` +
-    `**1. Consulta às Estações de Montante (Cadeia do Rio Taquari):**\n` +
+  return `📊 **DADO OBSERVADO:**\n` +
+    `• **Estação:** ${targetStation.name} (${targetStation.river})\n` +
+    `• **Nível Registrado:** ${targetLevel.toFixed(2)}m (${statusStr})\n` +
+    `• **Variação Instantânea:** ${localRateStr}\n` +
+    `• **Cota de Inundação:** ${floodThresh.toFixed(2)}m (Folga: ${safetyMargin}m)\n\n` +
+    `🌊 **CADEIA HIDROLÓGICA A MONTANTE:**\n` +
     `${upstreamText}\n\n` +
-    `**2. Diagnóstico do Analista Hidrológico:**\n` +
-    `• **Classificação de Cenário:** **${trendDiagnosis}**\n` +
+    `🔮 **CENÁRIO HIDROLÓGICO (ANÁLISE DE BACIA):**\n` +
+    `• **Diagnóstico:** **${trendDiagnosis}**\n` +
     `${interpretationText}\n\n` +
-    `**3. Ressalva sobre Projeções e Limitações:**\n` +
-    `*A variação local de ${localRateStr} e o cenário de montante representam o diagnóstico instantâneo e NUNCA devem ser interpretados como uma previsão absoluta de estabilidade para 24 horas. O nível real continuará dependendo do comportamento dinâmico de toda a bacia e de eventuais chuvas nas cabeceiras. Acompanhe os boletins oficiais da Defesa Civil.*`;
+    `⚠️ *Ressalva Técnica:* A leitura instantânea (${localRateStr}) não constitui garantia de nível inalterado por 24h. O comportamento depende de toda a bacia hidrológica. Acompanhe os alertas oficiais da Defesa Civil.`;
 }
 
 // ==========================================

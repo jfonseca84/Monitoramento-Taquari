@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { City } from '../types';
-import { QrCode, Waves } from 'lucide-react';
+import { Waves } from 'lucide-react';
 import { StatusDot } from './StatusDot';
 import { ConnectionStatusType } from '../lib/supabase';
-import { TechnicalData } from './TechnicalData';
 
 interface CitySidebarProps {
   cities: City[];
@@ -24,11 +23,27 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
 }) => {
   const [activeBasin, setActiveBasin] = useState<'taquari' | 'guaiba'>('taquari');
 
-  // Strict list of allowed Vale do Taquari cities
-  const TAQUARI_SLUGS = ['santatereza', 'mucum', 'encantado', 'rocasales', 'lajeado', 'estrela', 'bomretirodosul'];
+  // Strict list of allowed Vale do Taquari cities / SGB stations
+  const TAQUARI_SLUGS = [
+    'santatereza',
+    'linhajosejulio',
+    'passocarreiro',
+    'linhacolombo',
+    'passotainhas',
+    'barradofao',
+    'mucum',
+    'encantado',
+    'rocasales',
+    'lajeado',
+    'estrela',
+    'cruzeirodosul',
+    'bomretirodosul',
+    'portomariante',
+    'taquari'
+  ];
   
   // Strict list of allowed Bacia do Guaíba cities
-  const GUAIBA_SLUGS = ['portoalegre', 'saoleopoldo', 'gravatai', 'montenegro', 'saosebastiaodocai', 'taquari', 'taquara', 'cachoeiradosul', 'donafrancisca', 'feliz'];
+  const GUAIBA_SLUGS = ['portoalegre', 'saoleopoldo', 'gravatai', 'montenegro', 'saosebastiaodocai', 'taquara', 'cachoeiradosul', 'donafrancisca', 'feliz'];
 
   // Filter cities strictly by official classification catalog
   const taquariCities = cities.filter((c) => TAQUARI_SLUGS.includes(c.slug));
@@ -100,7 +115,14 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
                 <div className="flex items-center gap-2 min-w-0 pr-2">
                   <StatusDot status={city.status_level} size="md" />
                   <div className="flex flex-col items-start min-w-0 truncate">
-                    <span className="font-semibold truncate w-full text-left notranslate" translate="no">{city.name}</span>
+                    <div className="flex items-center gap-1.5 w-full">
+                      <span className="font-semibold truncate text-left notranslate" translate="no">{city.name}</span>
+                      {city.basin_section && (
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold uppercase shrink-0">
+                          {city.basin_section === 'cabeceira' ? 'Cab' : city.basin_section === 'montante' ? 'Mont' : city.basin_section === 'medio' ? 'Médio' : 'Jus'}
+                        </span>
+                      )}
+                    </div>
                     {city.river && <span className="text-[10px] dark:text-slate-400 text-slate-500 truncate w-full text-left notranslate" translate="no">{city.river}</span>}
                   </div>
                 </div>
@@ -113,24 +135,6 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
           })}
         </div>
 
-      </div>
-
-      {/* DADOS TÉCNICOS CARD */}
-      <TechnicalData selectedCity={selectedCity} />
-
-      {/* MOBILE QR CODE CARD */}
-      <div className="dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-2xl p-4 shadow-xl flex items-center gap-3 transition-colors">
-        <div className="w-16 h-16 bg-white rounded-xl p-1.5 shrink-0 flex items-center justify-center border border-slate-200 dark:border-transparent">
-          <QrCode className="w-full h-full text-slate-900" />
-        </div>
-        <div>
-          <h4 className="text-xs font-bold dark:text-white text-slate-900 mb-1">
-            Acompanhe pelo celular
-          </h4>
-          <p className="text-[11px] dark:text-slate-400 text-slate-600 leading-tight">
-            Escaneie o QR Code e acesse o monitoramento dos Rios do RS em tempo real.
-          </p>
-        </div>
       </div>
 
     </aside>

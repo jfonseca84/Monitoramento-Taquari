@@ -1,18 +1,26 @@
 import { localStore, supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export const OFFICIAL_SOURCES = [
+  { name: 'SGB/SACE - Sistema de Alerta de Eventos Críticos', url: 'https://www.sgb.gov.br/sace/index_bacias_monitoradas.php' },
   { name: 'niveldosrios.guerreirosdohumaita.com.br', url: 'https://niveldosrios.guerreirosdohumaita.com.br/' },
   { name: 'nivelguaiba.com.br', url: 'https://nivelguaiba.com.br/' }
 ];
 
 const CATALOG_SLUGS = [
   { name: 'Santa Tereza', slug: 'santatereza' },
+  { name: 'Linha José Júlio', slug: 'linhajosejulio' },
+  { name: 'Passo Carreiro', slug: 'passocarreiro' },
+  { name: 'Linha Colombo', slug: 'linhacolombo' },
+  { name: 'Passo Tainhas', slug: 'passotainhas' },
+  { name: 'Barra do Fão', slug: 'barradofao' },
   { name: 'Muçum', slug: 'mucum' },
   { name: 'Encantado', slug: 'encantado' },
   { name: 'Roca Sales', slug: 'rocasales' },
   { name: 'Lajeado', slug: 'lajeado' },
   { name: 'Estrela', slug: 'estrela' },
+  { name: 'Cruzeiro do Sul', slug: 'cruzeirodosul' },
   { name: 'Bom Retiro do Sul', slug: 'bomretirodosul' },
+  { name: 'Porto Mariante', slug: 'portomariante' },
   { name: 'Porto Alegre', slug: 'portoalegre' },
   { name: 'São Leopoldo', slug: 'saoleopoldo' },
   { name: 'Gravataí', slug: 'gravatai' },

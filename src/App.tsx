@@ -21,6 +21,7 @@ import { RiskAlertSignup } from './components/RiskAlertSignup';
 import { SituationBanner } from './components/SituationBanner';
 import { SituationDetailModal } from './components/SituationDetailModal';
 import { AssistantChatWidget } from './components/AssistantChatWidget';
+import { TechnicalData } from './components/TechnicalData';
 
 import { City, NewsItem, Timeframe, ChartDataPoint, AlertItem } from './types';
 import { fetchBootstrapData, fetchCities, fetchNews, fetchCityHistory, fetchAlerts, localStore, subscribeToRealtimeChanges, ConnectionStatusType } from './lib/supabase';
@@ -289,22 +290,25 @@ export default function App() {
                 />
               </div>
 
-              {/* RIGHT COLUMN: STATS, SATELLITE MAP & TECHNICAL SPECS */}
+              {/* RIGHT COLUMN: TECHNICAL DATA & STATS */}
               <div className="w-full lg:w-80 flex flex-col gap-6 shrink-0">
+                <TechnicalData selectedCity={selectedCity} />
+
                 <StatsPanel
                   selectedCity={selectedCity}
                   onOpenDetailModal={() => setIsDetailModalOpen(true)}
                   onOpenAlertSignup={() => setActiveTab('receber-alertas')}
                 />
-                
-                <InteractiveMap
-                  cities={cities}
-                  selectedCity={selectedCity}
-                  onSelectCity={(city) => setSelectedCity(city)}
-                />
               </div>
 
             </div>
+
+            {/* EXPANDED REGIONAL HYDROLOGICAL MAP (FULL WIDTH) */}
+            <InteractiveMap
+              cities={cities}
+              selectedCity={selectedCity}
+              onSelectCity={(city) => setSelectedCity(city)}
+            />
 
             {/* FULL WIDTH BOTTOM SECTION: NOTÍCIAS E COMUNICADOS OFICIAIS */}
             <NewsSection
