@@ -296,29 +296,34 @@ async function bootstrapWorker() {
   LoggerService.info('WORKER', 'Iniciando processo river-monitor-worker');
   LoggerService.info('WORKER', `Sistema de Monitoramento Hidrológico - Rio Taquari (v${process.env.WORKER_VERSION || '1.0.0'})`);
 
-  // 1. Validar conexão com Supabase antes de abrir o servidor HTTP
+  // 1. Iniciar o servidor HTTP imediatamente para garantir Port Binding e Healthcheck no Railway
+  const httpServer = startHttpServer();
+
+  // 2. Validar conexão com Supabase
   LoggerService.info('WORKER', 'Validando credenciais e conexão com o Supabase...');
   const connTest = await SupabaseService.testConnection();
 
   if (!connTest.ok) {
-    LoggerService.error('ERROR', `Erro na inicialização do worker: ${connTest.message}`);
+    LoggerService.error('ERROR', `Alerta na inicialização do worker: ${connTest.message}`);
     LoggerService.error('ERROR', 'Verifique as variáveis SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY na Railway.');
-    process.exit(1);
+  } else {
+    LoggerService.info('WORKER', connTest.message);
   }
 
-  LoggerService.info('WORKER', connTest.message);
-
-  // 2. Somente após validação do Supabase com sucesso, iniciar o servidor HTTP (Railway Port Binding)
-  const httpServer = startHttpServer();
-
-  // 3. Executar ciclo inicial imediato de sincronização
-  LoggerService.info('WORKER', 'Executando sincronização inicial de inicialização...');
-  await CronService.runOnce(false);
+  // 3. Executar ciclo inicial imediato de sincronização (se Supabase OK)
+  if (connTest.ok) {
+    LoggerService.info('WORKER', 'Executando sincronização inicial de inicialização...');
+    try {
+      await CronService.runOnce(false);
+    } catch (syncErr: any) {
+      LoggerService.error('WORKER', `Falha na sincronização inicial: ${syncErr?.message || syncErr}`);
+    }
+  }
 
   // 4. Ativar Agendador Interno (node-cron)
   CronService.startScheduler();
 
-  // 5. Manter o processo continuamente ativo (Heartbeat a cada 5 minutos para validação rápida pós-deploy; alterar para 3600000 em prod estável)
+  // 5. Manter o processo continuamente ativo (Heartbeat a cada 5 minutos)
   setInterval(() => {
     LoggerService.info('WORKER', 'Serviço em execução contínua 24/7 (Heartbeat OK)');
   }, 300000);
