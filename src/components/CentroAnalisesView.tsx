@@ -268,7 +268,7 @@ export const CentroAnalisesView: React.FC = () => {
       {
         id: `welcome-${selectedCityName}`,
         sender: 'assistant',
-        text: `Olá! Sou o Assistente Hidrológico de IA em treinamento. A cidade selecionada para análise no momento é **${activeCity.name}**.\n\n• **Nível Atual do Rio:** ${activeCity.current_level.toFixed(2)}m (${activeCity.status_level.toUpperCase()})\n• **Cota de Inundação Inicial:** ${activeCity.flood_threshold.toFixed(2)}m\n• **Margem de Segurança:** ${(activeCity.flood_threshold - activeCity.current_level).toFixed(2)} metros\n\nComo posso auxiliar você com dados sobre bairros vulneráveis, previsões ou histórico hidrológico em ${activeCity.name}?`,
+        text: `Olá! A cidade selecionada para análise no momento é **${activeCity.name}**.\n\n• **Nível Atual do Rio:** ${activeCity.current_level.toFixed(2)}m (${activeCity.status_level.toUpperCase()})\n• **Cota de Inundação Inicial:** ${activeCity.flood_threshold.toFixed(2)}m\n• **Margem de Segurança:** ${(activeCity.flood_threshold - activeCity.current_level).toFixed(2)} metros\n\nComo posso auxiliar você com dados sobre bairros vulneráveis, previsões ou histórico hidrológico em ${activeCity.name}?`,
         time: 'Agora',
         badge: `Contexto Ativo: ${activeCity.name}`
       }

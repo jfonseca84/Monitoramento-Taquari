@@ -81,7 +81,7 @@ export const AssistantChatWidget: React.FC<AssistantChatWidgetProps> = ({ curren
       {
         id: `welcome-${cityStats.name}`,
         sender: 'assistant',
-        text: `Olá! Sou um assistente inteligente de monitoramento e análise de risco do Vale do Taquari. Utilizo dados hidrológicos e históricos para auxiliar na compreensão de cenários relacionados a enchentes e possíveis impactos. A cidade selecionada para análise no momento é **${cityStats.name}**.
+        text: `Olá! A cidade selecionada para análise no momento é **${cityStats.name}**.
 
 • **Nível Atual do Rio:** ${cityStats.current_level.toFixed(2)}m (${cityStats.status_level})
 • **Cota de Inundação Inicial:** ${cityStats.flood_threshold.toFixed(2)}m
@@ -222,7 +222,7 @@ Como posso auxiliar você com dados sobre bairros vulneráveis, previsão do tem
             </button>
 
             {/* CAIXA DE AVISO EM DESTAQUE NO TOPO DO ASSISTENTE */}
-            <div className="bg-amber-50/90 border border-amber-200/90 rounded-2xl p-3.5 sm:p-4 text-xs text-amber-900 space-y-1.5 shadow-sm shrink-0 pr-10">
+            <div className="bg-amber-50/90 border border-amber-200/90 rounded-2xl p-3.5 sm:p-4 text-xs text-amber-900 space-y-1.5 shadow-sm shrink-0 pr-10 mb-3 sm:mb-4">
               <div className="flex items-center gap-2 font-bold text-amber-900 text-xs sm:text-sm">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
                 <span>Aviso*</span>
@@ -233,7 +233,7 @@ Como posso auxiliar você com dados sobre bairros vulneráveis, previsão do tem
             </div>
 
             {/* ÁREA DE CONVERSA COM MENSAGENS */}
-            <div className="flex-1 overflow-y-auto space-y-6 pr-2 text-sm sm:text-base leading-relaxed text-slate-800 font-sans">
+            <div className="flex-1 overflow-y-auto space-y-6 pr-2 text-sm sm:text-base leading-relaxed text-slate-800 font-sans pt-1">
               {chatMessages.map((msg, index) => (
                 <div
                   key={msg.id}
