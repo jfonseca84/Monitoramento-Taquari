@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { CotasLibrarySection } from './CotasLibrarySection';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -851,81 +852,7 @@ export const CentroAnalisesView: React.FC = () => {
       </div>
 
       {/* 4. BIBLIOTECA TÉCNICA HIDROLÓGICA POR COTAS (EXIBIÇÃO DE COTAS 19 A 34) */}
-      <div className="bg-[#0A1226] border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-5">
-        
-        {/* HEADER DA BIBLIOTECA */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-sky-950 text-cyan-400 border border-sky-800 shrink-0">
-              <FolderOpen className="w-6 h-6 text-cyan-300" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base sm:text-lg font-black text-white uppercase tracking-wider">
-                  BIBLIOTECA TÉCNICA HIDROLÓGICA POR COTAS
-                </h2>
-                <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-sky-950 text-sky-300 border border-sky-800">
-                  DOCUMENTAÇÃO INSTITUTIONAL
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 mt-0.5 max-w-3xl">
-                Cards de acesso direto por elevação de cota (19m a 34m). Clique sobre qualquer cota para abrir diretamente o arquivo técnico correspondente no Supabase.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="relative w-full sm:w-60">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                value={librarySearchTerm}
-                onChange={(e) => setLibrarySearchTerm(e.target.value)}
-                placeholder="Buscar cota..."
-                className="w-full bg-[#050A18] text-xs text-slate-100 placeholder-slate-500 pl-8 pr-3 py-1.5 rounded-xl border border-slate-700 focus:outline-none focus:border-cyan-400"
-              />
-            </div>
-
-            <span className="text-xs font-mono font-bold text-cyan-300 bg-cyan-950 px-3 py-1.5 rounded-xl border border-cyan-800 shrink-0 hidden sm:inline">
-              16 Cotas Mapeadas
-            </span>
-          </div>
-        </div>
-
-        {/* COTAS CARDS GRID (COTAS 19 A 34) */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-8 gap-3">
-          {cotasLibrarySimplified
-            .filter(item => {
-              if (cotaCategoryFilter !== 'todas' && item.category !== cotaCategoryFilter) return false;
-              if (librarySearchTerm) {
-                const term = librarySearchTerm.toLowerCase();
-                return item.cota.toLowerCase().includes(term) || item.status.toLowerCase().includes(term);
-              }
-              return true;
-            })
-            .map((item) => (
-              <div
-                key={item.cotaNum}
-                onClick={() => handleOpenDirectCotaFile(item)}
-                className={`p-3.5 rounded-2xl bg-[#050A18] border ${item.color} hover:bg-slate-900 hover:scale-105 transition-all cursor-pointer group shadow-lg flex flex-col justify-between space-y-3 min-h-[95px]`}
-              >
-                <div>
-                  <span className="text-sm font-mono font-black text-white group-hover:text-cyan-300 block">
-                    {item.cota}
-                  </span>
-                  <span className="text-[9px] font-extrabold uppercase block mt-1 text-slate-300 truncate">
-                    {item.status}
-                  </span>
-                </div>
-
-                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-cyan-400 font-extrabold group-hover:underline">
-                  <span>Abrir Arquivo</span>
-                  <FileText className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                </div>
-              </div>
-            ))}
-        </div>
-      </div>
+      <CotasLibrarySection />
 
       {/* 5. DADOS METEOROLÓGICOS, RESPOSTA DA BACIA & ENCHENTES HISTÓRICAS */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">

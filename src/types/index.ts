@@ -313,6 +313,15 @@ export interface SiteSettings {
   site_description: string;
   logo_url: string | null;
   favicon_url: string | null;
+  about_badge?: string;
+  about_title?: string;
+  about_text?: string;
+  about_feature1_title?: string;
+  about_feature1_text?: string;
+  about_feature2_title?: string;
+  about_feature2_text?: string;
+  about_feature3_title?: string;
+  about_feature3_text?: string;
   updated_at?: string;
 }
 

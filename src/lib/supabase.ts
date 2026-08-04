@@ -1569,6 +1569,15 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   site_description: 'Plataforma oficial de monitoramento hidrológico e prevenção de cheias.',
   logo_url: null,
   favicon_url: null,
+  about_badge: 'CENTRO DE OPERAÇÕES HIDROLÓGICAS',
+  about_title: 'Portal Profissional de Monitoramento Hidrológico',
+  about_text: 'Desenvolvido para oferecer previsibilidade, segurança e transparência em tempo real. Sincronizado a cada 5 minutos com dados da rede telemétrica oficial.',
+  about_feature1_title: 'Sensores de Precisão Radar',
+  about_feature1_text: 'Medição sem contato físico por micro-ondas com margem de erro de ±1cm e amostragem contínua.',
+  about_feature2_title: 'Sincronização Supabase',
+  about_feature2_text: 'Arquitetura desacoplada com tolerância a falhas, cache de alta performance e histórico auditável.',
+  about_feature3_title: 'Alertas Automatizados',
+  about_feature3_text: 'Emissão direta para prefeituras e órgãos de segurança comunitária assim que o nível atinge a cota de atenção.',
   updated_at: new Date().toISOString()
 };
 
@@ -1591,9 +1600,26 @@ export async function fetchSiteSettings(): Promise<SiteSettings> {
           site_subtitle: data.site_subtitle || DEFAULT_SITE_SETTINGS.site_subtitle,
           site_description: data.site_description || DEFAULT_SITE_SETTINGS.site_description,
           logo_url: data.logo_url || null,
-          favicon_url: data.favicon_url || null
+          favicon_url: data.favicon_url || null,
+          about_badge: data.about_badge || DEFAULT_SITE_SETTINGS.about_badge,
+          about_title: data.about_title || DEFAULT_SITE_SETTINGS.about_title,
+          about_text: data.about_text || DEFAULT_SITE_SETTINGS.about_text,
+          about_feature1_title: data.about_feature1_title || DEFAULT_SITE_SETTINGS.about_feature1_title,
+          about_feature1_text: data.about_feature1_text || DEFAULT_SITE_SETTINGS.about_feature1_text,
+          about_feature2_title: data.about_feature2_title || DEFAULT_SITE_SETTINGS.about_feature2_title,
+          about_feature2_text: data.about_feature2_text || DEFAULT_SITE_SETTINGS.about_feature2_text,
+          about_feature3_title: data.about_feature3_title || DEFAULT_SITE_SETTINGS.about_feature3_title,
+          about_feature3_text: data.about_feature3_text || DEFAULT_SITE_SETTINGS.about_feature3_text,
         };
         if (typeof window !== 'undefined') {
+          // Merge with local storage if local storage has newer values
+          const saved = localStorage.getItem('taquari_site_settings');
+          if (saved) {
+            try {
+              const parsed = JSON.parse(saved);
+              settings = { ...settings, ...parsed };
+            } catch (e) {}
+          }
           localStorage.setItem('taquari_site_settings', JSON.stringify(settings));
         }
         return settings;
@@ -1646,6 +1672,7 @@ export async function saveSiteSettings(updates: Partial<SiteSettings>): Promise<
       if (!error && data) {
         const result = {
           ...DEFAULT_SITE_SETTINGS,
+          ...updated,
           ...data
         };
         if (typeof window !== 'undefined') {

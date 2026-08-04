@@ -110,7 +110,8 @@ import {
   Image as ImageIcon,
   Sparkles,
   RotateCcw,
-  AlertCircle
+  AlertCircle,
+  Info
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -364,6 +365,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [logoUrl, setLogoUrl] = useState<string | null>(siteSettings.logo_url || null);
   const [faviconUrl, setFaviconUrl] = useState<string | null>(siteSettings.favicon_url || null);
 
+  // About Page state
+  const [aboutBadge, setAboutBadge] = useState(siteSettings.about_badge || 'CENTRO DE OPERAÇÕES HIDROLÓGICAS');
+  const [aboutTitle, setAboutTitle] = useState(siteSettings.about_title || 'Portal Profissional de Monitoramento Hidrológico');
+  const [aboutText, setAboutText] = useState(siteSettings.about_text || 'Desenvolvido para oferecer previsibilidade, segurança e transparência em tempo real. Sincronizado a cada 5 minutos com dados da rede telemétrica oficial.');
+  const [aboutFeature1Title, setAboutFeature1Title] = useState(siteSettings.about_feature1_title || 'Sensores de Precisão Radar');
+  const [aboutFeature1Text, setAboutFeature1Text] = useState(siteSettings.about_feature1_text || 'Medição sem contato físico por micro-ondas com margem de erro de ±1cm e amostragem contínua.');
+  const [aboutFeature2Title, setAboutFeature2Title] = useState(siteSettings.about_feature2_title || 'Sincronização Supabase');
+  const [aboutFeature2Text, setAboutFeature2Text] = useState(siteSettings.about_feature2_text || 'Arquitetura desacoplada com tolerância a falhas, cache de alta performance e histórico auditável.');
+  const [aboutFeature3Title, setAboutFeature3Title] = useState(siteSettings.about_feature3_title || 'Alertas Automatizados');
+  const [aboutFeature3Text, setAboutFeature3Text] = useState(siteSettings.about_feature3_text || 'Emissão direta para prefeituras e órgãos de segurança comunitária assim que o nível atinge a cota de atenção.');
+  const [aboutSaveSuccess, setAboutSaveSuccess] = useState<string | null>(null);
+  const [aboutError, setAboutError] = useState<string | null>(null);
+  const [isSavingAbout, setIsSavingAbout] = useState(false);
+
   const [logoUploading, setLogoUploading] = useState(false);
   const [faviconUploading, setFaviconUploading] = useState(false);
   const [settingsSaveSuccess, setSettingsSaveSuccess] = useState<string | null>(null);
@@ -380,8 +395,58 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       if (siteSettings.site_description) setSiteDescription(siteSettings.site_description);
       setLogoUrl(siteSettings.logo_url || null);
       setFaviconUrl(siteSettings.favicon_url || null);
+
+      if (siteSettings.about_badge) setAboutBadge(siteSettings.about_badge);
+      if (siteSettings.about_title) setAboutTitle(siteSettings.about_title);
+      if (siteSettings.about_text) setAboutText(siteSettings.about_text);
+      if (siteSettings.about_feature1_title) setAboutFeature1Title(siteSettings.about_feature1_title);
+      if (siteSettings.about_feature1_text) setAboutFeature1Text(siteSettings.about_feature1_text);
+      if (siteSettings.about_feature2_title) setAboutFeature2Title(siteSettings.about_feature2_title);
+      if (siteSettings.about_feature2_text) setAboutFeature2Text(siteSettings.about_feature2_text);
+      if (siteSettings.about_feature3_title) setAboutFeature3Title(siteSettings.about_feature3_title);
+      if (siteSettings.about_feature3_text) setAboutFeature3Text(siteSettings.about_feature3_text);
     }
   }, [siteSettings]);
+
+  const handleSaveAboutSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAboutError(null);
+    setAboutSaveSuccess(null);
+    setIsSavingAbout(true);
+
+    try {
+      await updateSettings({
+        about_badge: aboutBadge,
+        about_title: aboutTitle,
+        about_text: aboutText,
+        about_feature1_title: aboutFeature1Title,
+        about_feature1_text: aboutFeature1Text,
+        about_feature2_title: aboutFeature2Title,
+        about_feature2_text: aboutFeature2Text,
+        about_feature3_title: aboutFeature3Title,
+        about_feature3_text: aboutFeature3Text,
+      });
+
+      await saveSetting('about_page_content', {
+        about_badge: aboutBadge,
+        about_title: aboutTitle,
+        about_text: aboutText,
+        about_feature1_title: aboutFeature1Title,
+        about_feature1_text: aboutFeature1Text,
+        about_feature2_title: aboutFeature2Title,
+        about_feature2_text: aboutFeature2Text,
+        about_feature3_title: aboutFeature3Title,
+        about_feature3_text: aboutFeature3Text,
+      }, 'Conteúdo da página Sobre Nós');
+
+      await addAuditLog('UPDATE', 'pagina_sobre', 'Página Sobre Nós atualizada pelo administrador');
+      setAboutSaveSuccess('Conteúdo da página Sobre Nós atualizado e publicado com sucesso!');
+    } catch (err: any) {
+      setAboutError(`Erro ao salvar página Sobre Nós: ${err.message || 'Erro desconhecido'}`);
+    } finally {
+      setIsSavingAbout(false);
+    }
+  };
 
   // Thresholds state (Cotas Hidrológicas)
   const [thresholdEdits, setThresholdEdits] = useState<Record<string, { normal_level: number; attention_level: number; alert_level: number; flood_level: number }>>({});
@@ -1406,6 +1471,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {[
                 { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
                 { id: 'centro_analises', label: 'Centro de Análises', icon: BarChart3 },
+                { id: 'sobre', label: 'Página Sobre Nós', icon: Info },
                 { id: 'moradores', label: 'Moradores Cadastrados', icon: Home },
                 { id: 'central_alertas', label: 'Central de Alertas', icon: Radio },
                 { id: 'rede_alertas', label: 'Alertas de Moradores', icon: BellRing },
@@ -1479,6 +1545,244 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {/* TAB: CENTRO DE ANÁLISES */}
               {activeTab === 'centro_analises' && (
                 <AdminCentroAnalisesView />
+              )}
+
+              {/* TAB: EDITAR PÁGINA SOBRE NÓS */}
+              {activeTab === 'sobre' && (
+                <div className="space-y-6 text-xs animate-fade-in">
+                  
+                  {/* HEADER */}
+                  <div className="bg-gradient-to-r from-slate-900 via-cyan-950/40 to-slate-900 border border-cyan-800/40 rounded-2xl p-5 space-y-2">
+                    <div className="flex items-center gap-2.5 text-cyan-400 font-bold text-base">
+                      <Info className="w-5 h-5 text-cyan-400" />
+                      <span>Gestão do Conteúdo da Página "Sobre Nós"</span>
+                    </div>
+                    <p className="text-xs text-slate-300 leading-relaxed max-w-4xl">
+                      Edite os textos institucionais, missão, objetivos e destaques tecnológicos apresentados na aba pública "SOBRE" do portal.
+                    </p>
+                  </div>
+
+                  {/* ALERTS */}
+                  {aboutSaveSuccess && (
+                    <div className="p-4 bg-emerald-950/90 border border-emerald-800 text-emerald-300 rounded-2xl flex items-center justify-between shadow-lg">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
+                        <span className="font-semibold">{aboutSaveSuccess}</span>
+                      </div>
+                      <button onClick={() => setAboutSaveSuccess(null)} className="text-emerald-400 hover:text-white p-1 rounded-lg cursor-pointer">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  {aboutError && (
+                    <div className="p-4 bg-red-950/90 border border-red-800 text-red-300 rounded-2xl flex items-center justify-between shadow-lg">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5 shrink-0 text-red-400" />
+                        <span className="font-semibold">{aboutError}</span>
+                      </div>
+                      <button onClick={() => setAboutError(null)} className="text-red-400 hover:text-white p-1 rounded-lg cursor-pointer">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSaveAboutSubmit} className="space-y-6">
+                    
+                    {/* APRESENTAÇÃO PRINCIPAL */}
+                    <div className="bg-[#0F172A] border border-slate-800 p-6 rounded-2xl space-y-4 shadow-sm">
+                      <h4 className="text-sm font-bold text-white uppercase flex items-center gap-2 border-b border-slate-800 pb-3">
+                        <FileText className="w-4 h-4 text-cyan-400" />
+                        1. Cabeçalho & Texto Principal
+                      </h4>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-slate-300 mb-1 font-semibold">
+                            Selo / Insígnia do Topo
+                          </label>
+                          <input
+                            type="text"
+                            value={aboutBadge}
+                            onChange={(e) => setAboutBadge(e.target.value)}
+                            placeholder="Ex: CENTRO DE OPERAÇÕES HIDROLÓGICAS"
+                            className="w-full bg-[#050A18] text-slate-100 p-3 rounded-xl border border-slate-700 focus:outline-none focus:border-cyan-400 font-mono"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-300 mb-1 font-semibold">
+                            Título Principal da Página
+                          </label>
+                          <input
+                            type="text"
+                            value={aboutTitle}
+                            onChange={(e) => setAboutTitle(e.target.value)}
+                            placeholder="Ex: Portal Profissional de Monitoramento Hidrológico"
+                            className="w-full bg-[#050A18] text-slate-100 p-3 rounded-xl border border-slate-700 focus:outline-none focus:border-cyan-400 font-bold"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 mb-1 font-semibold">
+                          Texto "Sobre Nós" / Descrição Institucional
+                        </label>
+                        <textarea
+                          rows={6}
+                          value={aboutText}
+                          onChange={(e) => setAboutText(e.target.value)}
+                          placeholder="Escreva a apresentação detalhada sobre a iniciativa, missão, equipe, órgãos integrados e como o portal serve a comunidade..."
+                          className="w-full bg-[#050A18] text-slate-100 p-3 rounded-xl border border-slate-700 focus:outline-none focus:border-cyan-400 leading-relaxed font-sans"
+                        />
+                      </div>
+                    </div>
+
+                    {/* CARTÕES DE DESTAQUE / PILARES */}
+                    <div className="bg-[#0F172A] border border-slate-800 p-6 rounded-2xl space-y-4 shadow-sm">
+                      <h4 className="text-sm font-bold text-white uppercase flex items-center gap-2 border-b border-slate-800 pb-3">
+                        <Award className="w-4 h-4 text-cyan-400" />
+                        2. Cartões de Destaque Tecnológico / Pilares
+                      </h4>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        
+                        {/* DESTAQUE 1 */}
+                        <div className="bg-[#050A18] border border-slate-800 p-4 rounded-xl space-y-3">
+                          <span className="text-[10px] font-mono uppercase text-cyan-400 font-bold block">Cartão 1</span>
+                          <div>
+                            <label className="block text-slate-300 mb-1 font-medium text-[11px]">Título do Cartão</label>
+                            <input
+                              type="text"
+                              value={aboutFeature1Title}
+                              onChange={(e) => setAboutFeature1Title(e.target.value)}
+                              className="w-full bg-[#0F172A] text-slate-100 p-2.5 rounded-lg border border-slate-700 text-xs focus:outline-none focus:border-cyan-400 font-bold"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-slate-300 mb-1 font-medium text-[11px]">Descrição</label>
+                            <textarea
+                              rows={3}
+                              value={aboutFeature1Text}
+                              onChange={(e) => setAboutFeature1Text(e.target.value)}
+                              className="w-full bg-[#0F172A] text-slate-100 p-2.5 rounded-lg border border-slate-700 text-xs focus:outline-none focus:border-cyan-400 leading-relaxed"
+                            />
+                          </div>
+                        </div>
+
+                        {/* DESTAQUE 2 */}
+                        <div className="bg-[#050A18] border border-slate-800 p-4 rounded-xl space-y-3">
+                          <span className="text-[10px] font-mono uppercase text-sky-400 font-bold block">Cartão 2</span>
+                          <div>
+                            <label className="block text-slate-300 mb-1 font-medium text-[11px]">Título do Cartão</label>
+                            <input
+                              type="text"
+                              value={aboutFeature2Title}
+                              onChange={(e) => setAboutFeature2Title(e.target.value)}
+                              className="w-full bg-[#0F172A] text-slate-100 p-2.5 rounded-lg border border-slate-700 text-xs focus:outline-none focus:border-cyan-400 font-bold"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-slate-300 mb-1 font-medium text-[11px]">Descrição</label>
+                            <textarea
+                              rows={3}
+                              value={aboutFeature2Text}
+                              onChange={(e) => setAboutFeature2Text(e.target.value)}
+                              className="w-full bg-[#0F172A] text-slate-100 p-2.5 rounded-lg border border-slate-700 text-xs focus:outline-none focus:border-cyan-400 leading-relaxed"
+                            />
+                          </div>
+                        </div>
+
+                        {/* DESTAQUE 3 */}
+                        <div className="bg-[#050A18] border border-slate-800 p-4 rounded-xl space-y-3">
+                          <span className="text-[10px] font-mono uppercase text-amber-400 font-bold block">Cartão 3</span>
+                          <div>
+                            <label className="block text-slate-300 mb-1 font-medium text-[11px]">Título do Cartão</label>
+                            <input
+                              type="text"
+                              value={aboutFeature3Title}
+                              onChange={(e) => setAboutFeature3Title(e.target.value)}
+                              className="w-full bg-[#0F172A] text-slate-100 p-2.5 rounded-lg border border-slate-700 text-xs focus:outline-none focus:border-cyan-400 font-bold"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-slate-300 mb-1 font-medium text-[11px]">Descrição</label>
+                            <textarea
+                              rows={3}
+                              value={aboutFeature3Text}
+                              onChange={(e) => setAboutFeature3Text(e.target.value)}
+                              className="w-full bg-[#0F172A] text-slate-100 p-2.5 rounded-lg border border-slate-700 text-xs focus:outline-none focus:border-cyan-400 leading-relaxed"
+                            />
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+
+                    {/* PREVIEW EM TEMPO REAL */}
+                    <div className="bg-[#0F172A] border border-slate-800 p-6 rounded-2xl space-y-4 shadow-sm">
+                      <h4 className="text-sm font-bold text-slate-300 uppercase flex items-center justify-between border-b border-slate-800 pb-3">
+                        <span className="flex items-center gap-2">
+                          <Eye className="w-4 h-4 text-cyan-400" />
+                          Pré-visualização ao Vivo (Como os usuários verão)
+                        </span>
+                        <span className="text-[10px] text-cyan-400 font-mono">Live Sync</span>
+                      </h4>
+
+                      <div className="p-6 bg-[#0B132B] border border-slate-800 rounded-2xl space-y-5">
+                        <div className="space-y-3">
+                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800 text-[11px] font-bold">
+                            <Waves className="w-3.5 h-3.5" />
+                            <span>{aboutBadge || 'CENTRO DE OPERAÇÕES HIDROLÓGICAS'}</span>
+                          </div>
+                          <h3 className="text-xl font-extrabold text-white">
+                            {aboutTitle || 'Portal Profissional de Monitoramento Hidrológico'}
+                          </h3>
+                          <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-line">
+                            {aboutText || 'Descrição do projeto...'}
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-slate-800">
+                          <div className="bg-[#050A18] p-4 rounded-xl border border-slate-800 space-y-1.5">
+                            <h5 className="text-xs font-bold text-white">{aboutFeature1Title || 'Sensores de Precisão'}</h5>
+                            <p className="text-[11px] text-slate-400 leading-relaxed">{aboutFeature1Text}</p>
+                          </div>
+                          <div className="bg-[#050A18] p-4 rounded-xl border border-slate-800 space-y-1.5">
+                            <h5 className="text-xs font-bold text-white">{aboutFeature2Title || 'Sincronização Supabase'}</h5>
+                            <p className="text-[11px] text-slate-400 leading-relaxed">{aboutFeature2Text}</p>
+                          </div>
+                          <div className="bg-[#050A18] p-4 rounded-xl border border-slate-800 space-y-1.5">
+                            <h5 className="text-xs font-bold text-white">{aboutFeature3Title || 'Alertas Automatizados'}</h5>
+                            <p className="text-[11px] text-slate-400 leading-relaxed">{aboutFeature3Text}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* BOTÃO DE SALVAMENTO */}
+                    <div className="flex items-center justify-end gap-3 pt-2">
+                      <button
+                        type="submit"
+                        disabled={isSavingAbout}
+                        className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg hover:shadow-cyan-500/20 flex items-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
+                      >
+                        {isSavingAbout ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Salvando Alterações...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Save className="w-4 h-4" />
+                            <span>Salvar Página Sobre Nós</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                  </form>
+                </div>
               )}
 
               {/* TAB: MORADORES CADASTRADOS */}

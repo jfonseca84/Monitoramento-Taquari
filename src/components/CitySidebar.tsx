@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { City, LevelStatus } from '../types';
-import { ChevronRight, QrCode, ExternalLink, Waves, Filter, Activity } from 'lucide-react';
-import { getCityThresholds } from '../data/cityThresholds';
+import { City } from '../types';
+import { QrCode, Waves } from 'lucide-react';
 import { StatusDot } from './StatusDot';
 import { ConnectionStatusType } from '../lib/supabase';
+import { TechnicalData } from './TechnicalData';
 
 interface CitySidebarProps {
   cities: City[];
@@ -23,12 +23,6 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
   lastUpdatedText = ''
 }) => {
   const [activeBasin, setActiveBasin] = useState<'taquari' | 'guaiba'>('taquari');
-
-  const thresholds = getCityThresholds(selectedCity);
-  const normalVal = thresholds.normal;
-  const attentionVal = thresholds.attention;
-  const alertVal = thresholds.alert;
-  const floodVal = thresholds.flood;
 
   // Strict list of allowed Vale do Taquari cities
   const TAQUARI_SLUGS = ['santatereza', 'mucum', 'encantado', 'rocasales', 'lajeado', 'estrela', 'bomretirodosul'];
@@ -121,56 +115,8 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
 
       </div>
 
-      {/* UNDERSTAND THE LEVELS CARD */}
-      <div className="dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-2xl p-4 shadow-xl transition-colors">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xs font-bold dark:text-slate-300 text-slate-700 tracking-wider uppercase">
-            Cotas de Nível ({selectedCity.name})
-          </h3>
-        </div>
-
-        <div className="flex flex-col gap-2.5 text-xs dark:text-slate-300 text-slate-700">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
-              <span>Normal</span>
-            </div>
-            <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">{normalVal.toFixed(2).replace('.', ',')} m</span>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-sm shadow-amber-400/50" />
-              <span>Atenção</span>
-            </div>
-            <span className="font-mono text-amber-600 dark:text-amber-300 font-bold">{attentionVal.toFixed(2).replace('.', ',')} m</span>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-sm shadow-orange-500/50" />
-              <span>Alerta</span>
-            </div>
-            <span className="font-mono text-orange-600 dark:text-orange-400 font-bold">{alertVal.toFixed(2).replace('.', ',')} m</span>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <StatusDot status="inundacao" size="md" />
-              <span className="text-red-600 dark:text-red-400 font-bold">Inundação</span>
-            </div>
-            <span className="font-mono text-red-600 dark:text-red-400 font-bold">{floodVal.toFixed(2).replace('.', ',')} m</span>
-          </div>
-        </div>
-
-        <button 
-          onClick={onOpenInfoModal}
-          className="mt-3 text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
-        >
-          <span>Ver mais informações</span>
-          <ChevronRight className="w-3.5 h-3.5" />
-        </button>
-      </div>
+      {/* DADOS TÉCNICOS CARD */}
+      <TechnicalData selectedCity={selectedCity} />
 
       {/* MOBILE QR CODE CARD */}
       <div className="dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-2xl p-4 shadow-xl flex items-center gap-3 transition-colors">

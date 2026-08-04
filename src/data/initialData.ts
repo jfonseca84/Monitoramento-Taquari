@@ -531,6 +531,62 @@ export const INITIAL_NEWS: NewsItem[] = [
     link_original: 'https://defesacivil.rs.gov.br',
     date: 'há 1 dia',
     published: true
+  },
+  {
+    id: 'news-4',
+    city_id: 'estrela',
+    category: 'Monitoramento',
+    title: 'Relatório de vazão e medição no Porto de Estrela',
+    summary: 'Telemetria do Rio Taquari apresenta ritmo constante de fluxo com atualização a cada 5 minutos.',
+    content: 'Telemetria do Rio Taquari apresenta ritmo constante de fluxo com atualização a cada 5 minutos.',
+    image: 'https://images.unsplash.com/photo-1426604966848-d7adac402bff?auto=format&fit=crop&w=600&q=80',
+    author: 'Sistemas Hidrológicos',
+    fonte: 'Defesa Civil Estrela',
+    link_original: 'https://estrela.rs.gov.br',
+    date: 'há 1 dia',
+    published: true
+  },
+  {
+    id: 'news-5',
+    city_id: 'encantado',
+    category: 'Meteorologia',
+    title: 'Alerta preventivo para calha do Rio Taquari em Encantado',
+    summary: 'Monitoramento contínuo nas áreas de várzea e atualização de réguas fisicas em tempo real.',
+    content: 'Monitoramento contínuo nas áreas de várzea e atualização de réguas fisicas em tempo real.',
+    image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80',
+    author: 'Equipe de Resposta',
+    fonte: 'Prefeitura Encantado',
+    link_original: 'https://encantado.rs.gov.br',
+    date: 'há 2 dias',
+    published: true
+  },
+  {
+    id: 'news-6',
+    city_id: 'santatereza',
+    category: 'Monitoramento',
+    title: 'Estabilidade registrada nas cabeceiras de Santa Tereza',
+    summary: 'Pluviômetros na serra indicam redução temporária do volume de precipitação nas últimas horas.',
+    content: 'Pluviômetros na serra indicam redução temporária do volume de precipitação nas últimas horas.',
+    image: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=600&q=80',
+    author: 'Monitoramento Serra',
+    fonte: 'Defesa Civil RS',
+    link_original: 'https://defesacivil.rs.gov.br',
+    date: 'há 2 dias',
+    published: true
+  },
+  {
+    id: 'news-7',
+    city_id: 'lajeado',
+    category: 'Alertas',
+    title: 'Cadastro de alerta SMS ativado para bairros ribeirinhos',
+    summary: 'Moradores podem cadastrar o CEP para receber avisos instantâneos de variação do nível.',
+    content: 'Moradores podem cadastrar o CEP para receber avisos instantâneos de variação do nível.',
+    image: 'https://images.unsplash.com/photo-1511497584788-876761c11969?auto=format&fit=crop&w=600&q=80',
+    author: 'Centro de Alertas',
+    fonte: 'Defesa Civil Lajeado',
+    link_original: 'https://lajeado.rs.gov.br',
+    date: 'há 3 dias',
+    published: true
   }
 ];
 

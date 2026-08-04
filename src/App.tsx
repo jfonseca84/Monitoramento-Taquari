@@ -6,7 +6,6 @@ import { StatsPanel } from './components/StatsPanel';
 import { LevelChart } from './components/LevelChart';
 import { InteractiveMap } from './components/InteractiveMap';
 import { NewsSection } from './components/NewsSection';
-import { TechnicalData } from './components/TechnicalData';
 import { Footer } from './components/Footer';
 import { AdminDashboard } from './components/AdminDashboard';
 import { HistoryView } from './components/HistoryView';
@@ -262,55 +261,56 @@ export default function App() {
         {/* VIEW ROUTER */}
         {activeTab === 'inicio' ? (
           /* PRIMARY OPERATIONAL DASHBOARD (MATCHING ATTACHED SCREENSHOT) */
-          <div className="flex flex-col lg:flex-row gap-6">
-            
-            {/* LEFT COLUMN: CITIES SIDEBAR & LEGEND */}
-            <CitySidebar
-              cities={cities}
-              selectedCity={selectedCity}
-              onSelectCity={(city) => setSelectedCity(city)}
-              onOpenInfoModal={() => setIsInfoModalOpen(true)}
-            />
-
-            {/* MIDDLE COLUMN: LIVE CAMERA HERO, RECHARTS & NEWS */}
-            <div className="flex-1 flex flex-col gap-6">
-              <LiveCameraHero
-                selectedCity={selectedCity}
-                onOpenCameraModal={() => setIsCameraModalOpen(true)}
-                onOpenInfoModal={() => setIsInfoModalOpen(true)}
-                onOpenDetailModal={() => setIsDetailModalOpen(true)}
-              />
-
-              <LevelChart
-                selectedCity={selectedCity}
-                chartData={chartData}
-                timeframe={timeframe}
-                setTimeframe={setTimeframe}
-              />
-
-              <NewsSection
-                news={news}
-                onViewAllNews={() => setActiveTab('noticias')}
-              />
-            </div>
-
-            {/* RIGHT COLUMN: STATS, SATELLITE MAP & TECHNICAL SPECS */}
-            <div className="w-full lg:w-80 flex flex-col gap-6 shrink-0">
-              <StatsPanel
-                selectedCity={selectedCity}
-                onOpenDetailModal={() => setIsDetailModalOpen(true)}
-                onOpenAlertSignup={() => setActiveTab('receber-alertas')}
-              />
+          <div className="space-y-6">
+            <div className="flex flex-col lg:flex-row gap-6">
               
-              <InteractiveMap
+              {/* LEFT COLUMN: CITIES SIDEBAR & LEGEND */}
+              <CitySidebar
                 cities={cities}
                 selectedCity={selectedCity}
                 onSelectCity={(city) => setSelectedCity(city)}
+                onOpenInfoModal={() => setIsInfoModalOpen(true)}
               />
 
-              <TechnicalData selectedCity={selectedCity} />
+              {/* MIDDLE COLUMN: LIVE CAMERA HERO & RECHARTS */}
+              <div className="flex-1 flex flex-col gap-6">
+                <LiveCameraHero
+                  selectedCity={selectedCity}
+                  onOpenCameraModal={() => setIsCameraModalOpen(true)}
+                  onOpenInfoModal={() => setIsInfoModalOpen(true)}
+                  onOpenDetailModal={() => setIsDetailModalOpen(true)}
+                />
+
+                <LevelChart
+                  selectedCity={selectedCity}
+                  chartData={chartData}
+                  timeframe={timeframe}
+                  setTimeframe={setTimeframe}
+                />
+              </div>
+
+              {/* RIGHT COLUMN: STATS, SATELLITE MAP & TECHNICAL SPECS */}
+              <div className="w-full lg:w-80 flex flex-col gap-6 shrink-0">
+                <StatsPanel
+                  selectedCity={selectedCity}
+                  onOpenDetailModal={() => setIsDetailModalOpen(true)}
+                  onOpenAlertSignup={() => setActiveTab('receber-alertas')}
+                />
+                
+                <InteractiveMap
+                  cities={cities}
+                  selectedCity={selectedCity}
+                  onSelectCity={(city) => setSelectedCity(city)}
+                />
+              </div>
+
             </div>
 
+            {/* FULL WIDTH BOTTOM SECTION: NOTÍCIAS E COMUNICADOS OFICIAIS */}
+            <NewsSection
+              news={news}
+              onViewAllNews={() => setActiveTab('noticias')}
+            />
           </div>
         ) : activeTab === 'nivel' || activeTab === 'centro-analises' ? (
           <CentroAnalisesView />

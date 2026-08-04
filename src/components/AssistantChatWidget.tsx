@@ -24,6 +24,7 @@ export const AssistantChatWidget: React.FC<AssistantChatWidgetProps> = ({ curren
   });
 
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const lastMessageRef = useRef<HTMLDivElement>(null);
 
   // Sync active city name if prop changes
   useEffect(() => {
@@ -111,6 +112,12 @@ Como posso auxiliar você com dados sobre bairros vulneráveis, previsão do tem
     if (!questionPrompt) setChatInput('');
     setIsThinking(true);
 
+    setTimeout(() => {
+      if (lastMessageRef.current) {
+        lastMessageRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 50);
+
     const safetyMargin = Number((cityStats.flood_threshold - cityStats.current_level).toFixed(2));
     const contextData = {
       cityName: cityStats.name,
@@ -167,8 +174,8 @@ Como posso auxiliar você com dados sobre bairros vulneráveis, previsão do tem
     } finally {
       setIsThinking(false);
       setTimeout(() => {
-        if (chatBottomRef.current) {
-          chatBottomRef.current.scrollIntoView({ behavior: 'smooth' });
+        if (lastMessageRef.current) {
+          lastMessageRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       }, 100);
     }
@@ -234,11 +241,14 @@ Como posso auxiliar você com dados sobre bairros vulneráveis, previsão do tem
 
             {/* ÁREA DE CONVERSA COM MENSAGENS */}
             <div className="flex-1 overflow-y-auto space-y-6 pr-2 text-sm sm:text-base leading-relaxed text-slate-800 font-sans pt-1">
-              {chatMessages.map((msg, index) => (
-                <div
-                  key={msg.id}
-                  className={`space-y-3 ${msg.sender === 'user' ? 'bg-sky-50 p-4 rounded-2xl border border-sky-100 text-sky-950 ml-auto max-w-2xl' : ''}`}
-                >
+              {chatMessages.map((msg, index) => {
+                const isLast = index === chatMessages.length - 1;
+                return (
+                  <div
+                    key={msg.id}
+                    ref={isLast ? lastMessageRef : null}
+                    className={`space-y-3 ${msg.sender === 'user' ? 'bg-sky-50 p-4 rounded-2xl border border-sky-100 text-sky-950 ml-auto max-w-2xl' : ''}`}
+                  >
                   {msg.sender === 'user' && (
                     <div className="font-extrabold text-xs uppercase tracking-wider text-sky-700 mb-1">
                       Você
@@ -295,7 +305,8 @@ Como posso auxiliar você com dados sobre bairros vulneráveis, previsão do tem
                     </div>
                   )}
                 </div>
-              ))}
+              );
+            })}
 
               {isThinking && (
                 <div className="flex items-center gap-2 text-slate-500 text-xs font-mono animate-pulse py-2">

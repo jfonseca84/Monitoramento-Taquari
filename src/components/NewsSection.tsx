@@ -219,12 +219,12 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ news, onViewAllNews, i
           </div>
 
           {/* NEWS LIST CARDS */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {filteredDisplayNews.slice(0, 3).map((item) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
+            {filteredDisplayNews.slice(0, 7).map((item) => (
               <div
                 key={item.id}
                 onClick={() => setSelectedArticle(item)}
-                className="dark:bg-[#182238] bg-slate-50 dark:border-slate-800/80 border-slate-200 dark:hover:border-cyan-800/60 hover:border-cyan-400 border rounded-2xl p-4 cursor-pointer transition-all hover:-translate-y-1 hover:shadow-xl flex flex-col justify-between group"
+                className="dark:bg-[#182238] bg-slate-50 dark:border-slate-800/80 border-slate-200 dark:hover:border-cyan-800/60 hover:border-cyan-400 border rounded-2xl p-3 sm:p-3.5 cursor-pointer transition-all hover:-translate-y-1 hover:shadow-xl flex flex-col justify-between group"
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2">

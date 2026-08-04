@@ -61,7 +61,7 @@ export const Footer: React.FC = () => {
           <div className="flex items-center gap-4 mb-6">
             <div className="h-px dark:bg-[#182C54] bg-slate-300 flex-1" />
             <h3 className="text-xs sm:text-sm font-black dark:text-slate-300 text-slate-700 tracking-wider uppercase whitespace-nowrap">
-              EMPRESAS PATROCINADORAS
+              EMPRESAS PARCEIRAS DO PROJETO
             </h3>
             <div className="h-px dark:bg-[#182C54] bg-slate-300 flex-1" />
           </div>
@@ -151,7 +151,7 @@ export const Footer: React.FC = () => {
                   FONTES OFICIAIS
                 </h4>
                 <p className="text-xs dark:text-slate-300 text-slate-700 font-medium leading-relaxed">
-                  Defesa Civil Estadual, Prefeituras Municipais e rede de sensores automáticos do CPRM/ANA.
+                  Defesa Civil Estadual, Prefeituras Municipais, Rede de Sensores Automáticos do CPRM/ANA | SGB Bacia Rio Taquari | Projeto Guerreiros do Humaitá Nível dos Rios | Nível Guaíba.
                 </p>
               </div>
             </div>
