@@ -317,7 +317,7 @@ export default function App() {
             />
           </div>
         ) : activeTab === 'nivel' || activeTab === 'centro-analises' ? (
-          <CentroAnalisesView />
+          <CentroAnalisesView theme={theme} />
         ) : activeTab === 'receber-alertas' ? (
           <RiskAlertSignup cities={cities} />
         ) : activeTab === 'cameras' ? (
