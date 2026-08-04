@@ -28,10 +28,11 @@ export const LevelChart: React.FC<LevelChartProps> = ({
   setTimeframe
 }) => {
   const timeframes: { id: Timeframe; label: string }[] = [
+    { id: '6h', label: '6 HORAS' },
+    { id: '12h', label: '12 HORAS' },
     { id: '24h', label: '24 HORAS' },
     { id: '7d', label: '7 DIAS' },
     { id: '30d', label: '30 DIAS' },
-    { id: '12m', label: '12 MESES' },
     { id: 'all', label: 'TODO PERÍODO' }
   ];
 
@@ -165,6 +166,7 @@ export const LevelChart: React.FC<LevelChartProps> = ({
               stroke="#64748B"
               fontSize={10}
               tickLine={false}
+              minTickGap={25}
               axisLine={{ stroke: '#1E293B' }}
             />
 

@@ -283,7 +283,7 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({
           <span className="text-red-400 font-bold font-mono">{floodQuotaStr}m</span>
         </div>
 
-        <span className="text-slate-400 font-bold uppercase shrink-0">
+        <span className="text-cyan-400 font-extrabold tracking-wide uppercase shrink-0">
           - {selectedCity.name}
         </span>
       </div>

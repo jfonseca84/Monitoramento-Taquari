@@ -56,7 +56,7 @@ export default function App() {
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
-  const [timeframe, setTimeframe] = useState<Timeframe>('24h');
+  const [timeframe, setTimeframe] = useState<Timeframe>('6h');
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatusType>('online');

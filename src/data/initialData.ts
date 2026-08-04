@@ -904,44 +904,48 @@ export function generateHistoryForCity(cityId: string, currentLevel: number, tim
   const thresholds = getCityThresholds(cityId);
 
   let numSteps = 24;
-  let stepIntervalMs = 60 * 60 * 1000; // 1 hour for 24h
+  let stepIntervalMs = 60 * 60 * 1000; // 1 hour
 
-  if (timeframe === '7d') {
+  if (timeframe === '6h') {
+    numSteps = 6; // 6 hours (6h ago to current hour)
+    stepIntervalMs = 60 * 60 * 1000;
+  } else if (timeframe === '12h') {
+    numSteps = 12; // 12 hours (12h ago to current hour)
+    stepIntervalMs = 60 * 60 * 1000;
+  } else if (timeframe === '24h') {
+    numSteps = 24; // 24 hours (24h ago to current hour)
+    stepIntervalMs = 60 * 60 * 1000;
+  } else if (timeframe === '7d') {
     numSteps = 28; // Every 6 hours over 7 days
     stepIntervalMs = 6 * 60 * 60 * 1000;
   } else if (timeframe === '30d') {
     numSteps = 30; // Every day over 30 days
     stepIntervalMs = 24 * 60 * 60 * 1000;
-  } else if (timeframe === '12m') {
-    numSteps = 52; // Every week over 12 months
-    stepIntervalMs = 7 * 24 * 60 * 60 * 1000;
   } else if (timeframe === 'all') {
-    numSteps = 60; // Every 12 days over 2 years
-    stepIntervalMs = 12 * 24 * 60 * 60 * 1000;
+    numSteps = 60; // Every 3 days over ~6 months
+    stepIntervalMs = 3 * 24 * 60 * 60 * 1000;
   }
 
   for (let i = numSteps; i >= 0; i--) {
     const time = new Date(now.getTime() - i * stepIntervalMs);
     let timeStr = '';
 
-    if (timeframe === '24h') {
+    if (timeframe === '6h' || timeframe === '12h' || timeframe === '24h') {
       timeStr = time.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
     } else if (timeframe === '7d') {
       timeStr = time.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' }) + ' ' + time.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
     } else if (timeframe === '30d') {
       timeStr = time.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' });
-    } else if (timeframe === '12m') {
-      timeStr = time.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', month: 'short', year: '2-digit' });
     } else {
-      timeStr = time.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: '2-digit' });
+      timeStr = time.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' });
     }
 
-    const progress = (numSteps - i) / numSteps;
+    const progress = numSteps > 0 ? (numSteps - i) / numSteps : 1;
     const wave1 = Math.sin(progress * Math.PI * 2) * 0.8;
     const wave2 = Math.cos(progress * Math.PI * 4) * 0.4;
     const baseLevel = Math.max(0.8, currentLevel - 1.2 + wave1 + wave2);
     const noise = (i === 0) ? 0 : (Math.sin(i * 0.7) * 0.05);
-    const val = parseFloat((baseLevel + noise).toFixed(2));
+    const val = parseFloat((i === 0 ? currentLevel : baseLevel + noise).toFixed(2));
 
     points.push({
       time: timeStr,

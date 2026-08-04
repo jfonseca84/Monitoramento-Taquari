@@ -1743,18 +1743,21 @@ export async function fetchCityHistory(cityId: string, timeframe: string = '24h'
         let startDate: Date | null = null;
         let maxLimit = 1000;
 
-        if (timeframe === '24h') {
+        if (timeframe === '6h') {
+          startDate = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+          maxLimit = 120;
+        } else if (timeframe === '12h') {
+          startDate = new Date(now.getTime() - 12 * 60 * 60 * 1000);
+          maxLimit = 250;
+        } else if (timeframe === '24h') {
           startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-          maxLimit = 100;
+          maxLimit = 500;
         } else if (timeframe === '7d') {
           startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          maxLimit = 500;
+          maxLimit = 1500;
         } else if (timeframe === '30d') {
           startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          maxLimit = 1000;
-        } else if (timeframe === '12m') {
-          startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-          maxLimit = 2000;
+          maxLimit = 3000;
         } else if (timeframe === 'all') {
           startDate = null;
           maxLimit = 5000;
@@ -1790,25 +1793,57 @@ export async function fetchCityHistory(cityId: string, timeframe: string = '24h'
         if (levels && levels.length > 0) {
           const thresholds = getCityThresholds(city);
 
-          // Downsample if dataset is large to maintain crisp chart rendering
-          let processedLevels = levels;
-          if (processedLevels.length > 120) {
-            const step = Math.ceil(processedLevels.length / 100);
-            processedLevels = processedLevels.filter((_, idx) => idx % step === 0 || idx === processedLevels.length - 1);
+          // Aggregate raw minute readings into clean hourly or daily buckets to eliminate clutter
+          let aggregatedLevels: any[] = [];
+          if (timeframe === '6h' || timeframe === '12h' || timeframe === '24h') {
+            // Keep 1 reading per hour (the last reading in each hour)
+            const hourMap = new Map<string, any>();
+            for (const l of levels) {
+              const d = new Date(l.recorded_at);
+              if (isNaN(d.getTime())) continue;
+              const key = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}-${d.getHours()}`;
+              hourMap.set(key, l);
+            }
+            aggregatedLevels = Array.from(hourMap.values());
+          } else if (timeframe === '7d') {
+            // Keep 1 reading every 6 hours (00, 06, 12, 18)
+            const sixHourMap = new Map<string, any>();
+            for (const l of levels) {
+              const d = new Date(l.recorded_at);
+              if (isNaN(d.getTime())) continue;
+              const block = Math.floor(d.getHours() / 6) * 6;
+              const key = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}-${block}`;
+              sixHourMap.set(key, l);
+            }
+            aggregatedLevels = Array.from(sixHourMap.values());
+          } else if (timeframe === '30d' || timeframe === 'all') {
+            // Keep 1 reading per day
+            const dayMap = new Map<string, any>();
+            for (const l of levels) {
+              const d = new Date(l.recorded_at);
+              if (isNaN(d.getTime())) continue;
+              const key = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+              dayMap.set(key, l);
+            }
+            aggregatedLevels = Array.from(dayMap.values());
+          } else {
+            aggregatedLevels = levels;
           }
 
-          resultChartData = processedLevels.map((l) => {
+          if (aggregatedLevels.length === 0) {
+            aggregatedLevels = levels;
+          }
+
+          resultChartData = aggregatedLevels.map((l) => {
             const dateObj = new Date(l.recorded_at);
             let timeStr = '';
             if (!isNaN(dateObj.getTime())) {
-              if (timeframe === '24h') {
+              if (timeframe === '6h' || timeframe === '12h' || timeframe === '24h') {
                 timeStr = dateObj.toLocaleTimeString('pt-BR', { timeZone: BRASILIA_TIMEZONE, hour: '2-digit', minute: '2-digit' });
               } else if (timeframe === '7d') {
                 timeStr = dateObj.toLocaleDateString('pt-BR', { timeZone: BRASILIA_TIMEZONE, day: '2-digit', month: '2-digit' }) + ' ' + dateObj.toLocaleTimeString('pt-BR', { timeZone: BRASILIA_TIMEZONE, hour: '2-digit', minute: '2-digit' });
               } else if (timeframe === '30d') {
                 timeStr = dateObj.toLocaleDateString('pt-BR', { timeZone: BRASILIA_TIMEZONE, day: '2-digit', month: '2-digit' });
-              } else if (timeframe === '12m') {
-                timeStr = dateObj.toLocaleDateString('pt-BR', { timeZone: BRASILIA_TIMEZONE, month: 'short', year: '2-digit' });
               } else {
                 timeStr = dateObj.toLocaleDateString('pt-BR', { timeZone: BRASILIA_TIMEZONE, day: '2-digit', month: '2-digit', year: '2-digit' });
               }

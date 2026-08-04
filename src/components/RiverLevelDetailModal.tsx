@@ -115,10 +115,11 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
 
   // Timeframe pill options
   const timeframes: { id: Timeframe; label: string }[] = [
+    { id: '6h', label: '6 HORAS' },
+    { id: '12h', label: '12 HORAS' },
     { id: '24h', label: '24 HORAS' },
     { id: '7d', label: '7 DIAS' },
     { id: '30d', label: '30 DIAS' },
-    { id: '12m', label: '12 MESES' },
     { id: 'all', label: 'TODO PERÍODO' }
   ];
 
@@ -279,7 +280,7 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" vertical={false} />
-                <XAxis dataKey="time" stroke="#64748B" fontSize={10} tickLine={false} />
+                <XAxis dataKey="time" stroke="#64748B" fontSize={10} tickLine={false} minTickGap={25} />
                 <YAxis domain={['auto', 'auto']} stroke="#64748B" fontSize={10} tickLine={false} />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '12px' }}

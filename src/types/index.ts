@@ -1,6 +1,6 @@
 export type LevelStatus = 'normal' | 'atencao' | 'alerta' | 'inundacao';
 export type LevelTrend = 'subindo' | 'descendo' | 'estavel';
-export type Timeframe = '24h' | '7d' | '30d' | '12m' | 'all';
+export type Timeframe = '6h' | '12h' | '24h' | '7d' | '30d' | 'all';
 export type UserRole = 'admin' | 'editor' | 'viewer';
 
 export interface City {
