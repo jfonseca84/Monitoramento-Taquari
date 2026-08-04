@@ -64,6 +64,16 @@ export const AssistantChatWidget: React.FC<AssistantChatWidgetProps> = ({ curren
   // Chat Messages State
   const [chatMessages, setChatMessages] = useState<Array<{ id: string; sender: 'user' | 'assistant'; text: string; time: string; badge?: string }>>([]);
 
+  // Weather data mock/state for context integration
+  const weatherContext = {
+    rainNextHours: 'Sem previsão de chuvas significativas para as próximas 12h',
+    rainNextDays: 'Instabilidades moderadas previstas para o fim de semana (20-35mm)',
+    expectedVolumeMm: 25,
+    rainProbabilityPct: 40,
+    recentAccumulatedMm: 14.2,
+    alerts: ['Aviso Amarelo Inmet: Possibilidade de chuvas isoladas no Vale do Taquari']
+  };
+
   // Initialize or update Welcome message
   useEffect(() => {
     const safetyMargin = (cityStats.flood_threshold - cityStats.current_level).toFixed(2);
@@ -71,19 +81,22 @@ export const AssistantChatWidget: React.FC<AssistantChatWidgetProps> = ({ curren
       {
         id: `welcome-${cityStats.name}`,
         sender: 'assistant',
-        text: `Olá! Sou o Assistente Hidrológico IA em treinamento.
+        text: `Olá! Sou o **Assistente de Risco Integrado IA**.
+
+Sou um assistente inteligente de monitoramento e análise de risco do Vale do Taquari. Utilizo dados hidrológicos, meteorológicos e históricos para auxiliar na compreensão de cenários relacionados a enchentes, chuvas e possíveis impactos.
 
 A cidade selecionada para análise no momento é **${cityStats.name}**.
 
 • **Nível Atual do Rio:** ${cityStats.current_level.toFixed(2)}m (${cityStats.status_level})
 • **Cota de Inundação Inicial:** ${cityStats.flood_threshold.toFixed(2)}m
 • **Margem de Segurança:** ${safetyMargin} metros
+• **Condição Meteorológica Atual:** Previsão de chuvas fracas a moderadas (${weatherContext.expectedVolumeMm}mm previstos / prob. ${weatherContext.rainProbabilityPct}%)
 
 ⚠️ **Este assistente está em fase de testes e desenvolvimento.** As respostas são geradas por inteligência artificial com base nos dados disponíveis no sistema e podem conter imprecisões ou limitações. As informações apresentadas não substituem comunicados, alertas ou orientações dos órgãos oficiais de monitoramento e defesa civil.
 
-Como posso auxiliar você com dados sobre bairros vulneráveis, previsões ou histórico hidrológico em ${cityStats.name}?`,
+Como posso auxiliar você com dados sobre bairros vulneráveis, previsão do tempo, simulações ou histórico hidrológico em ${cityStats.name}?`,
         time: 'Agora',
-        badge: `Contexto Ativo: ${cityStats.name}`
+        badge: `Risco Integrado — ${cityStats.name}`
       }
     ]);
   }, [cityStats]);
@@ -114,6 +127,7 @@ Como posso auxiliar você com dados sobre bairros vulneráveis, previsões ou hi
       safetyMargin: safetyMargin,
       rateOfChange: 'Estável',
       vulnerableAreas: cityStats.bairrosImpactados,
+      weatherForecast: weatherContext,
       historicalData: {
         'Maio/2024': '28.19m',
         'Novembro/2023': '24.73m',
@@ -141,7 +155,7 @@ Como posso auxiliar você com dados sobre bairros vulneráveis, previsões ou hi
         sender: 'assistant' as const,
         text: responseText,
         time: 'Agora',
-        badge: `Assistente IA — ${cityStats.name}`
+        badge: `Assistente de Risco — ${cityStats.name}`
       };
 
       setChatMessages(prev => [...prev, aiMessage]);
@@ -150,7 +164,7 @@ Como posso auxiliar você com dados sobre bairros vulneráveis, previsões ou hi
       const aiMessage = {
         id: `ai-${Date.now()}`,
         sender: 'assistant' as const,
-        text: `Ocorreu um erro ao consultar a inteligência artificial. Por favor, tente novamente em instantes ou consulte a Defesa Civil do município de ${cityStats.name}.`,
+        text: `Ocorreu um erro ao consultar o assistente de risco. Por favor, tente novamente em instantes ou consulte a Defesa Civil do município de ${cityStats.name}.`,
         time: 'Agora',
         badge: `Erro de Conexão`
       };
@@ -173,7 +187,7 @@ Como posso auxiliar você com dados sobre bairros vulneráveis, previsões ou hi
         <button
           onClick={() => setIsOpen(true)}
           className="group relative cursor-pointer transition-all transform hover:scale-110 active:scale-95 filter drop-shadow-2xl focus:outline-none"
-          title="Pergunte ao Assistente Hidrológico IA"
+          title="Pergunte ao Assistente de Risco Integrado IA"
         >
           <div className="relative w-12 h-14 sm:w-14 sm:h-16">
             {/* Ícone de Pin / Balão de Mensagem nas cores do site */}
@@ -280,7 +294,7 @@ Como posso auxiliar você com dados sobre bairros vulneráveis, previsões ou hi
               {isThinking && (
                 <div className="flex items-center gap-2 text-slate-500 text-xs font-mono animate-pulse py-2">
                   <Sparkles className="w-4 h-4 text-sky-600" />
-                  <span>Assistente em treinamento consultando medições de {cityStats.name}...</span>
+                  <span>Assistente de Risco Integrado consultando dados e previsão de {cityStats.name}...</span>
                 </div>
               )}
 
@@ -302,7 +316,7 @@ Como posso auxiliar você com dados sobre bairros vulneráveis, previsões ou hi
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleSendQuestion(); }}
-                placeholder={`Pergunte algo ao Assistente Hidrológico sobre ${cityStats.name}...`}
+                placeholder={`Pergunte ao Assistente de Risco sobre ${cityStats.name}...`}
                 className="flex-1 bg-transparent text-slate-800 placeholder-slate-400 text-sm py-2 px-2 focus:outline-none font-sans"
               />
 
