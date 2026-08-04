@@ -81,18 +81,11 @@ export const AssistantChatWidget: React.FC<AssistantChatWidgetProps> = ({ curren
       {
         id: `welcome-${cityStats.name}`,
         sender: 'assistant',
-        text: `Olá! Sou o **Assistente de Risco Integrado IA**.
-
-Sou um assistente inteligente de monitoramento e análise de risco do Vale do Taquari. Utilizo dados hidrológicos, meteorológicos e históricos para auxiliar na compreensão de cenários relacionados a enchentes, chuvas e possíveis impactos.
-
-A cidade selecionada para análise no momento é **${cityStats.name}**.
+        text: `Olá! Sou um assistente inteligente de monitoramento e análise de risco do Vale do Taquari. Utilizo dados hidrológicos e históricos para auxiliar na compreensão de cenários relacionados a enchentes e possíveis impactos. A cidade selecionada para análise no momento é **${cityStats.name}**.
 
 • **Nível Atual do Rio:** ${cityStats.current_level.toFixed(2)}m (${cityStats.status_level})
 • **Cota de Inundação Inicial:** ${cityStats.flood_threshold.toFixed(2)}m
 • **Margem de Segurança:** ${safetyMargin} metros
-• **Condição Meteorológica Atual:** Previsão de chuvas fracas a moderadas (${weatherContext.expectedVolumeMm}mm previstos / prob. ${weatherContext.rainProbabilityPct}%)
-
-⚠️ **Este assistente está em fase de testes e desenvolvimento.** As respostas são geradas por inteligência artificial com base nos dados disponíveis no sistema e podem conter imprecisões ou limitações. As informações apresentadas não substituem comunicados, alertas ou orientações dos órgãos oficiais de monitoramento e defesa civil.
 
 Como posso auxiliar você com dados sobre bairros vulneráveis, previsão do tempo, simulações ou histórico hidrológico em ${cityStats.name}?`,
         time: 'Agora',
@@ -125,7 +118,9 @@ Como posso auxiliar você com dados sobre bairros vulneráveis, previsão do tem
       statusLevel: cityStats.status_level,
       floodThreshold: cityStats.flood_threshold,
       safetyMargin: safetyMargin,
-      rateOfChange: 'Estável',
+      rateOfChange: typeof cityStats.rate_of_change === 'number'
+        ? `${Math.round(cityStats.rate_of_change * 100)} cm/h`
+        : (cityStats.trend === 'subindo' ? '+2 cm/h' : (cityStats.trend === 'descendo' ? '-2 cm/h' : '0 cm/h')),
       vulnerableAreas: cityStats.bairrosImpactados,
       weatherForecast: weatherContext,
       historicalData: {
@@ -215,7 +210,7 @@ Como posso auxiliar você com dados sobre bairros vulneráveis, previsão do tem
       {/* MODAL DO CHAT DO ASSISTENTE HIDROLÓGICO IA */}
       {isOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-fade-in">
-          <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 max-w-3xl w-full h-[85vh] max-h-[750px] flex flex-col justify-between shadow-2xl relative text-slate-800 space-y-4">
+          <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 max-w-3xl w-full h-[88vh] max-h-[780px] flex flex-col justify-between shadow-2xl relative text-slate-800 gap-3">
             
             {/* BOTÃO FECHAR */}
             <button
@@ -225,6 +220,17 @@ Como posso auxiliar você com dados sobre bairros vulneráveis, previsão do tem
             >
               <X className="w-5 h-5" />
             </button>
+
+            {/* CAIXA DE AVISO EM DESTAQUE NO TOPO DO ASSISTENTE */}
+            <div className="bg-amber-50/90 border border-amber-200/90 rounded-2xl p-3.5 sm:p-4 text-xs text-amber-900 space-y-1.5 shadow-sm shrink-0 pr-10">
+              <div className="flex items-center gap-2 font-bold text-amber-900 text-xs sm:text-sm">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+                <span>Aviso*</span>
+              </div>
+              <p className="leading-relaxed text-amber-800/90 font-medium">
+                Este assistente está em fase de testes e desenvolvimento. As respostas são geradas por inteligência artificial com base nos dados disponíveis no sistema e podem conter imprecisões ou limitações. As informações apresentadas não substituem comunicados, alertas ou orientações dos órgãos oficiais de monitoramento e defesa civil.
+              </p>
+            </div>
 
             {/* ÁREA DE CONVERSA COM MENSAGENS */}
             <div className="flex-1 overflow-y-auto space-y-6 pr-2 text-sm sm:text-base leading-relaxed text-slate-800 font-sans">

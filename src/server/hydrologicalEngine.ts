@@ -40,6 +40,54 @@ export interface CityStaticData {
 }
 
 export const TAQUARI_VALLEY_CITIES_DATA: Record<string, CityStaticData> = {
+  santatereza: {
+    name: 'Santa Tereza',
+    floodThreshold: 13.00,
+    alertThreshold: 11.50,
+    attentionThreshold: 10.00,
+    vulnerableNeighborhoods: ['Orla Fluvial', 'Passo de Santa Tereza', 'Zona Rural Baixa'],
+    civilDefensePhone: '199 ou (51) 99800-1100',
+    historicalPeaks: [
+      { label: 'Maio/2024', level: 23.50 },
+      { label: 'Setembro/2023', level: 21.10 }
+    ]
+  },
+  mucum: {
+    name: 'Muçum',
+    floodThreshold: 18.00,
+    alertThreshold: 16.00,
+    attentionThreshold: 14.00,
+    vulnerableNeighborhoods: ['Centro Urbano Baixo', 'Fátima', 'Fante', 'São Cristóvão'],
+    civilDefensePhone: '199 ou (51) 99900-4500',
+    historicalPeaks: [
+      { label: 'Maio/2024', level: 25.80 },
+      { label: 'Setembro/2023', level: 23.50 }
+    ]
+  },
+  encantado: {
+    name: 'Encantado',
+    floodThreshold: 16.00,
+    alertThreshold: 14.00,
+    attentionThreshold: 12.00,
+    vulnerableNeighborhoods: ['Navegantes', 'Santo Antão', 'Barra do Guaporé', 'Lenz'],
+    civilDefensePhone: '199 ou (51) 99800-8800',
+    historicalPeaks: [
+      { label: 'Maio/2024', level: 22.40 },
+      { label: 'Setembro/2023', level: 20.10 }
+    ]
+  },
+  rocasales: {
+    name: 'Roca Sales',
+    floodThreshold: 17.00,
+    alertThreshold: 14.50,
+    attentionThreshold: 13.00,
+    vulnerableNeighborhoods: ['Centro Baixo', 'Avenida General Daltro Filho', 'Bento Gonçalves'],
+    civilDefensePhone: '199 ou (51) 99700-2211',
+    historicalPeaks: [
+      { label: 'Maio/2024', level: 24.10 },
+      { label: 'Setembro/2023', level: 22.00 }
+    ]
+  },
   lajeado: {
     name: 'Lajeado',
     floodThreshold: 19.00,
@@ -53,6 +101,30 @@ export const TAQUARI_VALLEY_CITIES_DATA: Record<string, CityStaticData> = {
       { label: 'Novembro/2023', level: 24.73 },
       { label: 'Julho/2020', level: 22.34 },
       { label: 'Enchente de 1941', level: 29.92 }
+    ]
+  },
+  cruzeirodosul: {
+    name: 'Cruzeiro do Sul',
+    floodThreshold: 17.50,
+    alertThreshold: 14.00,
+    attentionThreshold: 12.50,
+    vulnerableNeighborhoods: ['Passo de Estrela', 'Glucostark', 'Bonsucesso'],
+    civilDefensePhone: '199 ou (51) 99650-3344',
+    historicalPeaks: [
+      { label: 'Maio/2024', level: 26.50 },
+      { label: 'Setembro/2023', level: 24.20 }
+    ]
+  },
+  bomretirodosul: {
+    name: 'Bom Retiro do Sul',
+    floodThreshold: 15.00,
+    alertThreshold: 13.00,
+    attentionThreshold: 11.50,
+    vulnerableNeighborhoods: ['Jardim do Canto', 'Avis', 'Barragem de Bom Retiro'],
+    civilDefensePhone: '199 ou (51) 99550-4455',
+    historicalPeaks: [
+      { label: 'Maio/2024', level: 21.30 },
+      { label: 'Setembro/2023', level: 19.10 }
     ]
   },
   estrela: {
@@ -78,30 +150,6 @@ export const TAQUARI_VALLEY_CITIES_DATA: Record<string, CityStaticData> = {
     historicalPeaks: [
       { label: 'Maio/2024', level: 15.80 },
       { label: 'Novembro/2023', level: 13.90 }
-    ]
-  },
-  mucum: {
-    name: 'Muçum',
-    floodThreshold: 18.00,
-    alertThreshold: 16.00,
-    attentionThreshold: 14.00,
-    vulnerableNeighborhoods: ['Centro', 'Fátima', 'Fante', 'São Cristóvão'],
-    civilDefensePhone: '199 ou (51) 99900-4500',
-    historicalPeaks: [
-      { label: 'Maio/2024', level: 25.80 },
-      { label: 'Setembro/2023', level: 23.50 }
-    ]
-  },
-  encantado: {
-    name: 'Encantado',
-    floodThreshold: 12.00,
-    alertThreshold: 10.50,
-    attentionThreshold: 9.00,
-    vulnerableNeighborhoods: ['Navegantes', 'Santo Antão', 'Barra do Guaporé'],
-    civilDefensePhone: '199 ou (51) 99800-8800',
-    historicalPeaks: [
-      { label: 'Maio/2024', level: 22.40 },
-      { label: 'Setembro/2023', level: 20.10 }
     ]
   },
   'arroio do meio': {
@@ -316,56 +364,252 @@ export function classifyIntent(question: string): IntentType {
 }
 
 // ==========================================
-// MOTOR DE PROJEÇÕES HIDROLÓGICAS
+// CADEIA FLUVIOMÉTRICA DO RIO TAQUARI
+// ==========================================
+export interface ChainStation {
+  key: string;
+  name: string;
+  order: number;
+  currentLevel: number;
+  floodThreshold: number;
+  warningThreshold: number;
+  trend: 'subindo' | 'descendo' | 'estavel';
+  rateOfChangeCm: number;
+  statusLevel: string;
+  propagationInfo: string;
+}
+
+export const TAQUARI_RIVER_CHAIN: ChainStation[] = [
+  {
+    key: 'santatereza',
+    name: 'Santa Tereza',
+    order: 0,
+    currentLevel: 10.21,
+    floodThreshold: 13.00,
+    warningThreshold: 11.50,
+    trend: 'descendo',
+    rateOfChangeCm: -2,
+    statusLevel: 'NORMAL',
+    propagationInfo: 'Cabeceira inicial de monitoramento da Bacia do Taquari'
+  },
+  {
+    key: 'mucum',
+    name: 'Muçum',
+    order: 1,
+    currentLevel: 11.32,
+    floodThreshold: 18.00,
+    warningThreshold: 15.00,
+    trend: 'descendo',
+    rateOfChangeCm: -1.5,
+    statusLevel: 'NORMAL',
+    propagationInfo: '~2 a 3h após oscilações de Santa Tereza'
+  },
+  {
+    key: 'encantado',
+    name: 'Encantado',
+    order: 2,
+    currentLevel: 11.89,
+    floodThreshold: 16.00,
+    warningThreshold: 14.00,
+    trend: 'estavel',
+    rateOfChangeCm: -1.2,
+    statusLevel: 'NORMAL',
+    propagationInfo: '~3 a 4h após passagem por Muçum'
+  },
+  {
+    key: 'rocasales',
+    name: 'Roca Sales',
+    order: 3,
+    currentLevel: 12.41,
+    floodThreshold: 17.00,
+    warningThreshold: 14.50,
+    trend: 'estavel',
+    rateOfChangeCm: -1.0,
+    statusLevel: 'NORMAL',
+    propagationInfo: '~2h após passagem por Encantado'
+  },
+  {
+    key: 'lajeado',
+    name: 'Lajeado',
+    order: 4,
+    currentLevel: 12.95,
+    floodThreshold: 19.00,
+    warningThreshold: 15.00,
+    trend: 'estavel',
+    rateOfChangeCm: 0,
+    statusLevel: 'NORMAL',
+    propagationInfo: '~5 a 6h de deslocamento a partir de Muçum'
+  },
+  {
+    key: 'cruzeirodosul',
+    name: 'Cruzeiro do Sul',
+    order: 5,
+    currentLevel: 12.17,
+    floodThreshold: 17.50,
+    warningThreshold: 14.00,
+    trend: 'estavel',
+    rateOfChangeCm: -0.8,
+    statusLevel: 'NORMAL',
+    propagationInfo: '~2h após passagem pelo porto de Lajeado'
+  },
+  {
+    key: 'bomretirodosul',
+    name: 'Bom Retiro do Sul',
+    order: 6,
+    currentLevel: 11.48,
+    floodThreshold: 15.00,
+    warningThreshold: 13.00,
+    trend: 'estavel',
+    rateOfChangeCm: -0.5,
+    statusLevel: 'NORMAL',
+    propagationInfo: '~3h após passagem por Cruzeiro do Sul'
+  }
+];
+
+export function analyzeHydrologicalScenario(cityName: string, context: ChatContext): string {
+  const normalizedKey = cityName.toLowerCase().replace(/[\s\-_]+/g, '');
+  
+  let targetIndex = TAQUARI_RIVER_CHAIN.findIndex(s => s.key === normalizedKey);
+  if (targetIndex === -1) {
+    if (normalizedKey.includes('santatereza')) targetIndex = 0;
+    else if (normalizedKey.includes('mucum')) targetIndex = 1;
+    else if (normalizedKey.includes('encantado')) targetIndex = 2;
+    else if (normalizedKey.includes('rocasales')) targetIndex = 3;
+    else if (normalizedKey.includes('cruzeiro')) targetIndex = 5;
+    else if (normalizedKey.includes('bomretiro')) targetIndex = 6;
+    else targetIndex = 4; // Lajeado por padrão
+  }
+
+  const targetStation = TAQUARI_RIVER_CHAIN[targetIndex];
+  const targetLevel = context.currentLevel || targetStation.currentLevel;
+  
+  let localRateCm = targetStation.rateOfChangeCm;
+  if (typeof context.rateOfChange === 'number') {
+    localRateCm = context.rateOfChange;
+  } else if (typeof context.rateOfChange === 'string') {
+    const match = context.rateOfChange.match(/([+-]?\d+(\.\d+)?)/);
+    if (match) {
+      localRateCm = parseFloat(match[1]);
+      if (context.rateOfChange.includes('-') && localRateCm > 0) localRateCm = -localRateCm;
+    } else if (context.rateOfChange.toLowerCase().includes('subindo')) {
+      localRateCm = 2;
+    } else if (context.rateOfChange.toLowerCase().includes('descendo') || context.rateOfChange.toLowerCase().includes('baixando')) {
+      localRateCm = -2;
+    } else {
+      localRateCm = 0;
+    }
+  }
+
+  const floodThresh = context.floodThreshold || targetStation.floodThreshold;
+  const safetyMargin = (floodThresh - targetLevel).toFixed(2);
+  const statusStr = context.statusLevel || targetStation.statusLevel;
+
+  const upstreamStations = TAQUARI_RIVER_CHAIN.filter(s => s.order < targetStation.order);
+
+  const risingUpstream = upstreamStations.filter(s => s.trend === 'subindo' || s.rateOfChangeCm >= 3);
+  const fallingUpstream = upstreamStations.filter(s => s.trend === 'descendo' || s.rateOfChangeCm < 0);
+  const isUpstreamFalling = upstreamStations.length > 0 && fallingUpstream.length === upstreamStations.length;
+  const isUpstreamRising = risingUpstream.length > 0;
+
+  let upstreamText = '';
+  if (upstreamStations.length > 0) {
+    upstreamText = upstreamStations
+      .map(s => `  • **${s.name}:** ${s.currentLevel.toFixed(2)}m (Tendência: ${s.trend.toUpperCase()} | ${s.rateOfChangeCm >= 0 ? '+' : ''}${s.rateOfChangeCm} cm/h)`)
+      .join('\n');
+  } else {
+    upstreamText = '  • *Esta é a estação de cabeceira inicial (extrema montante) no topo da Bacia do Taquari.*';
+  }
+
+  let interpretationText = '';
+  let trendDiagnosis = '';
+
+  if (isUpstreamRising) {
+    trendDiagnosis = 'Possibilidade de Alteração Futura (Propagação de Onda de Cheia)';
+    interpretationText = 
+      `• **Alerta em Montante:** Registra-se elevação significativa nas estações superiores (${risingUpstream.map(s => s.name).join(', ')}).\n` +
+      `• **Propagação do Fluxo:** O volume escoado das cabeceiras leva entre 8 a 12 horas para refletir completamente no trecho de ${targetStation.name}.\n` +
+      `• **Recomendação Preventiva:** Recomenda-se acompanhamento constante, pois existe **possibilidade de alteração futura** nos níveis locais devido à propagação da onda de cheia.`;
+  } else if (isUpstreamFalling) {
+    trendDiagnosis = 'Tendência Favorável de Estabilização';
+    interpretationText = 
+      `• **Comportamento das Cabeceiras:** As estações localizadas a montante (${upstreamStations.map(s => s.name).join(' → ')}) apresentam queda/desaceleração contínua nas últimas medições.\n` +
+      `• **Análise de Vazão:** A redução da vazão proveniente do Alto Taquari indica uma **tendência favorável de estabilização** em ${targetStation.name}.\n` +
+      `• **Cenário Esperado:** A ausência de novos repiques nas réguas superiores indica estabilização gradativa sem risco de elevação descontrolada nas próximas horas.`;
+  } else {
+    trendDiagnosis = 'Cenário de Estabilidade na Bacia';
+    interpretationText = 
+      `• **Comportamento de Montante:** As estações superiores (${upstreamStations.length > 0 ? upstreamStations.map(s => s.name).join(', ') : 'Cabeceiras'}) mantêm níveis estáveis no momento.\n` +
+      `• **Diagnóstico de Campo:** Aponta para um **cenário de estabilidade** no fluxo principal do Rio Taquari.\n` +
+      `• **Evolução:** Manutenção da margem de segurança atual, sem projeções de repique artificial.`;
+  }
+
+  const rateSign = localRateCm >= 0 ? '+' : '';
+  const localRateStr = `${rateSign}${localRateCm} cm/h`;
+
+  return `Análise de Cenário Hidrológico e Bacia para **${targetStation.name}**:\n\n` +
+    `• **Nível Atual no Rio Taquari:** ${targetLevel.toFixed(2)}m (${statusStr})\n` +
+    `• **Última Variação Local Registrada:** ${localRateStr}\n` +
+    `• **Cota de Inundação Inicial:** ${floodThresh.toFixed(2)}m (Margem de Segurança: ${safetyMargin}m)\n\n` +
+    `**1. Consulta às Estações de Montante (Cadeia do Rio Taquari):**\n` +
+    `${upstreamText}\n\n` +
+    `**2. Diagnóstico do Analista Hidrológico:**\n` +
+    `• **Classificação de Cenário:** **${trendDiagnosis}**\n` +
+    `${interpretationText}\n\n` +
+    `**3. Ressalva sobre Projeções e Limitações:**\n` +
+    `*A variação local de ${localRateStr} e o cenário de montante representam o diagnóstico instantâneo e NUNCA devem ser interpretados como uma previsão absoluta de estabilidade para 24 horas. O nível real continuará dependendo do comportamento dinâmico de toda a bacia e de eventuais chuvas nas cabeceiras. Acompanhe os boletins oficiais da Defesa Civil.*`;
+}
+
+// ==========================================
+// CÁLCULO DE PROJEÇÕES E EXTRAPOLAÇÃO DE CENÁRIOS
 // ==========================================
 export function calculateProjections(context: ChatContext) {
   const currentLevel = context.currentLevel;
-  const rainVolume = Number(context.weatherForecast?.expectedVolumeMm) || 0;
 
-  // Taxa base estimada de variação por hora (em metros)
-  let hourlyRate = 0;
-  const statusUpper = (context.statusLevel || '').toUpperCase();
+  let rateCmPerHour = 0;
 
   if (typeof context.rateOfChange === 'number') {
-    hourlyRate = context.rateOfChange / 100; // cm/h para m/h
+    rateCmPerHour = context.rateOfChange;
   } else if (typeof context.rateOfChange === 'string') {
-    if (context.rateOfChange.toLowerCase().includes('subindo')) hourlyRate = 0.08;
-    else if (context.rateOfChange.toLowerCase().includes('baixando')) hourlyRate = -0.05;
-  } else {
-    if (statusUpper.includes('ALERTA') || statusUpper.includes('INUNDAÇÃO')) hourlyRate = 0.12;
-    else if (statusUpper.includes('ATENÇÃO')) hourlyRate = 0.05;
+    const match = context.rateOfChange.match(/([+-]?\d+(\.\d+)?)/);
+    if (match) {
+      rateCmPerHour = parseFloat(match[1]);
+      if (context.rateOfChange.includes('-') && rateCmPerHour > 0) {
+        rateCmPerHour = -rateCmPerHour;
+      }
+    } else if (context.rateOfChange.toLowerCase().includes('subindo')) {
+      rateCmPerHour = 2;
+    } else if (context.rateOfChange.toLowerCase().includes('baixando') || context.rateOfChange.toLowerCase().includes('descendo')) {
+      rateCmPerHour = -2;
+    }
   }
 
-  // Contribuição estimada de precipitação prevista nas cabeceiras (deslocamento ~8-12h)
-  let rainFactor = 0;
-  if (rainVolume > 100) rainFactor = 0.08; // cm adicionais / h
-  else if (rainVolume > 50) rainFactor = 0.04;
-  else if (rainVolume > 20) rainFactor = 0.02;
+  const hourlyRateMeters = rateCmPerHour / 100;
 
-  const totalHourlyRate = hourlyRate + rainFactor;
+  const proj3h = Number((currentLevel + hourlyRateMeters * 3).toFixed(2));
+  const proj6h = Number((currentLevel + hourlyRateMeters * 6).toFixed(2));
+  const proj12h = Number((currentLevel + hourlyRateMeters * 12).toFixed(2));
+  const proj24h = Number((currentLevel + hourlyRateMeters * 24).toFixed(2));
 
-  const proj3h = Number((currentLevel + totalHourlyRate * 3).toFixed(2));
-  const proj6h = Number((currentLevel + totalHourlyRate * 6).toFixed(2));
-  const proj12h = Number((currentLevel + totalHourlyRate * 12).toFixed(2));
-  const proj24h = Number((currentLevel + totalHourlyRate * 24).toFixed(2));
-
-  let trendLabel = 'Estável';
-  if (totalHourlyRate > 0.03) trendLabel = 'Elevação Gradual';
-  if (totalHourlyRate > 0.10) trendLabel = 'Elevação Acentuada';
-  if (totalHourlyRate < -0.03) trendLabel = 'Recuo Gradual';
+  let trendLabel = 'Estável (0 cm/h)';
+  if (rateCmPerHour > 0) {
+    trendLabel = `Elevação de +${rateCmPerHour} cm/h`;
+  } else if (rateCmPerHour < 0) {
+    trendLabel = `Recuo de ${rateCmPerHour} cm/h`;
+  }
 
   return {
+    rateCmPerHour,
+    hourlyRateMeters,
     trendLabel,
     proj3h,
     proj6h,
     proj12h,
-    proj24h,
-    hourlyRateCm: Math.round(totalHourlyRate * 100)
+    proj24h
   };
 }
 
 // ==========================================
-// MOTOR HIDROLÓGICO INTELIGENTE PRINCIPAL
+// MÓDULO DE CONSULTA HIDROLÓGICA E REGRAS DE RISCO
 // ==========================================
 export function processHydrologicalQuery(question: string, context: ChatContext): string {
   const cityName = context.cityName || 'Lajeado';
@@ -374,7 +618,6 @@ export function processHydrologicalQuery(question: string, context: ChatContext)
 
   const intent = classifyIntent(question);
 
-  // Criar Hash de Parâmetros para validação na Base de Conhecimento
   const roundedLevel = Math.round(context.currentLevel * 10) / 10;
   const weatherMm = context.weatherForecast?.expectedVolumeMm || 0;
   const parameterHash = `${roundedLevel}_${weatherMm}_${intent}`;
@@ -397,11 +640,14 @@ export function processHydrologicalQuery(question: string, context: ChatContext)
 
   switch (intent) {
     case 'CONSULTAR_STATUS': {
+      const scenarioAnalysis = analyzeHydrologicalScenario(cityName, context);
       responseText = `Análise de Status Hidrológico em **${cityName}**:\n\n` +
         `• **Nível Atual do Rio Taquari:** ${currentLevelStr}m (${statusStr})\n` +
         `• **Cota Inicial de Inundação:** ${floodThreshStr}m\n` +
         `• **Margem de Segurança:** Os dados indicam uma margem atual de **${marginStr} metros** até a primeira cota de alerta urbano.\n` +
         `• **Áreas sob Monitoramento Preventivo:** ${bairrosStr}.\n\n` +
+        `---\n\n` +
+        `${scenarioAnalysis}\n\n` +
         `*Para decisões de emergência, consulte sempre a Defesa Civil Municipal (${cityData.civilDefensePhone}).*`;
       break;
     }
@@ -432,7 +678,6 @@ export function processHydrologicalQuery(question: string, context: ChatContext)
     }
 
     case 'SIMULAR_COTA': {
-      // Extrair o número da cota mencionada (ex: 24m)
       const match = question.match(/(\d{2}(\.\d)?)/);
       const targetLevel = match ? parseFloat(match[1]) : 24.0;
       const targetLevelStr = targetLevel.toFixed(2);
@@ -447,46 +692,23 @@ export function processHydrologicalQuery(question: string, context: ChatContext)
     }
 
     case 'CONSULTAR_PREVISAO_TEMPO': {
-      const weather = context.weatherForecast;
-      if (weather) {
-        const rainNextDays = weather.rainNextDays || 'Sem previsão de precipitação severa';
-        const volume = weather.expectedVolumeMm ? `${weather.expectedVolumeMm} mm` : 'volumes moderados';
-        const prob = weather.rainProbabilityPct ? `${weather.rainProbabilityPct}%` : 'Não informada';
-        const accum = weather.recentAccumulatedMm ? `${weather.recentAccumulatedMm} mm` : 'Sem registro acumulado';
-
-        responseText = `Análise Meteorológica e Precipitação para **${cityName}**:\n\n` +
-          `• **Previsão:** ${rainNextDays}\n` +
-          `• **Volume Estimado:** ${volume} (Probabilidade de ${prob})\n` +
-          `• **Chuva Acumulada Recente (24h):** ${accum}\n` +
-          `• **Reflexo Hidrológico:** O nível atual é de ${currentLevelStr}m (${statusStr}) com margem de ${marginStr}m até a cota inicial de alerta.\n\n` +
-          `*Acompanhe as atualizações meteorológicas e comunicados da Defesa Civil.*`;
-      } else {
-        responseText = `Previsão Meteorológica em **${cityName}**:\n\n` +
-          `• Os dados meteorológicos detalhados em tempo real não estão disponíveis para este instante.\n` +
-          `• **Nível Atual do Rio:** ${currentLevelStr}m (Cenário ${statusStr}).\n\n` +
-          `*Recomendamos consultar o INMET / Defesa Civil para boletins de chuva em tempo real.*`;
-      }
+      const scenarioAnalysis = analyzeHydrologicalScenario(cityName, context);
+      responseText = `Previsão Meteorológica e Clima em **${cityName}**:\n\n` +
+        `• **Aviso de Recurso:** A integração com a API de previsão meteorológica externa foi descontinuada. O assistente trabalha atualmente com os dados hidrológicos e históricos disponíveis no sistema.\n\n` +
+        `${scenarioAnalysis}`;
       break;
     }
 
     case 'SIMULAR_PRECIPITACAO': {
-      responseText = `Análise de Impacto de Precipitação Intensa nas Cabeceiras:\n\n` +
-        `• **Dinâmica da Bacia do Taquari-Antas:** Precipitações de alto volume (ex: 100mm ou superior) nas cabeceiras (Santa Tereza, Muçum e Encantado) costumam refletir no nível do rio em **${cityName}** em um intervalo de 8 a 12 horas.\n` +
-        `• **Nível Atual:** ${currentLevelStr}m (Margem de segurança de ${marginStr}m).\n` +
-        `• **Cenário Estimado:** O impacto real dependerá da saturação prévia do solo e do ritmo de escoamento. Os dados do sistema recomendam monitoramento contínuo das estações de montante.\n\n` +
-        `*Em situações de chuva torrencial, consulte boletins de hora em hora.*`;
+      const scenarioAnalysis = analyzeHydrologicalScenario(cityName, context);
+      responseText = `Análise de Impacto de Precipitação nas Cabeceiras da Bacia:\n\n` +
+        `• **Propagação de Fluxo:** Chuvas concentradas no Alto Taquari levam de 8 a 12 horas para percorrer o trecho de Santa Tereza e Muçum até atingir **${cityName}**.\n\n` +
+        `${scenarioAnalysis}`;
       break;
     }
 
     case 'CONSULTAR_PROJECAO': {
-      const proj = calculateProjections(context);
-      responseText = `Projeções Hidrológicas do Motor de Risco para **${cityName}**:\n\n` +
-        `• **Tendência do Cenário:** ${proj.trendLabel} (${proj.hourlyRateCm > 0 ? '+' : ''}${proj.hourlyRateCm} cm/h)\n` +
-        `• **Projeção +3 Horas:** ${proj.proj3h.toFixed(2)}m\n` +
-        `• **Projeção +6 Horas:** ${proj.proj6h.toFixed(2)}m\n` +
-        `• **Projeção +12 Horas:** ${proj.proj12h.toFixed(2)}m\n` +
-        `• **Projeção +24 Horas:** ${proj.proj24h.toFixed(2)}m\n\n` +
-        `*Cálculo matemático executado pelo Motor Hidrológico com base na telemetria de nível e modelo de propagação do fluxo.*`;
+      responseText = analyzeHydrologicalScenario(cityName, context);
       break;
     }
 
@@ -533,7 +755,7 @@ export function processHydrologicalQuery(question: string, context: ChatContext)
         `• **Nível Atual:** ${currentLevelStr}m (${statusStr})\n` +
         `• **Cota de Inundação Inicial:** ${floodThreshStr}m (Margem de ${marginStr}m)\n` +
         `• **Áreas Monitoradas:** ${bairrosStr}.\n\n` +
-        `*Toda análise é processada em tempo real pelo Motor Hidrológico Inteligente com base nas estações de monitoramento do Vale do Taquari. Em dúvidas emergenciais, contate a Defesa Civil (${cityData.civilDefensePhone}).*`;
+        `*Análise de cenário baseada nos dados oficiais transmitidos pelas estações de monitoramento do Vale do Taquari. Em dúvidas emergenciais, contate a Defesa Civil (${cityData.civilDefensePhone}).*`;
       break;
     }
   }
