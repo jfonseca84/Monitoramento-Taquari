@@ -35,6 +35,7 @@ import {
   Compass,
   FileText,
   Plus,
+  Target,
   ArrowUp, ArrowRight,
   ChevronRight,
   Droplets,
@@ -561,7 +562,7 @@ function getWindCardinal(deg: number): string {
 export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ theme = 'dark' }) => {
   // Navigation & Filter States
   const [selectedStationId, setSelectedStationId] = useState<string>('lajeado');
-  const [activeMainTab, setActiveMainTab] = useState<'hidrologico' | 'fluviologico' | 'meteorologico'>('hidrologico');
+  const [activeMainTab, setActiveMainTab] = useState<'hidrologico' | 'fluviologico' | 'meteorologico'>('fluviologico');
   const [timeframe, setTimeframe] = useState<'6h' | '24h' | '7d' | '30d' | 'custom'>('24h');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -984,47 +985,47 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
       {/* ============================================================ */}
       {/* MAIN LAYOUT: LEFT SIDEBAR + RIGHT DASHBOARD CANVAS */}
       {/* ============================================================ */}
-      <div className="flex-1 flex flex-col lg:flex-row w-full max-w-[1700px] mx-auto p-2 sm:p-4 lg:p-6 gap-4">
+      <div className="flex-1 flex flex-col lg:flex-row w-full max-w-[1800px] mx-auto p-2 sm:p-3 lg:p-4 gap-3.5 items-start">
         
         {/* ========================================== */}
         {/* MENU LATERAL ESQUERDO (FIXED LEFT SIDEBAR) */}
         {/* ========================================== */}
-        <aside className="w-full lg:w-80 shrink-0 bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-4 flex flex-col gap-4 shadow-xl">
+        <aside className="w-full lg:w-[225px] xl:w-[235px] shrink-0 bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-3 flex flex-col gap-3 shadow-xl lg:sticky lg:top-4 lg:self-start z-20">
           
           {/* LOGO / BRANDING HEADER */}
-          <div className="flex items-center gap-3 px-1 pt-1 pb-2 border-b border-slate-300 dark:border-slate-800/80">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-md shadow-cyan-500/20">
-              <Waves className="w-5 h-5 text-slate-900 dark:text-white" />
+          <div className="flex items-center gap-2.5 px-0.5 pt-0.5 pb-2 border-b border-slate-300 dark:border-slate-800/80">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-md shadow-cyan-500/20 shrink-0">
+              <Waves className="w-4 h-4 text-slate-900 dark:text-white" />
             </div>
-            <div>
-              <h1 className="text-sm font-black tracking-wider text-slate-900 dark:text-white uppercase flex items-center gap-1.5">
+            <div className="min-w-0">
+              <h1 className="text-xs font-black tracking-wider text-slate-900 dark:text-white uppercase truncate flex items-center gap-1">
                 MONITORAMENTO TAQUARI
               </h1>
-              <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
-                Centro Inteligente de Análise Hidrológica
+              <p className="text-[9px] font-semibold text-slate-500 dark:text-slate-400 truncate">
+                Centro de Análise Hidrológica
               </p>
             </div>
           </div>
 
           {/* SEARCH BOX */}
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Buscar cidade ou estação..."
+              placeholder="Pesquisar cidade ou estação..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-[#050A18] border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-700 dark:text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+              className="w-full pl-8 pr-2.5 py-1.5 bg-slate-50 dark:bg-[#050A18] border border-slate-300 dark:border-slate-800 rounded-xl text-[11px] text-slate-700 dark:text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
             />
           </div>
 
           {/* CITIES & STATIONS LIST */}
-          <div className="flex-1 overflow-y-auto space-y-4 max-h-[600px] lg:max-h-[calc(100vh-280px)] pr-1 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto space-y-3 max-h-[600px] lg:max-h-[calc(100vh-250px)] pr-0.5 custom-scrollbar">
             
             {/* GROUP 1: CIDADES MONITORADAS */}
             <div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 px-2 mb-2 block">
-                Cidades Monitoradas ({filteredCities.length})
+              <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1 mb-1.5 block">
+                CIDADES MONITORADAS
               </span>
               <div className="space-y-1">
                 {filteredCities.map((st) => {
@@ -1034,36 +1035,37 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                   const isAlert = st.status_level === 'alerta';
                   const isFlood = st.status_level === 'inundacao';
 
+                  const statusLabel = isNormal ? 'Normal' : isWarning ? 'Atenção' : isAlert ? 'Alerta' : 'Inundação';
+                  const statusColor = isNormal ? 'text-emerald-500' : isWarning ? 'text-amber-400' : isAlert ? 'text-orange-500' : 'text-red-500';
+                  const dotBg = isNormal ? 'bg-emerald-500' : isWarning ? 'bg-amber-400' : isAlert ? 'bg-orange-500' : 'bg-red-500 animate-pulse';
+
                   return (
                     <button
                       key={st.id}
                       onClick={() => setSelectedStationId(st.id)}
-                      className={`w-full px-3 py-2.5 rounded-xl text-left transition-all flex items-center justify-between group cursor-pointer ${
+                      className={`w-full px-2.5 py-1.5 rounded-xl text-left transition-all flex items-center justify-between group cursor-pointer ${
                         isSelected 
-                          ? 'bg-cyan-600 dark:bg-[#16223B] border border-cyan-600 dark:border-cyan-500/60 shadow-md shadow-cyan-950/40 text-white' 
-                          : 'bg-slate-100 dark:bg-[#081023]/60 hover:bg-slate-200 dark:bg-[#0E1B36] border border-slate-300 dark:border-slate-800/40 text-slate-600 dark:text-slate-300'
+                          ? 'bg-cyan-600 dark:bg-[#16223B] border border-cyan-600 dark:border-cyan-500/60 shadow-md text-white' 
+                          : 'bg-slate-100/60 dark:bg-[#081023]/60 hover:bg-slate-200 dark:hover:bg-[#0E1B36] border border-slate-300/60 dark:border-slate-800/40 text-slate-600 dark:text-slate-300'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <Waves className={`w-4 h-4 shrink-0 ${isSelected ? 'text-cyan-400' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300'}`} />
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Waves className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-cyan-400' : 'text-slate-400 dark:text-slate-500'}`} />
                         <div className="truncate">
-                          <span className={`text-xs font-bold block truncate ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-200'}`}>
+                          <span className={`text-[11px] font-bold block truncate ${isSelected ? 'text-white' : 'text-slate-800 dark:text-slate-200'}`}>
                             {st.name}
                           </span>
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate font-medium">
+                          <span className="text-[9px] text-slate-500 dark:text-slate-400 block truncate font-medium">
                             {st.river}
                           </span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={`w-2.5 h-2.5 rounded-full ${
-                          isNormal ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]' :
-                          isWarning ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]' :
-                          isAlert ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)]' :
-                          'bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.9)]'
-                        }`} />
-                        <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isSelected ? 'text-cyan-400 translate-x-0.5' : 'text-slate-600 opacity-0 group-hover:opacity-100'}`} />
+                      <div className="flex items-center gap-1.5 shrink-0 ml-1">
+                        <span className={`w-2 h-2 rounded-full ${dotBg}`} />
+                        <span className={`text-[10px] font-medium ${isSelected ? 'text-cyan-200' : statusColor}`}>
+                          {statusLabel}
+                        </span>
                       </div>
                     </button>
                   );
@@ -1073,41 +1075,46 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
 
             {/* GROUP 2: ESTAÇÕES DE AFLUENTES */}
             <div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 px-2 mb-2 block">
-                Estações de Afluentes ({filteredAfluentes.length})
+              <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1 mb-1.5 block">
+                ESTAÇÕES AFLUENTES
               </span>
               <div className="space-y-1">
                 {filteredAfluentes.map((st) => {
                   const isSelected = st.id === selectedStationId;
                   const isNormal = st.status_level === 'normal';
+                  const isWarning = st.status_level === 'atencao';
+
+                  const statusLabel = isNormal ? 'Normal' : 'Atenção';
+                  const statusColor = isNormal ? 'text-emerald-500' : 'text-amber-400';
+                  const dotBg = isNormal ? 'bg-emerald-500' : 'bg-amber-400 animate-pulse';
 
                   return (
                     <button
                       key={st.id}
                       onClick={() => setSelectedStationId(st.id)}
-                      className={`w-full px-3 py-2.5 rounded-xl text-left transition-all flex items-center justify-between group cursor-pointer ${
+                      className={`w-full px-2.5 py-1.5 rounded-xl text-left transition-all flex items-center justify-between group cursor-pointer ${
                         isSelected 
-                          ? 'bg-cyan-600 dark:bg-[#16223B] border border-cyan-600 dark:border-cyan-500/60 shadow-md shadow-cyan-950/40 text-white' 
-                          : 'bg-slate-100 dark:bg-[#081023]/60 hover:bg-slate-200 dark:bg-[#0E1B36] border border-slate-300 dark:border-slate-800/40 text-slate-600 dark:text-slate-300'
+                          ? 'bg-cyan-600 dark:bg-[#16223B] border border-cyan-600 dark:border-cyan-500/60 shadow-md text-white' 
+                          : 'bg-slate-100/60 dark:bg-[#081023]/60 hover:bg-slate-200 dark:hover:bg-[#0E1B36] border border-slate-300/60 dark:border-slate-800/40 text-slate-600 dark:text-slate-300'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <Activity className={`w-4 h-4 shrink-0 ${isSelected ? 'text-cyan-400' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300'}`} />
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Activity className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-cyan-400' : 'text-slate-400 dark:text-slate-500'}`} />
                         <div className="truncate">
-                          <span className={`text-xs font-bold block truncate ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-200'}`}>
+                          <span className={`text-[11px] font-bold block truncate ${isSelected ? 'text-white' : 'text-slate-800 dark:text-slate-200'}`}>
                             {st.name}
                           </span>
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate font-medium">
+                          <span className="text-[9px] text-slate-500 dark:text-slate-400 block truncate font-medium">
                             {st.river}
                           </span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={`w-2.5 h-2.5 rounded-full ${
-                          isNormal ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-amber-400 animate-pulse'
-                        }`} />
-                        <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isSelected ? 'text-cyan-400 translate-x-0.5' : 'text-slate-600 opacity-0 group-hover:opacity-100'}`} />
+                      <div className="flex items-center gap-1.5 shrink-0 ml-1">
+                        <span className={`w-2 h-2 rounded-full ${dotBg}`} />
+                        <span className={`text-[10px] font-medium ${isSelected ? 'text-cyan-200' : statusColor}`}>
+                          {statusLabel}
+                        </span>
                       </div>
                     </button>
                   );
@@ -1121,14 +1128,14 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
           <div className="pt-2 border-t border-slate-300 dark:border-slate-800/80">
             <button
               onClick={() => setSelectedStationId('lajeado')}
-              className="w-full px-3 py-2.5 bg-slate-50 dark:bg-[#050A18] hover:bg-slate-100 dark:bg-[#0F1B35] border border-slate-300 dark:border-slate-800 rounded-xl text-left flex items-center gap-3 transition-colors cursor-pointer group"
+              className="w-full px-2.5 py-2 bg-slate-50 dark:bg-[#050A18] hover:bg-slate-100 dark:hover:bg-[#0F1B35] border border-slate-300 dark:border-slate-800 rounded-xl text-left flex items-center gap-2.5 transition-colors cursor-pointer group"
             >
-              <div className="w-7 h-7 rounded-lg bg-cyan-950/80 border border-cyan-800/60 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition-transform">
-                <MapIcon className="w-4 h-4" />
+              <div className="w-6 h-6 rounded-lg bg-cyan-950/80 border border-cyan-800/60 flex items-center justify-center text-cyan-400 shrink-0">
+                <MapIcon className="w-3.5 h-3.5" />
               </div>
-              <div>
-                <span className="text-xs font-bold text-slate-900 dark:text-white block">Visão da Bacia</span>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 block">Mapa geral da bacia do Taquari</span>
+              <div className="min-w-0">
+                <span className="text-[11px] font-bold text-slate-900 dark:text-white block truncate">Visão da Bacia</span>
+                <span className="text-[9px] text-slate-500 dark:text-slate-400 block truncate">Mapa geral do Vale do Taquari</span>
               </div>
             </button>
           </div>
@@ -1143,18 +1150,18 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
           {/* ---------------------------------------------------- */}
           {/* CABEÇALHO SUPERIOR (HEADER INSIDE DASHBOARD) */}
           {/* ---------------------------------------------------- */}
-          <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-1 px-1">
+          <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-0.5 px-0.5">
             <div>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-wider uppercase">
+              <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-wider uppercase">
                 CENTRO DE ANÁLISES
               </h2>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                 Dados integrados de hidrologia, fluviologia e meteorologia
               </p>
             </div>
 
             <div className="flex items-center gap-4 text-xs font-medium flex-wrap">
-              <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+              <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
                 <span>Última atualização:</span>
                 <span className="text-slate-700 dark:text-slate-200 font-medium">30/05/2025 09:45</span>
               </div>
@@ -1164,20 +1171,20 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                 <span>Ao vivo</span>
               </div>
 
-              <div className="flex items-center gap-2.5 ml-2">
+              <div className="flex items-center gap-2 ml-1">
                 <button
                   onClick={() => setIsAiModalOpen(true)}
-                  className="w-8 h-8 rounded-full border border-slate-700/80 hover:border-slate-500 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-white flex items-center justify-center transition-colors cursor-pointer"
+                  className="w-7 h-7 rounded-full border border-slate-700/80 hover:border-slate-500 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-white flex items-center justify-center transition-colors cursor-pointer"
                   title="Ajuda"
                 >
-                  <HelpCircle className="w-4 h-4" />
+                  <HelpCircle className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => setIsAiModalOpen(true)}
-                  className="w-8 h-8 rounded-full border border-slate-700/80 hover:border-slate-500 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-white flex items-center justify-center transition-colors cursor-pointer relative"
+                  className="w-7 h-7 rounded-full border border-slate-700/80 hover:border-slate-500 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-white flex items-center justify-center transition-colors cursor-pointer relative"
                   title="Notificações"
                 >
-                  <Bell className="w-4 h-4" />
+                  <Bell className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
@@ -1186,95 +1193,95 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
           {/* ---------------------------------------------------- */}
           {/* CARDS SUPERIORES (TOP METRICS BANNER FOR SELECTED CITY) */}
           {/* ---------------------------------------------------- */}
-          <section className="bg-white dark:bg-[#091122] border border-slate-300 dark:border-[#162342] rounded-2xl p-4 sm:p-5 shadow-2xl">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4 divide-y md:divide-y-0 md:divide-x divide-slate-800/80 items-center">
+          <section className="bg-white dark:bg-[#091122] border border-slate-300 dark:border-[#162342] rounded-2xl py-2.5 px-3.5 sm:px-4 shadow-2xl">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3 lg:gap-3.5 divide-y md:divide-y-0 md:divide-x divide-slate-800/80 items-center">
               
               {/* COL 1: CITY & BADGE */}
-              <div className="space-y-2 pr-2">
-                <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase">
+              <div className="space-y-1 pr-1">
+                <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase leading-none">
                   {currentStation.name} - RS
                 </h3>
-                <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
-                  <Waves className="w-3.5 h-3.5 text-cyan-400" />
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                  <Waves className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
                   <span>{currentStation.river}</span>
                 </div>
-                <div>
-                  <span className="inline-block px-2.5 py-1 rounded bg-emerald-50 dark:bg-[#09221B] border border-emerald-800/80 text-emerald-400 text-[10px] font-black tracking-wider uppercase">
+                <div className="pt-0.5">
+                  <span className="inline-block px-2 py-0.5 rounded bg-emerald-500/10 dark:bg-[#09221B] border border-emerald-500/30 text-emerald-400 text-[9px] font-black tracking-wider uppercase">
                     NÍVEL {currentStation.status_level === 'normal' ? 'NORMAL' : currentStation.status_level.toUpperCase()}
                   </span>
                 </div>
               </div>
 
               {/* COL 2: NÍVEL ATUAL */}
-              <div className="pt-3 md:pt-0 md:pl-4 pr-2 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full border border-cyan-500/40 bg-cyan-950/40 flex items-center justify-center text-cyan-400 shrink-0">
-                  <Waves className="w-5 h-5" />
+              <div className="pt-2 md:pt-0 md:pl-3 pr-1 flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full border border-cyan-500/40 bg-cyan-950/40 flex items-center justify-center text-cyan-400 shrink-0">
+                  <Waves className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block">Nível atual</span>
-                  <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block leading-tight">Nível atual</span>
+                  <span className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
                     {currentStation.current_level.toFixed(2).replace('.', ',')} m
                   </span>
                 </div>
               </div>
 
               {/* COL 3: TENDÊNCIA (1H) */}
-              <div className="pt-3 md:pt-0 md:pl-4 pr-2 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full border border-slate-700 bg-slate-900/60 flex items-center justify-center text-cyan-400 shrink-0">
-                  <Compass className="w-5 h-5 text-cyan-400" />
+              <div className="pt-2 md:pt-0 md:pl-3 pr-1 flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full border border-slate-700 bg-slate-900/60 flex items-center justify-center text-cyan-400 shrink-0">
+                  <Compass className="w-4 h-4 text-cyan-400" />
                 </div>
                 <div>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block">Tendência (1h)</span>
-                  <span className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block leading-tight">Tendência (1h)</span>
+                  <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-1 leading-tight">
                     {currentStation.trend === 'subindo' ? 'Subindo ↑' : currentStation.trend === 'descendo' ? 'Descendo ↓' : 'Estável →'}
                   </span>
                 </div>
               </div>
 
               {/* COL 4: VARIAÇÃO (24H) */}
-              <div className="pt-3 md:pt-0 md:pl-4 pr-2 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full border border-slate-700 bg-slate-900/60 flex items-center justify-center text-cyan-400 shrink-0">
-                  <RefreshCw className="w-5 h-5 text-cyan-400" />
+              <div className="pt-2 md:pt-0 md:pl-3 pr-1 flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full border border-slate-700 bg-slate-900/60 flex items-center justify-center text-cyan-400 shrink-0">
+                  <RefreshCw className="w-4 h-4 text-cyan-400" />
                 </div>
                 <div>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block">Variação (24h)</span>
-                  <span className="text-base font-bold text-cyan-400">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block leading-tight">Variação (24h)</span>
+                  <span className="text-sm sm:text-base font-bold text-cyan-400 leading-tight block">
                     {currentStation.rate_of_change >= 0 ? '+' : ''}{(currentStation.rate_of_change * 100).toFixed(0)} cm
                   </span>
                 </div>
               </div>
 
               {/* COL 5: ÚLTIMA LEITURA */}
-              <div className="pt-3 md:pt-0 md:pl-4 pr-2 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full border border-slate-700 bg-slate-900/60 flex items-center justify-center text-cyan-400 shrink-0">
-                  <Clock className="w-5 h-5 text-cyan-400" />
+              <div className="pt-2 md:pt-0 md:pl-3 pr-1 flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full border border-slate-700 bg-slate-900/60 flex items-center justify-center text-cyan-400 shrink-0">
+                  <Clock className="w-4 h-4 text-cyan-400" />
                 </div>
                 <div>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block">Última leitura</span>
-                  <span className="text-sm font-bold text-slate-900 dark:text-white">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block leading-tight">Última leitura</span>
+                  <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight block">
                     09:40 - 30/05
                   </span>
                 </div>
               </div>
 
               {/* COL 6: COTA DE ALERTA */}
-              <div className="pt-3 md:pt-0 md:pl-4 space-y-1">
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 block mb-1">Cota de Alerta</span>
-                <div className="space-y-0.5 text-[11px] font-medium">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+              <div className="pt-2 md:pt-0 md:pl-3 space-y-0.5">
+                <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200 block leading-tight mb-0.5">Cota de Alerta</span>
+                <div className="space-y-0.5 text-[10px] sm:text-[10.5px] font-medium leading-tight">
+                  <div className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block shrink-0" />
                     <span className="text-amber-400 font-bold">Atenção:</span>
-                    <span className="text-slate-700 dark:text-slate-200 font-mono ml-auto">{currentStation.attention_threshold.toFixed(2).replace('.', ',')} m</span>
+                    <span className="text-slate-700 dark:text-slate-300 font-mono ml-auto">{currentStation.attention_threshold.toFixed(2).replace('.', ',')} m</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-orange-500 inline-block" />
+                  <div className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 inline-block shrink-0" />
                     <span className="text-orange-400 font-bold">Alerta:</span>
-                    <span className="text-slate-700 dark:text-slate-200 font-mono ml-auto">{currentStation.warning_threshold.toFixed(2).replace('.', ',')} m</span>
+                    <span className="text-slate-700 dark:text-slate-300 font-mono ml-auto">{currentStation.warning_threshold.toFixed(2).replace('.', ',')} m</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
+                  <div className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block shrink-0" />
                     <span className="text-red-400 font-bold">Emergência:</span>
-                    <span className="text-slate-700 dark:text-slate-200 font-mono ml-auto">{currentStation.flood_threshold.toFixed(2).replace('.', ',')} m</span>
+                    <span className="text-slate-700 dark:text-slate-300 font-mono ml-auto">{currentStation.flood_threshold.toFixed(2).replace('.', ',')} m</span>
                   </div>
                 </div>
               </div>
@@ -1961,14 +1968,14 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                 
                 {/* PAINEL ESQUERDO */}
-                <div className="lg:col-span-7 bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-3 sm:p-4 shadow-xl flex flex-col">
-                  <h4 className="text-sm font-black text-slate-900 dark:text-white mb-2">Comportamento do Rio <span className="text-[11px] text-slate-500 font-normal">(últimas 24h)</span></h4>
+                <div className="lg:col-span-7 bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-3.5 sm:p-4 shadow-xl flex flex-col justify-between">
+                  <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white mb-2">Comportamento do Rio <span className="text-xs text-slate-500 font-normal">(últimas 24h)</span></h4>
                   
-                  <div className="flex flex-col sm:flex-row gap-2 lg:gap-3 mb-2 items-center">
+                  <div className="flex flex-col sm:flex-row gap-3 items-center mb-2">
                     {/* Gauge IDR */}
-                    <div className="flex flex-col mb-2 sm:mb-0 shrink-0">
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mb-1 ml-1 whitespace-nowrap">Índice de Dinâmica do Rio (IDR)</span>
-                      <div className="w-24 relative flex flex-col items-center">
+                    <div className="flex flex-col shrink-0 items-center">
+                      <span className="text-[10.5px] text-slate-500 dark:text-slate-400 mb-1 font-medium whitespace-nowrap">Índice de Dinâmica do Rio (IDR)</span>
+                      <div className="w-32 sm:w-36 relative flex flex-col items-center">
                         <svg viewBox="0 0 100 55" className="w-full h-auto overflow-visible">
                           <path d="M 10 50 A 40 40 0 0 1 19.36 24.29" fill="none" stroke="#22c55e" strokeWidth="8" strokeLinecap="round" />
                           <path d="M 24.29 19.36 A 40 40 0 0 1 46.52 10.16" fill="none" stroke="#eab308" strokeWidth="8" strokeLinecap="round" />
@@ -1977,150 +1984,158 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                           
                           {/* Needle pointing to 42 */}
                           <g transform="translate(50, 50) rotate(-15)">
-                            <line x1="0" y1="0" x2="0" y2="-35" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" />
-                            <circle cx="0" cy="0" r="3" fill="#cbd5e1" />
+                            <line x1="0" y1="0" x2="0" y2="-35" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
+                            <circle cx="0" cy="0" r="3.5" fill="#cbd5e1" />
                           </g>
                         </svg>
                         <div className="text-center absolute bottom-0 left-0 right-0">
-                          <div className="text-xl font-black text-slate-900 dark:text-white leading-none">42</div>
+                          <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white leading-none">42</div>
                           <div className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mt-0.5">Estável</div>
                         </div>
                       </div>
                     </div>
                     
                     {/* Indicators */}
-                    <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-1.5 lg:gap-2 items-center w-full">
-                      <div className="bg-slate-50 dark:bg-[#050A18]/50 rounded-xl px-2 py-2 border border-slate-200 dark:border-slate-800/60 flex flex-col justify-between h-[68px]">
-                        <span className="text-[9px] text-slate-500 dark:text-slate-400 block leading-tight whitespace-nowrap">Velocidade de Subida</span>
-                        <div className="text-sm lg:text-base font-black text-slate-900 dark:text-white leading-none">+0,6 <span className="text-[9px] font-normal text-slate-500">cm/h</span></div>
-                        <div className="text-[9.5px] text-cyan-600 dark:text-cyan-400 font-bold flex items-center gap-1"><ArrowUp className="w-2.5 h-2.5" /> Lenta</div>
+                    <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2 items-center w-full">
+                      <div className="bg-slate-50 dark:bg-[#050A18]/60 rounded-xl p-2.5 border border-slate-200 dark:border-slate-800/80 flex flex-col justify-between h-[82px]">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block leading-tight font-medium">Velocidade de Subida</span>
+                        <div className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-none">+0,6 <span className="text-[10px] font-normal text-slate-500">cm/h</span></div>
+                        <div className="text-[10px] text-cyan-600 dark:text-cyan-400 font-bold flex items-center gap-1"><ArrowUp className="w-3 h-3" /> Lenta</div>
                       </div>
-                      <div className="bg-slate-50 dark:bg-[#050A18]/50 rounded-xl px-2 py-2 border border-slate-200 dark:border-slate-800/60 flex flex-col justify-between h-[68px]">
-                        <span className="text-[9px] text-slate-500 dark:text-slate-400 block leading-tight whitespace-nowrap">Velocidade de Descida</span>
-                        <div className="text-sm lg:text-base font-black text-slate-900 dark:text-white leading-none">0,0 <span className="text-[9px] font-normal text-slate-500">cm/h</span></div>
-                        <div className="text-[9.5px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1"><span className="w-2 h-0.5 bg-emerald-400 rounded-full" /> Estável</div>
+                      <div className="bg-slate-50 dark:bg-[#050A18]/60 rounded-xl p-2.5 border border-slate-200 dark:border-slate-800/80 flex flex-col justify-between h-[82px]">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block leading-tight font-medium">Velocidade de Descida</span>
+                        <div className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-none">0,0 <span className="text-[10px] font-normal text-slate-500">cm/h</span></div>
+                        <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1"><span className="w-2.5 h-0.5 bg-emerald-400 rounded-full" /> Estável</div>
                       </div>
-                      <div className="bg-slate-50 dark:bg-[#050A18]/50 rounded-xl px-2 py-2 border border-slate-200 dark:border-slate-800/60 flex flex-col justify-between h-[68px]">
-                        <span className="text-[9px] text-slate-500 dark:text-slate-400 block leading-tight whitespace-nowrap">Oscilação nas Últ. 24h</span>
-                        <div className="text-sm lg:text-base font-black text-slate-900 dark:text-white leading-none">18 <span className="text-[9px] font-normal text-slate-500">cm</span></div>
-                        <div className="text-[9.5px] text-emerald-600 dark:text-emerald-400 font-bold">Baixa</div>
+                      <div className="bg-slate-50 dark:bg-[#050A18]/60 rounded-xl p-2.5 border border-slate-200 dark:border-slate-800/80 flex flex-col justify-between h-[82px]">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block leading-tight font-medium">Oscilação nas Últ. 24h</span>
+                        <div className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-none">18 <span className="text-[10px] font-normal text-slate-500">cm</span></div>
+                        <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Baixa</div>
                       </div>
-                      <div className="bg-slate-50 dark:bg-[#050A18]/50 rounded-xl px-2 py-2 border border-slate-200 dark:border-slate-800/60 flex flex-col justify-between h-[68px]">
-                        <span className="text-[9px] text-slate-500 dark:text-slate-400 block leading-tight whitespace-nowrap">Tempo de Resposta</span>
-                        <div className="text-sm lg:text-base font-black text-slate-900 dark:text-white leading-none whitespace-nowrap">6h 40m</div>
-                        <div className="text-[8.5px] text-slate-500 dark:text-slate-400 font-medium truncate">Montante → Lajeado</div>
+                      <div className="bg-slate-50 dark:bg-[#050A18]/60 rounded-xl p-2.5 border border-slate-200 dark:border-slate-800/80 flex flex-col justify-between h-[82px]">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block leading-tight font-medium">Tempo de Resposta</span>
+                        <div className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-none whitespace-nowrap">6h 40m</div>
+                        <div className="text-[9px] text-slate-500 dark:text-slate-400 font-medium truncate">Montante → Lajeado</div>
                       </div>
                     </div>
                   </div>
                   
                   {/* Separator Line */}
-                  <div className="w-full flex items-center my-1.5">
+                  <div className="w-full flex items-center my-2">
                     <div className="h-px bg-slate-200 dark:bg-slate-700/60 flex-1"></div>
-                    <h5 className="text-[11px] font-bold text-slate-600 dark:text-slate-300 px-3">Variação do Nível do Rio</h5>
+                    <h5 className="text-xs font-bold text-slate-700 dark:text-slate-200 px-3">Variação do Nível do Rio</h5>
                     <div className="h-px bg-slate-200 dark:bg-slate-700/60 flex-1"></div>
                   </div>
                   
-                  {/* Line Chart - Compact height & tighter Y-axis spacing */}
-                  <div className="flex-1 flex flex-col justify-between">
-                    <div className="h-[140px] w-full relative">
+                  {/* Line Chart - Taller height and fills card down to footer legend */}
+                  <div className="flex-1 flex flex-col justify-between pt-1">
+                    <div className="h-[210px] sm:h-[225px] w-full relative">
                       <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart data={variacaoNivelData} margin={{ top: 10, right: 15, left: 0, bottom: 0 }}>
+                        <ComposedChart data={variacaoNivelData} margin={{ top: 15, right: 15, left: 0, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === "light" ? "#CBD5E1" : "#1E293B"} />
-                          <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 9.5, fill: theme === "light" ? "#64748B" : "#94A3B8" }} />
+                          <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: theme === "light" ? "#64748B" : "#94A3B8" }} />
                           <YAxis 
                             domain={[-30, 30]} 
                             ticks={[-30, -20, -10, 0, 10, 20, 30]} 
                             interval={0}
-                            width={42}
+                            width={45}
                             axisLine={false} 
                             tickLine={false} 
-                            tick={{ fontSize: 9.5, fill: theme === "light" ? "#64748B" : "#94A3B8" }} 
+                            tick={{ fontSize: 10, fill: theme === "light" ? "#64748B" : "#94A3B8" }} 
                             tickFormatter={(val) => `${val} cm`} 
                           />
                           <Tooltip 
                             contentStyle={{ backgroundColor: theme === "light" ? "#fff" : "#0f172a", borderColor: theme === "light" ? "#e2e8f0" : "#1e293b", fontSize: '11px', borderRadius: '8px' }}
                             itemStyle={{ color: theme === "light" ? "#0f172a" : "#fff" }}
                           />
-                          <Area type="monotone" dataKey="level" stroke="#0ea5e9" strokeWidth={2} fillOpacity={0.2} fill="#0ea5e9" />
+                          <Area type="monotone" dataKey="level" stroke="#0ea5e9" strokeWidth={2.5} fillOpacity={0.25} fill="#0ea5e9" />
                         </ComposedChart>
                       </ResponsiveContainer>
-                      <div className="absolute right-3 top-6 text-[10px] font-bold text-white bg-slate-900 border border-slate-700 px-1.5 py-0.5 rounded shadow flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                      <div className="absolute right-3 top-8 text-xs font-bold text-white bg-slate-900 border border-slate-700 px-2 py-0.5 rounded-md shadow flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
                         +2 cm
                       </div>
                     </div>
-                    <div className="flex items-center justify-center gap-4 mt-1 text-[9.5px]">
-                      <div className="flex items-center gap-1.5"><div className="w-3.5 h-1 bg-sky-500" /> <span className="text-slate-600 dark:text-slate-300">Variação do nível (cm)</span></div>
-                      <div className="flex items-center gap-1.5"><div className="w-3.5 h-1 bg-emerald-500" /> <span className="text-slate-600 dark:text-slate-300">Subida</span></div>
-                      <div className="flex items-center gap-1.5"><div className="w-3.5 h-1 bg-red-500" /> <span className="text-slate-600 dark:text-slate-300">Descida</span></div>
+                    <div className="flex items-center justify-center gap-6 mt-3 text-xs font-medium">
+                      <div className="flex items-center gap-2"><div className="w-4 h-1 bg-sky-500 rounded-full" /> <span className="text-slate-600 dark:text-slate-300">Variação do nível (cm)</span></div>
+                      <div className="flex items-center gap-2"><div className="w-4 h-1 bg-emerald-500 rounded-full" /> <span className="text-slate-600 dark:text-slate-300">Subida</span></div>
+                      <div className="flex items-center gap-2"><div className="w-4 h-1 bg-red-500 rounded-full" /> <span className="text-slate-600 dark:text-slate-300">Descida</span></div>
                     </div>
                   </div>
                 </div>
 
                 {/* PAINEL DIREITO */}
-                <div className="lg:col-span-5 bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-3 sm:p-4 shadow-xl flex flex-col justify-between">
-                  <h4 className="text-sm font-black text-slate-900 dark:text-white mb-2">Propagação da Onda de Cheia</h4>
+                <div className="lg:col-span-5 bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-3.5 sm:p-4 shadow-xl flex flex-col justify-between gap-3">
+                  <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Propagação da Onda de Cheia</h4>
                   
                   {/* Cards Chain */}
-                  <div className="flex flex-row items-stretch justify-between gap-1 mb-3 w-full">
+                  <div className="flex flex-row items-stretch justify-between gap-1 w-full">
                     {propagacaoChain.map((station, idx) => (
                       <React.Fragment key={idx}>
                         {idx > 0 && (
-                          <div className="flex flex-col items-center justify-center shrink-0 px-0.5">
-                            <div className="w-4 h-4 rounded-full border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center text-slate-400 mb-0.5 shrink-0">
-                              <ArrowRight className="w-2.5 h-2.5 text-slate-400" />
+                          <div className="flex flex-col items-center justify-center shrink-0 px-0.5 my-auto">
+                            <div className="w-5 h-5 rounded-full border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 flex items-center justify-center text-slate-500 dark:text-slate-300 shrink-0">
+                              <ArrowRight className="w-3 h-3" />
                             </div>
-                            <span className="text-[8px] xl:text-[9px] text-slate-500 dark:text-slate-400 whitespace-nowrap">{station.timeDiff}</span>
+                            <span className="text-[9px] text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap mt-1">{station.timeDiff}</span>
                           </div>
                         )}
-                        <div className={`bg-slate-50 dark:bg-[#050A18]/80 border ${idx === propagacaoChain.length - 1 ? 'border-sky-500 shadow-[0_0_15px_rgba(14,165,233,0.15)] dark:shadow-[0_0_15px_rgba(14,165,233,0.05)]' : 'border-slate-300 dark:border-slate-800/80'} rounded-lg p-2 flex-1 min-w-0 text-left flex flex-col justify-between transition-colors`}>
-                          <div className="font-bold text-slate-900 dark:text-white text-[11px] xl:text-[12px] mb-1 truncate">{station.name}</div>
-                          <div className="text-[10px] xl:text-[11px] text-slate-600 dark:text-slate-300 mb-0.5">Nível: {station.level}</div>
-                          <div className="text-[10px] xl:text-[11px] text-slate-600 dark:text-slate-300 mb-1.5">Variação: {station.variacao}</div>
-                          <div className="flex items-center justify-between mt-auto pt-1 border-t border-slate-200 dark:border-slate-800/60">
-                            <span className="text-[9px] xl:text-[10px] font-mono text-emerald-500 flex items-center gap-1">🕒 {station.delay}</span>
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                        <div className={`bg-slate-50 dark:bg-[#050A18]/90 border ${idx === propagacaoChain.length - 1 ? 'border-2 border-cyan-500 dark:border-sky-500 shadow-[0_0_15px_rgba(14,165,233,0.2)]' : 'border-slate-300 dark:border-slate-800/80'} rounded-xl p-2.5 sm:p-3 flex-1 min-w-0 text-left flex flex-col justify-between transition-colors`}>
+                          <div className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm mb-1.5 truncate">{station.name}</div>
+                          <div className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-300 mb-0.5">
+                            Nível: <span className="font-medium text-slate-800 dark:text-slate-200">{station.level}</span>
+                          </div>
+                          <div className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-300 mb-2">
+                            Variação: <span className="font-medium text-slate-800 dark:text-slate-200">{station.variacao}</span>
+                          </div>
+                          <div className="flex items-center justify-between mt-auto pt-1.5 border-t border-slate-200 dark:border-slate-800/60">
+                            <span className="text-[10px] sm:text-[11px] font-mono text-emerald-500 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                              <span className="inline-block">🕒</span>
+                              <span>{station.delay}</span>
+                            </span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
                           </div>
                         </div>
                       </React.Fragment>
                     ))}
                   </div>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
+                  {/* Bottom Two Panels */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1 items-stretch">
                     {/* Análise da Propagação */}
-                    <div className="bg-slate-50 dark:bg-[#050A18] border border-slate-300 dark:border-slate-800 rounded-xl p-3 flex flex-col justify-between">
-                      <h5 className="text-[11px] font-bold text-slate-900 dark:text-white mb-2">Análise da Propagação</h5>
-                      <ul className="space-y-1.5 text-[10px] text-slate-600 dark:text-slate-300">
-                        <li className="flex items-start gap-2">
-                          <Waves className="w-3.5 h-3.5 text-cyan-500 mt-0.5 shrink-0" />
-                          <span>Onda de cheia em deslocamento: <span className="text-emerald-500 font-bold">Normal</span></span>
+                    <div className="bg-slate-50 dark:bg-[#050B1A] border border-slate-300 dark:border-slate-800/90 rounded-xl p-3.5 flex flex-col justify-between">
+                      <h5 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white mb-2.5">Análise da Propagação</h5>
+                      <ul className="space-y-2 text-[11px] text-slate-600 dark:text-slate-300">
+                        <li className="flex items-center gap-2">
+                          <Droplets className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400 shrink-0" />
+                          <span>Onda de cheia em deslocamento: <span className="text-emerald-500 font-semibold">Normal</span></span>
                         </li>
-                        <li className="flex items-start gap-2">
-                          <Waves className="w-3.5 h-3.5 text-cyan-500 mt-0.5 shrink-0" />
-                          <span>Tempo total de propagação até Lajeado: <span className="text-slate-800 dark:text-white font-bold">7h 10m</span></span>
+                        <li className="flex items-center gap-2">
+                          <Target className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400 shrink-0" />
+                          <span>Tempo total de propagação até Lajeado: <span className="text-slate-900 dark:text-white font-bold">7h 10m</span></span>
                         </li>
-                        <li className="flex items-start gap-2">
-                          <Waves className="w-3.5 h-3.5 text-cyan-500 mt-0.5 shrink-0" />
-                          <span>Comportamento: <span className="text-emerald-500 font-bold">Estável</span></span>
+                        <li className="flex items-center gap-2">
+                          <Waves className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400 shrink-0" />
+                          <span>Comportamento: <span className="text-emerald-500 font-semibold">Estável</span></span>
                         </li>
-                        <li className="flex items-start gap-2 mt-2 pt-2 border-t border-slate-200 dark:border-slate-800">
-                          <Info className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
-                          <span className="text-slate-500 dark:text-slate-400">Não há formação de picos significativos no momento.</span>
+                        <li className="flex items-center gap-2 pt-1 border-t border-slate-200 dark:border-slate-800/80">
+                          <Info className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400 shrink-0" />
+                          <span className="text-slate-500 dark:text-slate-400 text-[10.5px]">Não há formação de picos significativos no momento.</span>
                         </li>
                       </ul>
                     </div>
                     
-                    {/* Histórico */}
-                    <div className="bg-slate-50 dark:bg-[#050A18] border border-slate-300 dark:border-slate-800 rounded-xl p-3 flex flex-col justify-between">
-                      <h5 className="text-[11px] font-bold text-slate-900 dark:text-white mb-2">Comparativo com Eventos Históricos</h5>
-                      <ul className="space-y-1 text-[10px]">
+                    {/* Comparativo com Eventos Históricos */}
+                    <div className="bg-slate-50 dark:bg-[#050B1A] border border-slate-300 dark:border-slate-800/90 rounded-xl p-3.5 flex flex-col justify-between">
+                      <h5 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white mb-2.5">Comparativo com Eventos Históricos</h5>
+                      <ul className="space-y-1.5 text-[11px]">
                         {historicoCheias.map((item, i) => (
                           <li key={i} className={`flex items-center justify-between pb-1 ${i !== historicoCheias.length - 1 ? 'border-b border-slate-200 dark:border-slate-800/80' : ''}`}>
                             <div className="flex items-center gap-1">
-                              <span className="text-slate-700 dark:text-slate-300">{item.name}</span>
+                              <span className="text-slate-700 dark:text-slate-300 font-medium">{item.name}</span>
                               {item.label && <span className="text-[10px] text-slate-400">{item.label}</span>}
                             </div>
-                            <span className={`font-mono font-bold ${item.color}`}>{item.value}</span>
+                            <span className={`font-mono font-black text-xs sm:text-sm ${item.color}`}>{item.value}</span>
                           </li>
                         ))}
                       </ul>
