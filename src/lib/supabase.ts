@@ -31,6 +31,15 @@ export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
+export function normalizeCitySlug(str: string): string {
+  if (!str) return '';
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+
 // ==========================================
 // LOCAL PERSISTENT STORE (Fallback when Supabase keys are not set)
 // ==========================================
@@ -319,11 +328,17 @@ class LocalStore {
   getCamerasByCity(citySlug: string): CityCamera[] {
     if (!citySlug) return [];
     const cleanTarget = citySlug.replace(/-/g, '').toLowerCase();
+    const normTarget = normalizeCitySlug(citySlug);
     return this.cameras
       .filter((c) => {
         const rawCamSlug = c.city_slug || '';
         const cleanCamSlug = rawCamSlug.replace(/-/g, '').toLowerCase();
-        return (rawCamSlug === citySlug || cleanCamSlug === cleanTarget) && (c.ativo ?? true);
+        const normCamSlug = normalizeCitySlug(rawCamSlug);
+        return (
+          rawCamSlug === citySlug ||
+          cleanCamSlug === cleanTarget ||
+          normCamSlug === normTarget
+        ) && (c.ativo ?? true);
       })
       .sort((a, b) => (a.ordem_exibicao || 0) - (b.ordem_exibicao || 0));
   }
@@ -1151,13 +1166,14 @@ export async function deleteSponsor(sponsorId: string): Promise<void> {
 // ==========================================
 export async function fetchCamerasByCity(citySlug: string): Promise<CityCamera[]> {
   if (!citySlug) return [];
+  const normSlug = normalizeCitySlug(citySlug);
   if (isSupabaseConfigured && supabase) {
     try {
       const cleanSlug = citySlug.replace(/-/g, '').toLowerCase();
       const { data, error } = await supabase
         .from('city_cameras')
         .select('*')
-        .or(`city_slug.eq.${citySlug},city_slug.eq.${cleanSlug}`)
+        .or(`city_slug.eq.${citySlug},city_slug.eq.${cleanSlug},city_slug.eq.${normSlug}`)
         .eq('ativo', true)
         .order('ordem_exibicao', { ascending: true });
       if (!error && data && data.length > 0) return data as CityCamera[];
@@ -1169,19 +1185,39 @@ export async function fetchCamerasByCity(citySlug: string): Promise<CityCamera[]
 }
 
 export async function fetchCameras(citySlug?: string): Promise<CityCamera[]> {
+  let supabaseCams: CityCamera[] = [];
   if (isSupabaseConfigured && supabase) {
     try {
       let query = supabase.from('city_cameras').select('*').order('ordem_exibicao', { ascending: true });
       if (citySlug && citySlug !== 'all') {
-        query = query.eq('city_slug', citySlug);
+        const normSlug = normalizeCitySlug(citySlug);
+        query = query.or(`city_slug.eq.${citySlug},city_slug.eq.${normSlug}`);
       }
       const { data, error } = await query;
-      if (!error && data) return data as CityCamera[];
+      if (!error && data) {
+        supabaseCams = data as CityCamera[];
+      }
     } catch (e) {
       console.warn('Supabase fetchCameras failed:', e);
     }
   }
-  return localStore.getAllCamerasAdmin(citySlug);
+
+  const localCams = localStore.getAllCamerasAdmin(citySlug);
+  if (supabaseCams.length === 0) {
+    return localCams;
+  }
+
+  // Merge default localStore cameras that might be absent in remote DB
+  const supabaseIds = new Set(supabaseCams.map((c) => c.id));
+  const supabaseNormSlugs = new Set(supabaseCams.map((c) => normalizeCitySlug(c.city_slug)));
+
+  const merged = [...supabaseCams];
+  localCams.forEach((lc) => {
+    if (!supabaseIds.has(lc.id) && !supabaseNormSlugs.has(normalizeCitySlug(lc.city_slug))) {
+      merged.push(lc);
+    }
+  });
+  return merged;
 }
 
 export async function saveCamera(cameraData: Partial<CityCamera>): Promise<CityCamera> {

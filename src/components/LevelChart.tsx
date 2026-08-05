@@ -109,12 +109,12 @@ export const LevelChart: React.FC<LevelChartProps> = ({
         </div>
 
         {/* TIMEFRAME BUTTONS */}
-        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar dark:bg-slate-900/80 bg-slate-100 p-1 rounded-xl dark:border-slate-800 border-slate-200 border">
+        <div className="flex items-center gap-1 overflow-x-auto touch-pan-x max-w-full no-scrollbar dark:bg-slate-900/80 bg-slate-100 p-1 rounded-xl dark:border-slate-800 border-slate-200 border w-full sm:w-auto">
           {timeframes.map((tf) => (
             <button
               key={tf.id}
               onClick={() => setTimeframe(tf.id)}
-              className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+              className={`whitespace-nowrap px-2.5 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-bold transition-all cursor-pointer shrink-0 ${
                 timeframe === tf.id
                   ? 'dark:bg-[#1E293B] bg-white text-cyan-700 dark:text-cyan-400 dark:border-cyan-800 border-cyan-300 border shadow-md'
                   : 'dark:text-slate-400 text-slate-600 hover:text-slate-900 dark:hover:text-slate-200'

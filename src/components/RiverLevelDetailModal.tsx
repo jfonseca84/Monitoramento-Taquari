@@ -228,7 +228,7 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
             </div>
 
             {/* LEGEND & TIMEFRAME SELECTOR */}
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
               <div className="flex items-center gap-3 text-[11px] text-slate-400 font-medium">
                 <span className="flex items-center gap-1">
                   <span className="w-3 h-0.5 bg-red-500 inline-block rounded" /> nível
@@ -238,12 +238,12 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
                 </span>
               </div>
 
-              <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+              <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800 overflow-x-auto touch-pan-x max-w-full no-scrollbar w-full sm:w-auto">
                 {timeframes.map((tf) => (
                   <button
                     key={tf.id}
                     onClick={() => setTimeframe(tf.id)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                    className={`px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-bold transition-all whitespace-nowrap shrink-0 ${
                       timeframe === tf.id
                         ? 'bg-cyan-950 text-cyan-300 border border-cyan-800'
                         : 'text-slate-400 hover:text-slate-200'

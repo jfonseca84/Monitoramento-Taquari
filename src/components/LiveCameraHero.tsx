@@ -244,48 +244,40 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({
       </div>
 
       {/* COTAS DE NÍVEL HORIZONTAL BAR */}
-      <div className="relative z-10 mt-3 pt-3 border-t border-slate-700/60 flex flex-wrap items-center gap-x-2 sm:gap-x-2.5 gap-y-1 text-[10px] sm:text-[11px] font-semibold text-slate-200 leading-none">
-        <span className="uppercase tracking-wider text-slate-300 font-extrabold text-[10px] sm:text-[11px] shrink-0">
-          COTAS DE NÍVEL:
-        </span>
-
+      <div className="relative z-10 mt-2.5 pt-2.5 border-t border-slate-700/60 flex items-center justify-between gap-x-1 sm:gap-x-2 text-[9px] sm:text-[10px] md:text-[11px] font-semibold text-slate-200 leading-none overflow-hidden">
         {/* NÍVEL NORMAL */}
-        <div className="flex items-center gap-1 shrink-0">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.8)] shrink-0" />
+        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.8)] shrink-0" />
           <span className="text-slate-300">Nível normal</span>
           <span className="text-emerald-400 font-bold font-mono">{normalQuotaStr}m</span>
         </div>
 
-        <span className="text-slate-600 font-bold select-none shrink-0">|</span>
+        <span className="text-slate-700 dark:text-slate-600 font-bold select-none shrink-0">|</span>
 
         {/* COTA DE ATENÇÃO */}
-        <div className="flex items-center gap-1 shrink-0">
-          <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shadow-[0_0_6px_rgba(251,191,36,0.8)] shrink-0" />
+        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shadow-[0_0_6px_rgba(251,191,36,0.8)] shrink-0" />
           <span className="text-slate-300">Cota de atenção</span>
           <span className="text-amber-400 font-bold font-mono">{attentionQuotaStr}m</span>
         </div>
 
-        <span className="text-slate-600 font-bold select-none shrink-0">|</span>
+        <span className="text-slate-700 dark:text-slate-600 font-bold select-none shrink-0">|</span>
 
         {/* COTA DE ALERTA */}
-        <div className="flex items-center gap-1 shrink-0">
-          <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse shadow-[0_0_6px_rgba(251,146,60,0.8)] shrink-0" />
+        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse shadow-[0_0_6px_rgba(251,146,60,0.8)] shrink-0" />
           <span className="text-slate-300">Cota de alerta</span>
           <span className="text-orange-400 font-bold font-mono">{alertQuotaStr}m</span>
         </div>
 
-        <span className="text-slate-600 font-bold select-none shrink-0">|</span>
+        <span className="text-slate-700 dark:text-slate-600 font-bold select-none shrink-0">|</span>
 
         {/* COTA DE INUNDAÇÃO */}
-        <div className="flex items-center gap-1 shrink-0">
-          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_6px_rgba(239,68,68,0.8)] shrink-0" />
+        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_6px_rgba(239,68,68,0.8)] shrink-0" />
           <span className="text-slate-300">Cota de inundação</span>
           <span className="text-red-400 font-bold font-mono">{floodQuotaStr}m</span>
         </div>
-
-        <span className="text-cyan-400 font-extrabold tracking-wide uppercase shrink-0">
-          - {selectedCity.name}
-        </span>
       </div>
 
     </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { City, CityCamera, Sponsor } from '../types';
 import { INITIAL_CITIES } from '../data/initialData';
-import { fetchCamerasByCity, fetchCameras, fetchSponsors } from '../lib/supabase';
+import { fetchCamerasByCity, fetchCameras, fetchSponsors, normalizeCitySlug } from '../lib/supabase';
 import {
   Search,
   Waves,
@@ -123,9 +123,11 @@ export const LiveCamerasView: React.FC<LiveCamerasViewProps> = ({
             if (cam.ativo !== false && cam.city_slug) {
               const rawSlug = cam.city_slug;
               const cleanSlug = rawSlug.replace(/-/g, '').toLowerCase();
+              const normSlug = normalizeCitySlug(rawSlug);
               activeSlugs.add(rawSlug);
               activeSlugs.add(rawSlug.toLowerCase());
-              activeSlugs.add(cleanSlug);
+              if (cleanSlug) activeSlugs.add(cleanSlug);
+              if (normSlug) activeSlugs.add(normSlug);
             }
           });
           setCitySlugsWithCameras(activeSlugs);
@@ -141,19 +143,19 @@ export const LiveCamerasView: React.FC<LiveCamerasViewProps> = ({
   }, []);
 
   useEffect(() => {
-    setCitySlugsWithCameras((prev) => {
-      const updated = new Set(prev);
-      const rawSlug = activeCitySlug;
-      const cleanSlug = rawSlug ? rawSlug.replace(/-/g, '').toLowerCase() : '';
-      if (cameras.length > 0) {
-        if (rawSlug) updated.add(rawSlug);
+    if (cameras.length > 0 && activeCitySlug) {
+      setCitySlugsWithCameras((prev) => {
+        const updated = new Set(prev);
+        const rawSlug = activeCitySlug;
+        const cleanSlug = rawSlug.replace(/-/g, '').toLowerCase();
+        const normSlug = normalizeCitySlug(rawSlug);
+        updated.add(rawSlug);
+        updated.add(rawSlug.toLowerCase());
         if (cleanSlug) updated.add(cleanSlug);
-      } else {
-        if (rawSlug) updated.delete(rawSlug);
-        if (cleanSlug) updated.delete(cleanSlug);
-      }
-      return updated;
-    });
+        if (normSlug) updated.add(normSlug);
+        return updated;
+      });
+    }
   }, [cameras, activeCitySlug]);
 
   useEffect(() => {
@@ -268,11 +270,18 @@ export const LiveCamerasView: React.FC<LiveCamerasViewProps> = ({
                 CIDADES MONITORADAS
               </span>
 
-              <div className="overflow-y-auto max-h-[520px] lg:max-h-[calc(100vh-280px)] pr-1 custom-scrollbar space-y-1">
+              <div className="overflow-y-auto max-h-[200px] sm:max-h-[350px] lg:max-h-[calc(100vh-280px)] pr-1 custom-scrollbar space-y-1">
                 {filteredCities.map((c) => {
                   const isSelected = activeCityObj.id === c.id || activeCityObj.slug === c.slug;
                   const cleanCitySlug = c.slug ? c.slug.replace(/-/g, '').toLowerCase() : '';
-                  const hasCamera = citySlugsWithCameras.has(c.slug) || (cleanCitySlug !== '' && citySlugsWithCameras.has(cleanCitySlug));
+                  const normCitySlug = c.slug ? normalizeCitySlug(c.slug) : '';
+                  const normCityName = c.name ? normalizeCitySlug(c.name) : '';
+                  const hasCamera =
+                    citySlugsWithCameras.has(c.slug) ||
+                    citySlugsWithCameras.has(c.slug.toLowerCase()) ||
+                    (cleanCitySlug !== '' && citySlugsWithCameras.has(cleanCitySlug)) ||
+                    (normCitySlug !== '' && citySlugsWithCameras.has(normCitySlug)) ||
+                    (normCityName !== '' && citySlugsWithCameras.has(normCityName));
 
                   return (
                     <button

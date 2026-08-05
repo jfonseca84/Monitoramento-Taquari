@@ -68,31 +68,31 @@ export const Header: React.FC<HeaderProps> = ({
         {/* LOGO & BRANDING */}
         <div 
           onClick={() => setActiveTab('inicio')} 
-          className="flex items-center gap-3 cursor-pointer group shrink-0"
+          className="flex items-center gap-2 sm:gap-3 cursor-pointer group shrink-0 min-w-0"
         >
           {settings.logo_url ? (
             <img 
               src={`${settings.logo_url}${settings.logo_url.includes('?') ? '&' : '?'}v=${logoTimestamp}`} 
               alt={settings.site_name}
-              className="h-9 max-w-[170px] object-contain group-hover:scale-105 transition-transform"
+              className="h-8 sm:h-9 max-w-[130px] sm:max-w-[170px] object-contain group-hover:scale-105 transition-transform"
             />
           ) : (
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 via-sky-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-900/40 group-hover:scale-105 transition-transform">
-              <Waves className="w-5 h-5 text-white" />
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-cyan-600 via-sky-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-900/40 group-hover:scale-105 transition-transform shrink-0">
+              <Waves className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
           )}
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold tracking-tight dark:text-white text-slate-900 font-sans uppercase leading-none">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <h1 className="text-base sm:text-lg font-bold tracking-tight dark:text-white text-slate-900 font-sans uppercase leading-none truncate">
                 {settings.site_name || 'RIO TAQUARI'}
               </h1>
               {isSyncing && (
-                <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full dark:bg-cyan-950/80 bg-cyan-100 dark:text-cyan-400 text-cyan-800 dark:border-cyan-800 border-cyan-300 animate-pulse">
-                  <Radio className="w-2.5 h-2.5" /> SYNC
+                <span className="inline-flex items-center gap-1 text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full dark:bg-cyan-950/80 bg-cyan-100 dark:text-cyan-400 text-cyan-800 dark:border-cyan-800 border-cyan-300 animate-pulse shrink-0">
+                  <Radio className="w-2 h-2 sm:w-2.5 sm:h-2.5" /> SYNC
                 </span>
               )}
             </div>
-            <p className="text-[8px] font-bold tracking-[0.15em] text-cyan-600 dark:text-cyan-400 uppercase whitespace-nowrap leading-tight mt-0.5">
+            <p className="text-[7.5px] sm:text-[8px] font-bold tracking-[0.1em] sm:tracking-[0.15em] text-cyan-600 dark:text-cyan-400 uppercase leading-tight mt-0.5 truncate">
               {settings.site_subtitle || 'MONITORAMENTO HIDROLÓGICO'}
             </p>
           </div>
@@ -242,7 +242,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* MOBILE NAVIGATION BAR */}
-      <div className="flex xl:hidden overflow-x-auto no-scrollbar gap-1.5 px-4 py-2 dark:border-slate-800/60 border-slate-200 border-t">
+      <div className="flex xl:hidden overflow-x-auto touch-pan-x max-w-full no-scrollbar gap-1.5 px-3 sm:px-4 py-2 dark:border-slate-800/60 border-slate-200 border-t">
         {primaryNavItems.map((item) => (
           <button
             key={item.id}
