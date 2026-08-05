@@ -497,8 +497,10 @@ export default function App() {
         }}
       />
 
-      {/* GLOBAL FLOATING ASSISTANT CHAT WIDGET */}
-      <AssistantChatWidget currentCityName={selectedCity?.name} />
+      {/* FLOATING ASSISTANT CHAT WIDGET - APENAS NA ABA CENTRO DE ANÁLISES */}
+      {(activeTab === 'centro-analises' || activeTab === 'nivel') && (
+        <AssistantChatWidget currentCityName={selectedCity?.name} />
+      )}
 
       {/* UNIVERSAL VISUAL EDITOR FLOATING CONTROLS & CONFIG MODAL */}
       <AdminEditorBar />

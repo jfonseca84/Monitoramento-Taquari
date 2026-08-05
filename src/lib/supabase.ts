@@ -1578,6 +1578,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   about_feature2_text: 'Arquitetura desacoplada com tolerância a falhas, cache de alta performance e histórico auditável.',
   about_feature3_title: 'Alertas Automatizados',
   about_feature3_text: 'Emissão direta para prefeituras e órgãos de segurança comunitária assim que o nível atinge a cota de atenção.',
+  centro_analises_public_mode: 'original',
   updated_at: new Date().toISOString()
 };
 

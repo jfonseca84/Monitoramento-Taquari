@@ -1,13 +1,96 @@
-import React, { useState } from 'react';
-import { FolderOpen, Search, FileText, ExternalLink, Download, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { FolderOpen, Search, FileText, ExternalLink, Download, X, Upload, Loader2, CheckCircle2 } from 'lucide-react';
+import { uploadStorageImage } from '../lib/supabase';
+import { getCotasAnaliseFromStorage, saveCotasAnaliseToStorage } from '../data/cotasAnaliseData';
 
 export const CotasLibrarySection: React.FC = () => {
   const [librarySearchTerm, setLibrarySearchTerm] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
+  const [customFileUrls, setCustomFileUrls] = useState<Record<number, string>>({});
   const [selectedDirectDocument, setSelectedDirectDocument] = useState<{
     cotaNum: number;
     cotaTitle: string;
     fileUrl: string;
   } | null>(null);
+
+  // Load saved cota PDF URLs from storage
+  useEffect(() => {
+    loadCustomUrls();
+    const handleUpdate = () => loadCustomUrls();
+    window.addEventListener('cotas_analise_updated', handleUpdate);
+    return () => window.removeEventListener('cotas_analise_updated', handleUpdate);
+  }, []);
+
+  const loadCustomUrls = () => {
+    const savedCotas = getCotasAnaliseFromStorage();
+    const urlMap: Record<number, string> = {};
+    savedCotas.forEach((c) => {
+      if (c.pdf_oficial_url) {
+        urlMap[c.cota_m] = c.pdf_oficial_url;
+      }
+    });
+    setCustomFileUrls(urlMap);
+  };
+
+  const handleFileUpload = async (cotaNum: number, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadMessage('Enviando arquivo do computador...');
+
+    try {
+      const uploadedUrl = await uploadStorageImage('documentos_cotas', file);
+
+      // Save custom URL to storage for this cota
+      const savedCotas = getCotasAnaliseFromStorage();
+      let updated = false;
+
+      const newCotas = savedCotas.map((c) => {
+        if (c.cota_m === cotaNum) {
+          updated = true;
+          return { ...c, pdf_oficial_url: uploadedUrl };
+        }
+        return c;
+      });
+
+      if (!updated) {
+        newCotas.push({
+          id: `cota-${cotaNum}`,
+          cota_m: cotaNum,
+          titulo: `Cota ${cotaNum}m`,
+          nivel_risco: cotaNum >= 22 ? 'inundacao' : cotaNum >= 21 ? 'alerta' : 'atencao',
+          status: 'publicado',
+          resumo_ia: `Documento oficial da cota ${cotaNum}m do Rio Taquari.`,
+          descricao: `Documento técnico sobre a cota de ${cotaNum} metros.`,
+          pdf_oficial_url: uploadedUrl,
+          updated_at: new Date().toISOString(),
+        });
+      }
+
+      saveCotasAnaliseToStorage(newCotas);
+
+      setCustomFileUrls((prev) => ({ ...prev, [cotaNum]: uploadedUrl }));
+
+      if (selectedDirectDocument && selectedDirectDocument.cotaNum === cotaNum) {
+        setSelectedDirectDocument({
+          ...selectedDirectDocument,
+          fileUrl: uploadedUrl,
+        });
+      }
+
+      setUploadMessage(`Sucesso: "${file.name}" foi carregado com sucesso do computador!`);
+      setTimeout(() => setUploadMessage(null), 4000);
+    } catch (err) {
+      console.error('Erro ao enviar arquivo do computador:', err);
+      setUploadMessage('Erro ao enviar o arquivo do computador. Tente novamente.');
+      setTimeout(() => setUploadMessage(null), 4000);
+    } finally {
+      setIsUploading(false);
+      event.target.value = '';
+    }
+  };
 
   // Simplified Clean Technical Library Dataset (Cotas Cards - 19m to 34m)
   const cotasLibrarySimplified = [19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34].map((cotaNum) => {
@@ -41,6 +124,9 @@ export const CotasLibrarySection: React.FC = () => {
       category = 'catastrofico';
     }
 
+    const defaultUrl = `https://xaqttiojmz2xmbzrptob6x.supabase.co/storage/v1/object/public/documentos_cotas/cota_${cotaNum}m.pdf`;
+    const activeUrl = customFileUrls[cotaNum] || defaultUrl;
+
     return {
       cota: `Cota ${cotaNum} m`,
       cotaNum,
@@ -48,15 +134,16 @@ export const CotasLibrarySection: React.FC = () => {
       status,
       category,
       color,
-      fileUrl: `https://xaqttiojmz2xmbzrptob6x.supabase.co/storage/v1/object/public/documentos_cotas/cota_${cotaNum}m.pdf`
+      fileUrl: activeUrl,
+      isCustom: Boolean(customFileUrls[cotaNum]),
     };
   });
 
-  const handleOpenDirectCotaFile = (item: typeof cotasLibrarySimplified[0]) => {
+  const handleOpenDirectCotaFile = (item: (typeof cotasLibrarySimplified)[0]) => {
     setSelectedDirectDocument({
       cotaNum: item.cotaNum,
       cotaTitle: item.cota,
-      fileUrl: item.fileUrl
+      fileUrl: item.fileUrl,
     });
   };
 
@@ -181,6 +268,22 @@ export const CotasLibrarySection: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
+                <label className="px-3.5 py-1.5 bg-cyan-950 hover:bg-cyan-900 text-cyan-200 border border-cyan-500/50 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-md">
+                  {isUploading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+                  ) : (
+                    <Upload className="w-3.5 h-3.5 text-cyan-400" />
+                  )}
+                  <span>{isUploading ? 'Enviando...' : 'Enviar do computador'}</span>
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp"
+                    onChange={(e) => handleFileUpload(selectedDirectDocument.cotaNum, e)}
+                    className="hidden"
+                    disabled={isUploading}
+                  />
+                </label>
+
                 <a
                   href={selectedDirectDocument.fileUrl}
                   target="_blank"
@@ -208,6 +311,14 @@ export const CotasLibrarySection: React.FC = () => {
                 </button>
               </div>
             </div>
+
+            {/* UPLOAD STATUS NOTIFICATION */}
+            {uploadMessage && (
+              <div className="px-4 py-2 rounded-xl bg-cyan-950/90 border border-cyan-500/50 text-cyan-200 text-xs font-medium flex items-center gap-2 animate-fade-in">
+                <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0" />
+                <span>{uploadMessage}</span>
+              </div>
+            )}
 
             {/* DOCUMENT EMBEDDED PREVIEW / IFRAME */}
             <div className="flex-1 w-full bg-[#050A18] rounded-2xl border border-slate-800 overflow-hidden relative flex flex-col items-center justify-center">

@@ -17,17 +17,23 @@ import {
   Upload,
   Link as LinkIcon,
   Eye,
-  RefreshCw
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 import { CotaAnalise, CotaAttachment, CotaAttachmentType, LevelStatus } from '../types';
 import { getCotasAnaliseFromStorage, saveCotasAnaliseToStorage } from '../data/cotasAnaliseData';
+import { uploadStorageImage } from '../lib/supabase';
+import { useSiteSettings } from '../context/SiteSettingsContext';
 
 export const AdminCentroAnalisesView: React.FC = () => {
+  const { settings, updateSettings } = useSiteSettings();
   const [cotas, setCotas] = useState<CotaAnalise[]>([]);
   const [selectedCota, setSelectedCota] = useState<CotaAnalise | null>(null);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isUploadingPdf, setIsUploadingPdf] = useState<boolean>(false);
+  const [isUploadingAnexo, setIsUploadingAnexo] = useState<boolean>(false);
 
   // Form State for Cota
   const [cotaM, setCotaM] = useState<number>(20.0);
@@ -46,6 +52,45 @@ export const AdminCentroAnalisesView: React.FC = () => {
   const [anexoTitulo, setAnexoTitulo] = useState<string>('');
   const [anexoUrl, setAnexoUrl] = useState<string>('');
   const [anexoDescricao, setAnexoDescricao] = useState<string>('');
+
+  const handleUploadPdfFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingPdf(true);
+    try {
+      const url = await uploadStorageImage('documentos_cotas', file);
+      setPdfOficialUrl(url);
+    } catch (err) {
+      console.error('Erro ao carregar PDF:', err);
+      alert('Erro ao carregar o arquivo do computador.');
+    } finally {
+      setIsUploadingPdf(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleUploadAnexoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingAnexo(true);
+    try {
+      const url = await uploadStorageImage('cotas_anexos', file);
+      setAnexoUrl(url);
+      if (!anexoTitulo.trim()) {
+        const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+        setAnexoTitulo(nameWithoutExt);
+      }
+      if (file.type.includes('pdf')) setAnexoTipo('pdf');
+      else if (file.type.includes('video')) setAnexoTipo('video');
+      else setAnexoTipo('imagem');
+    } catch (err) {
+      console.error('Erro ao carregar anexo:', err);
+      alert('Erro ao carregar o arquivo do computador.');
+    } finally {
+      setIsUploadingAnexo(false);
+      e.target.value = '';
+    }
+  };
 
   useEffect(() => {
     loadCotas();
@@ -180,6 +225,20 @@ export const AdminCentroAnalisesView: React.FC = () => {
     setAnexos(updated);
   };
 
+  const handleTogglePublicMode = async (mode: 'original' | 'construcao') => {
+    try {
+      await updateSettings({ centro_analises_public_mode: mode });
+      setSuccessMessage(
+        mode === 'construcao'
+          ? 'Tela pública do Centro de Análises alterada para "Tela de construção".'
+          : 'Tela pública do Centro de Análises alterada para "Dashboard original".'
+      );
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (err) {
+      console.error('Erro ao atualizar modo do Centro de Análises:', err);
+    }
+  };
+
   return (
     <div className="space-y-6">
       
@@ -206,6 +265,65 @@ export const AdminCentroAnalisesView: React.FC = () => {
           <Plus className="w-4 h-4" />
           <span>Cadastrar Nova Cota</span>
         </button>
+      </div>
+
+      {/* TELA PÚBLICA DO CENTRO DE ANÁLISES (SELETOR ADMINISTRATIVO) */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-cyan-400" />
+              <span>Tela pública do Centro de Análises</span>
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Defina qual visualização será exibida para os visitantes do site na aba Centro de Análises.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800 shrink-0">
+            <button
+              type="button"
+              onClick={() => handleTogglePublicMode('original')}
+              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                (settings.centro_analises_public_mode || 'original') === 'original'
+                  ? 'bg-cyan-600 text-white shadow-md shadow-cyan-950/50'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
+              }`}
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span>Dashboard original</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTogglePublicMode('construcao')}
+              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                settings.centro_analises_public_mode === 'construcao'
+                  ? 'bg-amber-600 text-white shadow-md shadow-amber-950/50'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
+              }`}
+            >
+              <BarChart3 className="w-3.5 h-3.5" />
+              <span>Tela de construção</span>
+            </button>
+          </div>
+        </div>
+
+        {settings.centro_analises_public_mode === 'construcao' ? (
+          <div className="p-3.5 rounded-xl bg-amber-950/40 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2.5">
+            <AlertTriangle className="w-4.5 h-4.5 text-amber-400 shrink-0" />
+            <span>
+              <strong>Modo de Construção Ativo:</strong> Visitantes verão a tela temporária inspirada no VS Code com a mensagem "Coletando dados para exibição... Volte em breve." Os dashboards estão ocultos ao público.
+            </span>
+          </div>
+        ) : (
+          <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2.5">
+            <CheckCircle2 className="w-4.5 h-4.5 text-emerald-400 shrink-0" />
+            <span>
+              <strong>Dashboard Original Ativo:</strong> Todos os dashboards hidrológicos, mapas e matrizes de análise estão completamente visíveis.
+            </span>
+          </div>
+        )}
       </div>
 
       {/* SUCCESS NOTIFICATION */}
@@ -439,16 +557,35 @@ export const AdminCentroAnalisesView: React.FC = () => {
 
               <div>
                 <label className="text-xs font-bold text-slate-300 block mb-1">
-                  URL do Documento Oficial (PDF)
+                  Documento Oficial (PDF / Carta Hidrológica)
                 </label>
-                <input
-                  type="url"
-                  value={pdfOficialUrl}
-                  onChange={(e) => setPdfOficialUrl(e.target.value)}
-                  disabled={!isEditing}
-                  placeholder="https://.../documento-oficial.pdf"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs focus:outline-none focus:border-cyan-500 disabled:opacity-60"
-                />
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="url"
+                    value={pdfOficialUrl}
+                    onChange={(e) => setPdfOficialUrl(e.target.value)}
+                    disabled={!isEditing}
+                    placeholder="https://.../documento-oficial.pdf ou envie do computador"
+                    className="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs focus:outline-none focus:border-cyan-500 disabled:opacity-60"
+                  />
+                  {isEditing && (
+                    <label className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-cyan-300 font-bold text-xs flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors">
+                      {isUploadingPdf ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+                      ) : (
+                        <Upload className="w-3.5 h-3.5 text-cyan-400" />
+                      )}
+                      <span>{isUploadingPdf ? 'Enviando...' : 'Enviar do computador'}</span>
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp"
+                        onChange={handleUploadPdfFile}
+                        className="hidden"
+                        disabled={isUploadingPdf}
+                      />
+                    </label>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -596,6 +733,28 @@ export const AdminCentroAnalisesView: React.FC = () => {
                 />
               </div>
 
+              {/* SELEÇÃO E UPLOAD DO COMPUTADOR */}
+              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+                <label className="text-xs font-bold text-slate-300 block">
+                  Enviar Arquivo do Computador
+                </label>
+                <label className="w-full py-2.5 px-4 rounded-xl bg-cyan-950/80 border border-cyan-700/60 hover:bg-cyan-900/80 text-cyan-200 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all shadow">
+                  {isUploadingAnexo ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+                  ) : (
+                    <Upload className="w-4 h-4 text-cyan-400" />
+                  )}
+                  <span>{isUploadingAnexo ? 'Enviando arquivo...' : 'Escolher arquivo do computador (PDF, Imagem, Vídeo)'}</span>
+                  <input
+                    type="file"
+                    accept="image/*,video/*,.pdf,.doc,.docx"
+                    onChange={handleUploadAnexoFile}
+                    className="hidden"
+                    disabled={isUploadingAnexo}
+                  />
+                </label>
+              </div>
+
               <div>
                 <label className="text-xs font-bold text-slate-300 block mb-1">
                   URL do Arquivo *
@@ -605,7 +764,7 @@ export const AdminCentroAnalisesView: React.FC = () => {
                   required
                   value={anexoUrl}
                   onChange={(e) => setAnexoUrl(e.target.value)}
-                  placeholder="https://.../mapa.jpg ou https://.../video.mp4"
+                  placeholder="https://.../mapa.jpg ou clique acima para enviar do PC"
                   className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs focus:outline-none focus:border-cyan-500"
                 />
               </div>

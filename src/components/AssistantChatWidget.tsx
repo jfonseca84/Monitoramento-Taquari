@@ -16,11 +16,16 @@ export const AssistantChatWidget: React.FC<AssistantChatWidgetProps> = ({ curren
   // Real or Fallback Telemetry Data for Active City
   const [cityStats, setCityStats] = useState({
     name: 'Lajeado',
-    current_level: 12.99,
+    river: 'Rio Taquari',
+    current_level: 13.13,
+    attention_level: 15.00,
+    alert_level: 17.00,
     flood_threshold: 19.00,
     status_level: 'NORMAL',
     bairrosImpactados: ['Conservas', 'Santo Antônio', 'Campestre', 'Centro Baixo'],
-    ondaCheiaTempo: '~3h a 4h após passagem por Cruzeiro do Sul'
+    ondaCheiaTempo: '~3h a 4h após passagem por Cruzeiro do Sul',
+    rate_of_change: 0,
+    trend: 'estavel' as const
   });
 
   const chatBottomRef = useRef<HTMLDivElement>(null);
@@ -40,17 +45,23 @@ export const AssistantChatWidget: React.FC<AssistantChatWidgetProps> = ({ curren
       try {
         const cities = await fetchCitiesDirect();
         if (isMounted && cities && cities.length > 0) {
-          const match = cities.find(c => c.name.toLowerCase().includes(activeCityName.toLowerCase()));
+          const match = cities.find(c => c.name.toLowerCase().includes(activeCityName.toLowerCase())) ||
+                        cities.find(c => activeCityName.toLowerCase().includes(c.name.toLowerCase()));
           if (match) {
             setCityStats({
               name: match.name,
-              current_level: match.current_level || 12.99,
-              flood_threshold: match.flood_level || 19.00,
+              river: match.river || 'Rio Taquari',
+              current_level: typeof match.current_level === 'number' && !isNaN(match.current_level) ? match.current_level : 13.13,
+              attention_level: typeof match.attention_level === 'number' && !isNaN(match.attention_level) ? match.attention_level : 15.00,
+              alert_level: typeof match.alert_level === 'number' && !isNaN(match.alert_level) ? match.alert_level : 17.00,
+              flood_threshold: typeof match.flood_level === 'number' && !isNaN(match.flood_level) ? match.flood_level : 19.00,
               status_level: (match.status_level || 'NORMAL').toUpperCase(),
               bairrosImpactados: match.name.toLowerCase().includes('lajeado')
                 ? ['Conservas', 'Santo Antônio', 'Campestre', 'Centro Baixo']
                 : ['Bairros Ribeirinhos', 'Áreas Baixas'],
-              ondaCheiaTempo: '~3h a 4h após passagem pelas estações de montante'
+              ondaCheiaTempo: '~3h a 4h após passagem pelas estações de montante',
+              rate_of_change: match.rate_of_change ?? 0,
+              trend: match.trend || 'estavel'
             });
           }
         }
@@ -75,22 +86,31 @@ export const AssistantChatWidget: React.FC<AssistantChatWidgetProps> = ({ curren
     alerts: ['Aviso Amarelo Inmet: Possibilidade de chuvas isoladas no Vale do Taquari']
   };
 
-  // Initialize or update Welcome message
+  // Initialize or update Welcome message with exact real collected telemetry
   useEffect(() => {
-    const safetyMargin = (cityStats.flood_threshold - cityStats.current_level).toFixed(2);
+    const cityName = cityStats.name || 'Lajeado';
+    const riverName = cityStats.river || 'Rio Taquari';
+    const levelVal = typeof cityStats.current_level === 'number' ? cityStats.current_level.toFixed(2) : '13.13';
+    const statusVal = (cityStats.status_level || 'NORMAL').toUpperCase();
+    const attentionVal = typeof cityStats.attention_level === 'number' ? cityStats.attention_level.toFixed(2) : '15.00';
+    const alertVal = typeof cityStats.alert_level === 'number' ? cityStats.alert_level.toFixed(2) : '17.00';
+    const floodVal = typeof cityStats.flood_threshold === 'number' ? cityStats.flood_threshold.toFixed(2) : '19.00';
+
     setChatMessages([
       {
-        id: `welcome-${cityStats.name}`,
+        id: `welcome-${cityName}`,
         sender: 'assistant',
-        text: `Olá! A cidade selecionada para análise no momento é **${cityStats.name}**.
+        text: `Olá! Você está analisando a estação de ${cityName} (${riverName}).
 
-• **Nível Atual do Rio:** ${cityStats.current_level.toFixed(2)}m (${cityStats.status_level})
-• **Cota de Inundação Inicial:** ${cityStats.flood_threshold.toFixed(2)}m
-• **Margem de Segurança:** ${safetyMargin} metros
+• Nível Atual: ${levelVal} m
+• Status: ${statusVal}
+• Cota de Atenção: ${attentionVal} m
+• Cota de Alerta: ${alertVal} m
+• Cota de Inundação: ${floodVal} m
 
-Como posso auxiliar você com dados sobre bairros vulneráveis, previsão do tempo, simulações ou histórico hidrológico em ${cityStats.name}?`,
+Estou pronto para analisar dados hidrológicos, cotas históricas, precipitação ou tempos de propagação da onda de cheia para ${cityName}. Como posso ajudar?`,
         time: 'Agora',
-        badge: `Risco Integrado — ${cityStats.name}`
+        badge: `Análise Hidrológica — ${cityName}`
       }
     ]);
   }, [cityStats]);
@@ -286,16 +306,15 @@ Como posso auxiliar você com dados sobre bairros vulneráveis, previsão do tem
                   {msg.sender === 'assistant' && index === 0 && (
                     <div className="pt-3 space-y-2">
                       {[
-                        `"Minha casa em ${cityStats.name} corre risco de ser atingida?"`,
-                        `"Se o rio chegar a 24 metros em ${cityStats.name}, quais bairros são afetados?"`,
-                        `"Qual a previsão para as próximas horas em ${cityStats.name}?"`,
-                        `"Compare a situação atual em ${cityStats.name} com a enchente de Maio/2024."`
+                        'Cotas de Nível',
+                        'Bairros Vulneráveis',
+                        'Tempo de Deslocamento da enchente de Encantado até Lajeado?',
+                        'Qual a previsão para as próximas horas em Lajeado?'
                       ].map((promptText, pIdx) => {
-                        const cleanPrompt = promptText.replace(/^"|"$/g, '');
                         return (
                           <button
                             key={pIdx}
-                            onClick={() => handleSendQuestion(cleanPrompt)}
+                            onClick={() => handleSendQuestion(promptText)}
                             className="block w-full text-left p-3 rounded-xl bg-slate-50 hover:bg-sky-50 text-slate-800 hover:text-sky-900 border border-slate-200/90 hover:border-sky-300 text-sm font-medium transition-all cursor-pointer shadow-sm active:scale-[0.99]"
                           >
                             {promptText}

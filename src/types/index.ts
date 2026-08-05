@@ -327,6 +327,7 @@ export interface SiteSettings {
   about_feature2_text?: string;
   about_feature3_title?: string;
   about_feature3_text?: string;
+  centro_analises_public_mode?: 'original' | 'construcao';
   updated_at?: string;
 }
 

@@ -7,4 +7,6 @@ coverage/
 .env
 .env.*
 !.env.example
+bun.lock
+bun.lockb
 

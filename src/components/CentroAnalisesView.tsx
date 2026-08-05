@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CotasLibrarySection } from './CotasLibrarySection';
 import { EditableComponent } from './visualEditor/EditableComponent';
+import { useSiteSettings } from '../context/SiteSettingsContext';
+import { CentroAnalisesConstrucao } from './CentroAnalisesConstrucao';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -687,6 +689,8 @@ function getWindCardinal(deg: number): string {
 }
 
 export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ theme = 'dark' }) => {
+  const { settings } = useSiteSettings();
+
   // Navigation & Filter States
   const [selectedStationId, setSelectedStationId] = useState<string>('lajeado');
   const [activeMainTab, setActiveMainTab] = useState<'hidrologico' | 'fluviologico' | 'meteorologico'>('fluviologico');
@@ -1299,13 +1303,21 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
     }
   }, [chatMessages, isThinking]);
 
+  if (settings.centro_analises_public_mode === 'construcao') {
+    return (
+      <div className="w-full min-h-screen bg-transparent text-slate-800 dark:text-slate-100 font-sans flex flex-col antialiased px-0 py-0">
+        <CentroAnalisesConstrucao />
+      </div>
+    );
+  }
+
   return (
     <div className="w-full min-h-screen bg-transparent text-slate-800 dark:text-slate-100 font-sans flex flex-col antialiased">
       
       {/* ============================================================ */}
       {/* MAIN LAYOUT: LEFT SIDEBAR + RIGHT DASHBOARD CANVAS */}
       {/* ============================================================ */}
-      <div className="flex-1 flex flex-col lg:flex-row w-full max-w-[1800px] mx-auto p-2 sm:p-3 lg:p-4 gap-3.5 items-start">
+      <div className="flex-1 flex flex-col lg:flex-row w-full max-w-[1800px] mx-auto px-0 py-0 gap-4 items-start">
         
         {/* ========================================== */}
         {/* MENU LATERAL ESQUERDO (FIXED LEFT SIDEBAR) */}
@@ -1313,21 +1325,6 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
         <EditableComponent id="centro_sidebar_estacoes" name="Menu de Estações Monitoradas" type="panel" className="w-full lg:w-[225px] xl:w-[235px] shrink-0 lg:sticky lg:top-4 lg:self-start z-20">
           <aside className="w-full bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-3 flex flex-col gap-3 shadow-xl">
           
-          {/* LOGO / BRANDING HEADER */}
-          <div className="flex items-center gap-2.5 px-0.5 pt-0.5 pb-2 border-b border-slate-300 dark:border-slate-800/80">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-md shadow-cyan-500/20 shrink-0">
-              <Waves className="w-4 h-4 text-slate-900 dark:text-white" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-xs font-black tracking-wider text-slate-900 dark:text-white uppercase truncate flex items-center gap-1">
-                MONITORAMENTO TAQUARI
-              </h1>
-              <p className="text-[9px] font-semibold text-slate-500 dark:text-slate-400 truncate">
-                Centro de Análise Hidrológica
-              </p>
-            </div>
-          </div>
-
           {/* SEARCH BOX */}
           <div className="relative">
             <Search className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
