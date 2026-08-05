@@ -852,6 +852,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setSponsorActive(true);
 
     await loadAllAdminData();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('sponsors_updated'));
+    }
     onRefreshData();
     alert('Patrocinador salvo com sucesso!');
   };
@@ -870,6 +873,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       await deleteSponsor(id);
       await addAuditLog('DELETE', 'patrocinadores', `Patrocinador ${name} excluído`);
       await loadAllAdminData();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('sponsors_updated'));
+      }
       onRefreshData();
     }
   };
@@ -3060,6 +3066,131 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {/* TAB 2: PATROCINADORES */}
               {activeTab === 'patrocinadores' && (
                 <div className="space-y-6">
+                  {/* CARD DE LAYOUT: CÂMERAS AO VIVO - APOIO / PARCEIROS */}
+                  <div className="bg-[#0F172A] border border-cyan-500/30 p-5 rounded-2xl space-y-4 shadow-lg shadow-cyan-950/10">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                      <div>
+                        <h4 className="text-xs font-black text-cyan-400 uppercase tracking-wider flex items-center gap-2">
+                          <Award className="w-4 h-4 text-cyan-400" />
+                          <span>Layout do Painel de Câmeras — Apoio / Parceiros</span>
+                        </h4>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Gerencie os logotipos dos parceiros (Logo 1 e Logo 2) exibidos na barra lateral das Câmeras ao Vivo e no rodapé do portal.
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-bold bg-cyan-950 text-cyan-400 border border-cyan-800/60 px-2.5 py-1 rounded-full shrink-0">
+                        {sponsorsList.length} Marca(s) Cadastrada(s)
+                      </span>
+                    </div>
+
+                    {/* PREVIEW DO LAYOUT SIDEBAR (LOGO 1 E LOGO 2) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                      {/* LOGO 1 SLOT */}
+                      <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between gap-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase font-mono">
+                            POSIÇÃO #1 — LOGO 1
+                          </span>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded ${sponsorsList[0]?.active ? 'bg-emerald-950 text-emerald-400 border border-emerald-800/50' : 'bg-slate-800 text-slate-400'}`}>
+                            {sponsorsList[0] ? (sponsorsList[0].active ? 'ATIVO' : 'INATIVO') : 'VAZIO'}
+                          </span>
+                        </div>
+
+                        <div className="h-14 bg-[#0A1326] border border-dashed border-slate-700/80 rounded-lg flex items-center justify-center p-2 text-center">
+                          {sponsorsList[0]?.logo_url ? (
+                            <img src={sponsorsList[0].logo_url} alt={sponsorsList[0].name} className="max-h-10 max-w-full object-contain" />
+                          ) : (
+                            <span className="text-xs font-bold text-slate-400">
+                              {sponsorsList[0]?.name || 'Logo 1 (Sem imagem)'}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800">
+                          <span className="text-[11px] font-medium text-slate-300 truncate">
+                            {sponsorsList[0]?.name || 'Nenhuma marca vinculada ao Logo 1'}
+                          </span>
+                          {sponsorsList[0] ? (
+                            <button
+                              type="button"
+                              onClick={() => handleEditSponsor(sponsorsList[0])}
+                              className="text-xs text-cyan-400 hover:text-cyan-300 font-bold underline shrink-0 cursor-pointer"
+                            >
+                              Editar Logo 1
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingSponsorId(null);
+                                setSponsorName('');
+                                setSponsorLogoUrl('');
+                                setSponsorWebsite('');
+                                setSponsorDisplayOrder(1);
+                                setSponsorActive(true);
+                              }}
+                              className="text-xs text-cyan-400 hover:text-cyan-300 font-bold underline shrink-0 cursor-pointer"
+                            >
+                              Cadastrar Logo 1
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* LOGO 2 SLOT */}
+                      <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between gap-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase font-mono">
+                            POSIÇÃO #2 — LOGO 2
+                          </span>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded ${sponsorsList[1]?.active ? 'bg-emerald-950 text-emerald-400 border border-emerald-800/50' : 'bg-slate-800 text-slate-400'}`}>
+                            {sponsorsList[1] ? (sponsorsList[1].active ? 'ATIVO' : 'INATIVO') : 'VAZIO'}
+                          </span>
+                        </div>
+
+                        <div className="h-14 bg-[#0A1326] border border-dashed border-slate-700/80 rounded-lg flex items-center justify-center p-2 text-center">
+                          {sponsorsList[1]?.logo_url ? (
+                            <img src={sponsorsList[1].logo_url} alt={sponsorsList[1].name} className="max-h-10 max-w-full object-contain" />
+                          ) : (
+                            <span className="text-xs font-bold text-slate-400">
+                              {sponsorsList[1]?.name || 'Logo 2 (Sem imagem)'}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800">
+                          <span className="text-[11px] font-medium text-slate-300 truncate">
+                            {sponsorsList[1]?.name || 'Nenhuma marca vinculada ao Logo 2'}
+                          </span>
+                          {sponsorsList[1] ? (
+                            <button
+                              type="button"
+                              onClick={() => handleEditSponsor(sponsorsList[1])}
+                              className="text-xs text-cyan-400 hover:text-cyan-300 font-bold underline shrink-0 cursor-pointer"
+                            >
+                              Editar Logo 2
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingSponsorId(null);
+                                setSponsorName('');
+                                setSponsorLogoUrl('');
+                                setSponsorWebsite('');
+                                setSponsorDisplayOrder(2);
+                                setSponsorActive(true);
+                              }}
+                              className="text-xs text-cyan-400 hover:text-cyan-300 font-bold underline shrink-0 cursor-pointer"
+                            >
+                              Cadastrar Logo 2
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <form onSubmit={handleSaveSponsorSubmit} className="bg-[#0F172A] border border-slate-800 p-5 rounded-2xl space-y-4">
                     <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
                       {editingSponsorId ? 'Editar Patrocinador' : 'Adicionar Novo Patrocinador'}

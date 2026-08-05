@@ -318,8 +318,13 @@ class LocalStore {
 
   getCamerasByCity(citySlug: string): CityCamera[] {
     if (!citySlug) return [];
+    const cleanTarget = citySlug.replace(/-/g, '').toLowerCase();
     return this.cameras
-      .filter((c) => c.city_slug === citySlug && (c.ativo ?? true))
+      .filter((c) => {
+        const rawCamSlug = c.city_slug || '';
+        const cleanCamSlug = rawCamSlug.replace(/-/g, '').toLowerCase();
+        return (rawCamSlug === citySlug || cleanCamSlug === cleanTarget) && (c.ativo ?? true);
+      })
       .sort((a, b) => (a.ordem_exibicao || 0) - (b.ordem_exibicao || 0));
   }
 
@@ -1148,10 +1153,11 @@ export async function fetchCamerasByCity(citySlug: string): Promise<CityCamera[]
   if (!citySlug) return [];
   if (isSupabaseConfigured && supabase) {
     try {
+      const cleanSlug = citySlug.replace(/-/g, '').toLowerCase();
       const { data, error } = await supabase
         .from('city_cameras')
         .select('*')
-        .eq('city_slug', citySlug)
+        .or(`city_slug.eq.${citySlug},city_slug.eq.${cleanSlug}`)
         .eq('ativo', true)
         .order('ordem_exibicao', { ascending: true });
       if (!error && data && data.length > 0) return data as CityCamera[];
