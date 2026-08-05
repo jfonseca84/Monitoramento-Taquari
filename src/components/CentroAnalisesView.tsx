@@ -1443,18 +1443,18 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
 
           </div>
 
-          {/* BOTTOM LINK: VISÃO DA BACIA */}
+          {/* BOTTOM LINK: DIAGNÓSTICO DE INTEGRIDADE */}
           <div className="pt-2 border-t border-slate-300 dark:border-slate-800/80">
             <button
-              onClick={() => setSelectedStationId('lajeado')}
+              onClick={() => setIsIntegrityModalOpen(true)}
               className="w-full px-2.5 py-2 bg-slate-50 dark:bg-[#050A18] hover:bg-slate-100 dark:hover:bg-[#0F1B35] border border-slate-300 dark:border-slate-800 rounded-xl text-left flex items-center gap-2.5 transition-colors cursor-pointer group"
             >
-              <div className="w-6 h-6 rounded-lg bg-cyan-950/80 border border-cyan-800/60 flex items-center justify-center text-cyan-400 shrink-0">
-                <MapIcon className="w-3.5 h-3.5" />
+              <div className="w-6 h-6 rounded-lg bg-emerald-950/80 border border-emerald-800/60 flex items-center justify-center text-emerald-400 shrink-0">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
               </div>
               <div className="min-w-0">
-                <span className="text-[11px] font-bold text-slate-900 dark:text-white block truncate">Visão da Bacia</span>
-                <span className="text-[9px] text-slate-500 dark:text-slate-400 block truncate">Mapa geral do Vale do Taquari</span>
+                <span className="text-[11px] font-bold text-slate-900 dark:text-white block truncate">Diagnóstico de Integridade</span>
+                <span className="text-[9px] text-slate-500 dark:text-slate-400 block truncate">Verificação do sistema e consistência</span>
               </div>
             </button>
           </div>
@@ -1509,50 +1509,6 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
             </div>
           </header>
 
-          {/* ---------------------------------------------------- */}
-          {/* BARRA DE RASTREABILIDADE E QUALIDADE DOS DADOS (DATA PIPELINE TRANSPARENCY) */}
-          {/* ---------------------------------------------------- */}
-          <div className="bg-slate-900/90 dark:bg-[#050A18] border border-cyan-500/30 rounded-2xl p-2.5 px-3.5 shadow-lg flex flex-col lg:flex-row items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-[10px] font-mono font-bold uppercase">
-                <Database className="w-3 h-3" /> MONITORAÇÃO AUDITADA
-              </span>
-              <span className="text-slate-300 font-medium text-[11px] flex items-center gap-1">
-                <Server className="w-3 h-3 text-emerald-400" />
-                <strong className="text-white">Fonte dos Dados:</strong> <span className="text-cyan-300 text-[11px] font-semibold">Redes Oficiais (SGB/CPRM, INMET, ANA)</span>
-              </span>
-              <span className="text-slate-400 text-[11px] hidden xl:inline">|</span>
-              <span className="text-slate-300 text-[11px] flex items-center gap-1">
-                <Radio className="w-3 h-3 text-cyan-400 animate-pulse" />
-                <strong className="text-white">Atualização:</strong> Automática a cada 5m
-              </span>
-              <span className="text-slate-400 text-[11px] hidden xl:inline">|</span>
-              <span className="text-emerald-400 font-semibold text-[11px] flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" />
-                <span>Status: Validação Contínua (Sem Divergências)</span>
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => { setAuditViewMode('public'); setIsAuditModalOpen(true); }}
-                className="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 font-bold text-[10.5px] transition-all cursor-pointer flex items-center gap-1.5"
-                title="Ver origem institucional e transparência dos dados"
-              >
-                <Search className="w-3 h-3 text-cyan-400" />
-                <span>🔍 Origem e Qualidade dos Dados</span>
-              </button>
-              
-              <button
-                onClick={() => setIsIntegrityModalOpen(true)}
-                className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-bold text-[10.5px] transition-all cursor-pointer flex items-center gap-1.5"
-                title="Executar verificação de consistência e integridade"
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>🛡️ Diagnóstico de Integridade</span>
-              </button>
-            </div>
-          </div>
           {activeMainTab === 'meteorologico' ? (
             <section className="bg-white dark:bg-[#091122] border border-slate-300 dark:border-[#162342] rounded-2xl py-2.5 px-3.5 sm:px-4 shadow-2xl">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3 lg:gap-3.5 divide-y md:divide-y-0 md:divide-x divide-slate-800/80 items-center">
@@ -2523,7 +2479,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                       <div className="bg-slate-50 dark:bg-[#050A18]/60 rounded-xl p-2.5 border border-slate-200 dark:border-slate-800/80 flex flex-col justify-between h-[82px]">
                         <span className="text-[10px] text-slate-500 dark:text-slate-400 block leading-tight font-medium">Tempo de Resposta</span>
                         <div className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-none whitespace-nowrap">6h 40m</div>
-                        <div className="text-[9px] text-slate-500 dark:text-slate-400 font-medium truncate">Montante → {currentStation.name}</div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate" title={`Montante → ${currentStation.name}`}>Montante → {currentStation.name}</div>
                       </div>
                     </div>
                   </div>
@@ -2573,35 +2529,35 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                 </div>
 
                 {/* PAINEL DIREITO */}
-                <div className="lg:col-span-5 bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-3.5 sm:p-4 shadow-xl flex flex-col justify-between gap-3">
+                <div className="lg:col-span-5 bg-white dark:bg-[#070F26] border border-slate-300 dark:border-slate-800/90 rounded-2xl p-3.5 sm:p-4 shadow-xl flex flex-col justify-between gap-3">
                   <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Propagação da Onda de Cheia</h4>
                   
                   {/* Cards Chain */}
-                  <div className="flex flex-row items-stretch justify-between gap-1 w-full">
+                  <div className="flex flex-row items-center justify-between gap-1 sm:gap-1.5 w-full overflow-x-auto no-scrollbar py-1">
                     {propagacaoChain.map((station, idx) => (
                       <React.Fragment key={idx}>
                         {idx > 0 && (
                           <div className="flex flex-col items-center justify-center shrink-0 px-0.5 my-auto">
-                            <div className="w-5 h-5 rounded-full border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 flex items-center justify-center text-slate-500 dark:text-slate-300 shrink-0">
-                              <ArrowRight className="w-3 h-3" />
+                            <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/90 flex items-center justify-center text-slate-500 dark:text-slate-300 shrink-0 shadow-sm">
+                              <ArrowRight className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                             </div>
-                            <span className="text-[9px] text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap mt-1">{station.timeDiff}</span>
+                            <span className="text-[9px] sm:text-[9.5px] text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap mt-1">{station.timeDiff}</span>
                           </div>
                         )}
-                        <div className={`bg-slate-50 dark:bg-[#050A18]/90 border ${idx === propagacaoChain.length - 1 ? 'border-2 border-cyan-500 dark:border-sky-500 shadow-[0_0_15px_rgba(14,165,233,0.2)]' : 'border-slate-300 dark:border-slate-800/80'} rounded-xl p-2.5 sm:p-3 flex-1 min-w-0 text-left flex flex-col justify-between transition-colors`}>
-                          <div className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm mb-1.5 truncate">{station.name}</div>
-                          <div className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-300 mb-0.5">
-                            Nível: <span className="font-medium text-slate-800 dark:text-slate-200">{station.level}</span>
+                        <div className={`bg-slate-50 dark:bg-[#030818] border ${idx === propagacaoChain.length - 1 ? 'border-2 border-sky-500 shadow-[0_0_15px_rgba(14,165,233,0.15)]' : 'border-slate-300 dark:border-slate-800/90'} rounded-xl p-2 sm:p-2.5 flex-1 min-w-[95px] text-left flex flex-col justify-between transition-colors`}>
+                          <div className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm mb-1.5 whitespace-nowrap leading-tight">{station.name}</div>
+                          <div className="text-[10.5px] sm:text-xs text-slate-600 dark:text-slate-400 leading-snug whitespace-nowrap">
+                            Nível: <span className="font-semibold text-slate-900 dark:text-slate-200">{station.level}</span>
                           </div>
-                          <div className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-300 mb-2">
-                            Variação: <span className="font-medium text-slate-800 dark:text-slate-200">{station.variacao}</span>
+                          <div className="text-[10.5px] sm:text-xs text-slate-600 dark:text-slate-400 leading-snug whitespace-nowrap mb-2">
+                            Variação: <span className="font-semibold text-slate-900 dark:text-slate-200">{station.variacao}</span>
                           </div>
-                          <div className="flex items-center justify-between mt-auto pt-1.5 border-t border-slate-200 dark:border-slate-800/60">
-                            <span className="text-[10px] sm:text-[11px] font-mono text-emerald-500 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                              <span className="inline-block">🕒</span>
+                          <div className="flex items-center justify-between mt-auto pt-1 border-t border-slate-200/60 dark:border-slate-800/60">
+                            <span className="text-[9.5px] sm:text-[10px] font-mono text-emerald-500 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-emerald-500 dark:text-emerald-400" />
                               <span>{station.delay}</span>
                             </span>
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
+                            <span className="text-[8px] text-emerald-500 dark:text-emerald-400 font-bold">◆</span>
                           </div>
                         </div>
                       </React.Fragment>
@@ -2611,39 +2567,39 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                   {/* Bottom Two Panels */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1 items-stretch">
                     {/* Análise da Propagação */}
-                    <div className="bg-slate-50 dark:bg-[#050B1A] border border-slate-300 dark:border-slate-800/90 rounded-xl p-3.5 flex flex-col justify-between">
-                      <h5 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white mb-2.5">Análise da Propagação</h5>
-                      <ul className="space-y-2 text-[11px] text-slate-600 dark:text-slate-300">
+                    <div className="bg-slate-50 dark:bg-[#030818] border border-slate-300 dark:border-slate-800/90 rounded-xl p-3 sm:p-4 flex flex-col justify-between">
+                      <h5 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white mb-2">Análise da Propagação</h5>
+                      <ul className="flex-1 flex flex-col justify-between text-[11px] sm:text-[11.5px] text-slate-600 dark:text-slate-300 space-y-2">
                         <li className="flex items-center gap-2">
-                          <Droplets className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400 shrink-0" />
-                          <span>Onda de cheia em deslocamento: <span className="text-emerald-500 font-semibold">Normal</span></span>
+                          <Droplets className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Onda de cheia em deslocamento: <span className="text-emerald-500 dark:text-emerald-400 font-semibold">Normal</span></span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <Target className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400 shrink-0" />
-                          <span>Tempo total de propagação até Lajeado: <span className="text-slate-900 dark:text-white font-bold">7h 10m</span></span>
+                          <Target className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Tempo total de propagação até Lajeado: <span className="text-slate-900 dark:text-white font-semibold">7h 10m</span></span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <Waves className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400 shrink-0" />
-                          <span>Comportamento: <span className="text-emerald-500 font-semibold">Estável</span></span>
+                          <Waves className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Comportamento: <span className="text-emerald-500 dark:text-emerald-400 font-semibold">Estável</span></span>
                         </li>
-                        <li className="flex items-center gap-2 pt-1 border-t border-slate-200 dark:border-slate-800/80">
-                          <Info className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400 shrink-0" />
+                        <li className="flex items-center gap-2">
+                          <Info className="w-4 h-4 text-sky-400 shrink-0" />
                           <span className="text-slate-500 dark:text-slate-400 text-[10.5px]">Não há formação de picos significativos no momento.</span>
                         </li>
                       </ul>
                     </div>
                     
                     {/* Comparativo com Eventos Históricos */}
-                    <div className="bg-slate-50 dark:bg-[#050B1A] border border-slate-300 dark:border-slate-800/90 rounded-xl p-3.5 flex flex-col justify-between">
-                      <h5 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white mb-2.5">Comparativo com Eventos Históricos</h5>
-                      <ul className="space-y-1.5 text-[11px]">
+                    <div className="bg-slate-50 dark:bg-[#030818] border border-slate-300 dark:border-slate-800/90 rounded-xl p-3 sm:p-4 flex flex-col justify-between">
+                      <h5 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white mb-2">Comparativo com Eventos Históricos</h5>
+                      <ul className="flex-1 flex flex-col justify-between text-[11px] sm:text-[11.5px]">
                         {historicoCheias.map((item, i) => (
-                          <li key={i} className={`flex items-center justify-between pb-1 ${i !== historicoCheias.length - 1 ? 'border-b border-slate-200 dark:border-slate-800/80' : ''}`}>
+                          <li key={i} className={`flex items-center justify-between py-1.5 ${i !== historicoCheias.length - 1 ? 'border-b border-slate-200 dark:border-slate-800/80' : ''}`}>
                             <div className="flex items-center gap-1">
                               <span className="text-slate-700 dark:text-slate-300 font-medium">{item.name}</span>
-                              {item.label && <span className="text-[10px] text-slate-400">{item.label}</span>}
+                              {item.label && <span className="text-[10px] text-slate-500 dark:text-slate-400">{item.label}</span>}
                             </div>
-                            <span className={`font-mono font-black text-xs sm:text-sm ${item.color}`}>{item.value}</span>
+                            <span className={`font-mono font-bold text-xs sm:text-sm ${item.color}`}>{item.value}</span>
                           </li>
                         ))}
                       </ul>

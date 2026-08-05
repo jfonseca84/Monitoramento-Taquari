@@ -1,0 +1,260 @@
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { ComponentConfig, DashboardLayoutState } from '../types/visualEditor';
+
+const LAYOUT_STORAGE_KEY = 'rio_taquari_layout_editor_config_v1';
+
+interface VisualEditorContextType {
+  isEditMode: boolean;
+  isAdmin: boolean;
+  configs: Record<string, ComponentConfig>;
+  activeEditingId: string | null;
+  toggleEditMode: () => void;
+  setEditMode: (enabled: boolean) => void;
+  setIsAdmin: (isAdmin: boolean) => void;
+  getComponentConfig: (id: string, defaultConfig?: Partial<ComponentConfig>) => ComponentConfig;
+  updateComponentConfig: (id: string, updates: Partial<ComponentConfig>) => void;
+  openConfigModal: (id: string) => void;
+  closeConfigModal: () => void;
+  resetToDefaultLayout: () => void;
+  exportLayoutJSON: () => string;
+  importLayoutJSON: (jsonString: string) => boolean;
+  saveLayoutToStorage: () => Promise<void>;
+  duplicateComponent: (id: string) => void;
+  deleteComponent: (id: string) => void;
+  moveComponent: (id: string, direction: 'up' | 'down') => void;
+}
+
+const VisualEditorContext = createContext<VisualEditorContextType>({
+  isEditMode: false,
+  isAdmin: false,
+  configs: {},
+  activeEditingId: null,
+  toggleEditMode: () => {},
+  setEditMode: () => {},
+  setIsAdmin: () => {},
+  getComponentConfig: (id, defaultConfig) => ({
+    id,
+    name: defaultConfig?.name || id,
+    visible: true,
+    width: defaultConfig?.width || 'full',
+    ...defaultConfig,
+  }),
+  updateComponentConfig: () => {},
+  openConfigModal: () => {},
+  closeConfigModal: () => {},
+  resetToDefaultLayout: () => {},
+  exportLayoutJSON: () => '',
+  importLayoutJSON: () => false,
+  saveLayoutToStorage: async () => {},
+  duplicateComponent: () => {},
+  deleteComponent: () => {},
+  moveComponent: () => {},
+});
+
+export const VisualEditorProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('admin_authenticated');
+      return stored === 'true' || window.location.pathname === '/admin' || window.location.hash === '#admin';
+    }
+    return false;
+  });
+  const [configs, setConfigs] = useState<Record<string, ComponentConfig>>({});
+  const [activeEditingId, setActiveEditingId] = useState<string | null>(null);
+
+  // Load configs on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const saved = localStorage.getItem(LAYOUT_STORAGE_KEY);
+      if (saved) {
+        const parsed: DashboardLayoutState = JSON.parse(saved);
+        if (parsed && parsed.components) {
+          setConfigs(parsed.components);
+        }
+      }
+    } catch (e) {
+      console.error('Error loading saved visual layout config:', e);
+    }
+  }, []);
+
+  const toggleEditMode = () => {
+    setIsEditMode(prev => !prev);
+  };
+
+  const setEditMode = (enabled: boolean) => {
+    setIsEditMode(enabled);
+  };
+
+  const getComponentConfig = (id: string, defaultConfig?: Partial<ComponentConfig>): ComponentConfig => {
+    const existing = configs[id];
+    if (existing) {
+      return {
+        ...existing,
+        // Fallback default values
+        visible: existing.visible ?? true,
+        width: existing.width || defaultConfig?.width || 'full',
+      };
+    }
+    // Return default initial config
+    return {
+      id,
+      name: defaultConfig?.name || id,
+      type: defaultConfig?.type || 'card',
+      title: defaultConfig?.title || '',
+      subtitle: defaultConfig?.subtitle || '',
+      visible: true,
+      order: defaultConfig?.order ?? 0,
+      width: defaultConfig?.width || 'full',
+      height: defaultConfig?.height || 'auto',
+      alignment: defaultConfig?.alignment || 'left',
+      theme: defaultConfig?.theme || 'default',
+      borderWidth: defaultConfig?.borderWidth || '1px',
+      borderRadius: defaultConfig?.borderRadius || 'xl',
+      transparency: defaultConfig?.transparency ?? 0,
+      station: defaultConfig?.station || '',
+      municipality: defaultConfig?.municipality || '',
+      dataSource: defaultConfig?.dataSource || '',
+      updateInterval: defaultConfig?.updateInterval || '5m',
+      showLegend: defaultConfig?.showLegend ?? true,
+      showProjections: defaultConfig?.showProjections ?? true,
+      showUncertaintyBands: defaultConfig?.showUncertaintyBands ?? true,
+      isLocked: defaultConfig?.isLocked ?? false,
+      ...defaultConfig,
+    };
+  };
+
+  const updateComponentConfig = (id: string, updates: Partial<ComponentConfig>) => {
+    setConfigs(prev => {
+      const current = prev[id] || getComponentConfig(id);
+      const updated = {
+        ...current,
+        ...updates,
+      };
+      const nextConfigs = {
+        ...prev,
+        [id]: updated,
+      };
+
+      // Auto save to localStorage
+      try {
+        const stateToSave: DashboardLayoutState = {
+          version: 1,
+          updatedAt: new Date().toISOString(),
+          components: nextConfigs,
+        };
+        localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(stateToSave));
+      } catch (e) {
+        console.error('Failed to save layout:', e);
+      }
+
+      return nextConfigs;
+    });
+  };
+
+  const openConfigModal = (id: string) => {
+    setActiveEditingId(id);
+  };
+
+  const closeConfigModal = () => {
+    setActiveEditingId(null);
+  };
+
+  const resetToDefaultLayout = () => {
+    setConfigs({});
+    try {
+      localStorage.removeItem(LAYOUT_STORAGE_KEY);
+    } catch (e) {}
+  };
+
+  const exportLayoutJSON = (): string => {
+    const stateToExport: DashboardLayoutState = {
+      version: 1,
+      updatedAt: new Date().toISOString(),
+      components: configs,
+    };
+    return JSON.stringify(stateToExport, null, 2);
+  };
+
+  const importLayoutJSON = (jsonString: string): boolean => {
+    try {
+      const parsed: DashboardLayoutState = JSON.parse(jsonString);
+      if (parsed && typeof parsed.components === 'object') {
+        setConfigs(parsed.components);
+        localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(parsed));
+        return true;
+      }
+    } catch (e) {
+      console.error('Invalid layout JSON:', e);
+    }
+    return false;
+  };
+
+  const saveLayoutToStorage = async () => {
+    try {
+      const stateToSave: DashboardLayoutState = {
+        version: 1,
+        updatedAt: new Date().toISOString(),
+        components: configs,
+      };
+      localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(stateToSave));
+    } catch (e) {
+      console.error('Error saving layout:', e);
+    }
+  };
+
+  const duplicateComponent = (id: string) => {
+    const original = configs[id] || getComponentConfig(id);
+    const newId = `${id}_copy_${Date.now()}`;
+    const copy: ComponentConfig = {
+      ...original,
+      id: newId,
+      name: `${original.name || original.id} (Cópia)`,
+    };
+    setConfigs(prev => ({
+      ...prev,
+      [newId]: copy,
+    }));
+  };
+
+  const deleteComponent = (id: string) => {
+    updateComponentConfig(id, { visible: false });
+  };
+
+  const moveComponent = (id: string, direction: 'up' | 'down') => {
+    const current = configs[id] || getComponentConfig(id);
+    const currentOrder = current.order || 0;
+    const newOrder = direction === 'up' ? currentOrder - 1 : currentOrder + 1;
+    updateComponentConfig(id, { order: newOrder });
+  };
+
+  return (
+    <VisualEditorContext.Provider
+      value={{
+        isEditMode,
+        isAdmin,
+        configs,
+        activeEditingId,
+        toggleEditMode,
+        setEditMode,
+        setIsAdmin,
+        getComponentConfig,
+        updateComponentConfig,
+        openConfigModal,
+        closeConfigModal,
+        resetToDefaultLayout,
+        exportLayoutJSON,
+        importLayoutJSON,
+        saveLayoutToStorage,
+        duplicateComponent,
+        deleteComponent,
+        moveComponent,
+      }}
+    >
+      {children}
+    </VisualEditorContext.Provider>
+  );
+};
+
+export const useVisualEditor = () => useContext(VisualEditorContext);

@@ -1,7 +1,8 @@
 import React from 'react';
-import { Waves, Lock, Moon, Sun, Radio } from 'lucide-react';
+import { Waves, Lock, Moon, Sun, Radio, Pencil } from 'lucide-react';
 import { ConnectionStatusType } from '../lib/supabase';
 import { useSiteSettings } from '../context/SiteSettingsContext';
+import { useVisualEditor } from '../context/VisualEditorContext';
 
 interface HeaderProps {
   activeTab: string;
@@ -25,6 +26,8 @@ export const Header: React.FC<HeaderProps> = ({
   lastUpdatedText = ''
 }) => {
   const { settings } = useSiteSettings();
+  const { isAdmin, isEditMode, setEditMode } = useVisualEditor();
+
   const navItems = [
     { id: 'inicio', label: 'INÍCIO' },
     { id: 'centro-analises', label: 'CENTRO DE ANÁLISES' },
@@ -100,6 +103,21 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* ACTIONS */}
         <div className="flex items-center gap-3">
+          {isAdmin && (
+            <button
+              onClick={() => setEditMode(!isEditMode)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                isEditMode
+                  ? 'bg-cyan-500 text-black shadow-cyan-500/20'
+                  : 'bg-cyan-950/80 hover:bg-cyan-900 text-cyan-400 border border-cyan-800'
+              }`}
+              title="Ativar modo de edição visual de componentes e dashboards"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              <span>{isEditMode ? 'Sair da Edição' : 'Editar Dashboard'}</span>
+            </button>
+          )}
+
           <button 
             onClick={onToggleTheme}
             title={theme === 'dark' ? "Mudar para Modo Claro" : "Mudar para Modo Escuro"}

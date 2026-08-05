@@ -53,6 +53,7 @@ import { AlertDispatchItem } from '../types';
 import { ResidentsIntelligenceView } from './ResidentsIntelligenceView';
 import { AdminCentroAnalisesView } from './AdminCentroAnalisesView';
 import { useSiteSettings } from '../context/SiteSettingsContext';
+import { useVisualEditor } from '../context/VisualEditorContext';
 import {
   X,
   LayoutDashboard,
@@ -133,6 +134,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [authError, setAuthError] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const { isEditMode, setEditMode, setIsAdmin, exportLayoutJSON, importLayoutJSON, resetToDefaultLayout, configs } = useVisualEditor();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      setIsAdmin(true);
+    }
+  }, [isAuthenticated, setIsAdmin]);
 
   // Operational state
   const [citiesList, setCitiesList] = useState<City[]>(initialCities);
@@ -1392,6 +1400,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   {userRole}
                 </span>
               </div>
+            )}
+            {isAuthenticated && (
+              <button
+                onClick={() => {
+                  setEditMode(true);
+                  onClose();
+                }}
+                className="flex items-center gap-1.5 text-xs text-cyan-400 bg-cyan-950/80 hover:bg-cyan-900 px-3 py-1.5 rounded-lg border border-cyan-800 transition-all font-bold shadow-sm cursor-pointer"
+                title="Ativar modo de edição visual no site ao vivo"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                <span>Ativar Editor Visual</span>
+              </button>
             )}
             {isAuthenticated && (
               <button
