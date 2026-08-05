@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://nivelriotaquari.com.br/sitemap.xml

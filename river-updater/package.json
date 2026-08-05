@@ -1,0 +1,29 @@
+{
+  "name": "river-monitor-worker",
+  "version": "1.0.0",
+  "description": "Serviço autônomo e independente para sincronização e atualização de dados hidrológicos do Rio Taquari no Supabase",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "sync": "tsx src/sync.ts",
+    "monitor": "tsx src/monitor.ts",
+    "test": "tsx src/tests/worker.test.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.111.0",
+    "dotenv": "^17.2.3",
+    "node-cron": "^4.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@types/node-cron": "^3.0.11",
+    "tsx": "^4.21.0",
+    "typescript": "~5.8.2"
+  }
+}
