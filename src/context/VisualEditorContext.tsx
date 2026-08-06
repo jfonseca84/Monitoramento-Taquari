@@ -54,13 +54,20 @@ const VisualEditorContext = createContext<VisualEditorContextType>({
 
 export const VisualEditorProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
-  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+  const [isAdminState, setIsAdminState] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('admin_authenticated');
       return stored === 'true' || window.location.pathname === '/admin' || window.location.hash === '#admin';
     }
     return false;
   });
+
+  const setIsAdmin = (value: boolean) => {
+    setIsAdminState(value);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('admin_authenticated', value ? 'true' : 'false');
+    }
+  };
   const [configs, setConfigs] = useState<Record<string, ComponentConfig>>({});
   const [activeEditingId, setActiveEditingId] = useState<string | null>(null);
 
@@ -252,7 +259,7 @@ export const VisualEditorProvider: React.FC<{ children: ReactNode }> = ({ childr
     <VisualEditorContext.Provider
       value={{
         isEditMode,
-        isAdmin,
+        isAdmin: isAdminState,
         configs,
         activeEditingId,
         toggleEditMode,

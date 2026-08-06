@@ -237,7 +237,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen dark:bg-[#0B132B] bg-slate-100 dark:text-slate-100 text-slate-900 font-sans selection:bg-cyan-500 selection:text-white flex flex-col justify-between notranslate transition-colors duration-300" translate="no">
+    <div className="min-h-screen dark:bg-[#0B132B] bg-slate-100 dark:text-slate-100 text-slate-900 font-sans selection:bg-cyan-500 selection:text-white flex flex-col justify-between notranslate transition-colors duration-300 overflow-x-hidden w-full max-w-full" translate="no">
       
       {/* HEADER */}
       <Header
@@ -263,7 +263,7 @@ export default function App() {
       </EditableComponent>
 
       {/* MAIN CONTENT CANVAS */}
-      <main className="max-w-[1600px] w-full mx-auto px-4 lg:px-8 py-6 flex-1">
+      <main className="max-w-[1600px] w-full mx-auto px-2.5 sm:px-4 lg:px-8 py-4 sm:py-6 flex-1 min-w-0">
         
         {/* VIEW ROUTER */}
         {activeTab === 'inicio' ? (

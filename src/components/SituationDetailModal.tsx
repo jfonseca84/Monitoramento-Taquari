@@ -132,21 +132,21 @@ export const SituationDetailModal: React.FC<SituationDetailModalProps> = ({
       <div className="relative w-full max-w-4xl bg-[#0F172A] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         
         {/* HEADER BAR */}
-        <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/80">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
-              <Radio className="w-6 h-6 animate-pulse" />
+        <div className="px-3.5 sm:px-5 py-3 sm:py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/80">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="p-1.5 sm:p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 shrink-0">
+              <Radio className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-black text-white tracking-wide">
+                <h2 className="text-sm sm:text-lg font-black text-white tracking-wide truncate">
                   Painel de Situação do Vale do Taquari
                 </h2>
-                <span className="hidden sm:inline-block px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-400 text-[10px] font-mono border border-cyan-500/20">
+                <span className="hidden md:inline-block px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-400 text-[10px] font-mono border border-cyan-500/20 shrink-0">
                   LIVE TELEMETRY
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-[11px] sm:text-xs text-slate-400 truncate">
                 Central telemétrica de monitoramento em tempo real das bacias hidrográficas
               </p>
             </div>
@@ -154,14 +154,14 @@ export const SituationDetailModal: React.FC<SituationDetailModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1.5 sm:p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
 
         {/* CITY SELECTOR TABS (SORTED BY CRITICALITY PRECEDENCE) */}
-        <div className="px-5 py-3 border-b border-slate-800/80 bg-slate-950/50 overflow-x-auto no-scrollbar flex items-center gap-2">
+        <div className="px-3.5 sm:px-5 py-2.5 sm:py-3 border-b border-slate-800/80 bg-slate-950/50 overflow-x-auto touch-pan-x no-scrollbar flex items-center gap-2 max-w-full">
           {sortedCities.map((city) => {
             const thresh = getCityThresholds(city);
             const cStatus = calculateStatusLevel(city.current_level || 0, thresh);

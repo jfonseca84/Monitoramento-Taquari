@@ -3,6 +3,11 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 html.dark {
   color-scheme: dark;
   background-color: #0B132B;

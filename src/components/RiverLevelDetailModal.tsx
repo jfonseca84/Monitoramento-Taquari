@@ -131,39 +131,39 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-2 md:p-4 overflow-y-auto">
-      <div className="bg-[#0F172A] border border-slate-700/80 rounded-3xl w-full max-w-4xl max-h-[92vh] overflow-y-auto p-4 md:p-6 shadow-2xl relative text-slate-100 my-auto custom-scrollbar">
+      <div className="bg-[#0F172A] border border-slate-700/80 rounded-2xl sm:rounded-3xl w-full max-w-4xl max-h-[92vh] overflow-y-auto p-3 sm:p-4 md:p-6 shadow-2xl relative text-slate-100 my-auto custom-scrollbar">
         
         {/* TOP STATUS & CLOSE HEADER */}
-        <div className="flex items-start justify-between gap-4 border-b border-slate-800 pb-4 mb-5">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <div className={`px-3 py-0.5 rounded-full border text-[11px] font-extrabold tracking-wider flex items-center gap-1.5 ${statusInfo.pill}`}>
+        <div className="flex items-start justify-between gap-2 sm:gap-4 border-b border-slate-800 pb-3 sm:pb-4 mb-4 sm:mb-5">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+              <div className={`px-2.5 sm:px-3 py-0.5 rounded-full border text-[10px] sm:text-[11px] font-extrabold tracking-wider flex items-center gap-1.5 ${statusInfo.pill}`}>
                 <StatusDot status={selectedCity.status_level} size="sm" />
                 <span>{statusInfo.label}</span>
               </div>
             </div>
-            <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight truncate">
               {selectedCity.name}
             </h2>
-            <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
-              <span className="w-2 h-2 rounded-full bg-red-500 animate-ping inline-block" />
+            <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-slate-400 mt-1 flex-wrap">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-ping inline-block shrink-0" />
               <span className="text-slate-300 font-medium">
                 {selectedCity.river || 'Rio Taquari'}
               </span>
               <span>•</span>
-              <span>atualizado {selectedCity.last_updated && selectedCity.last_updated !== 'Atualizando...' ? selectedCity.last_updated : getBrasiliaLastUpdatedString()}</span>
+              <span className="truncate">atualizado {selectedCity.last_updated && selectedCity.last_updated !== 'Atualizando...' ? selectedCity.last_updated : getBrasiliaLastUpdatedString()}</span>
             </div>
-            <p className="text-xs font-semibold text-red-400/90 mt-1">
+            <p className="text-[11px] sm:text-xs font-semibold text-red-400/90 mt-1">
               {statusInfo.text}
             </p>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-700 rounded-full transition-colors shrink-0"
+            className="p-1.5 sm:p-2 text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-700 rounded-full transition-colors shrink-0"
             title="Fechar"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
 
@@ -312,7 +312,7 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
         </div>
 
         {/* 10 METRICS GRID */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3 mb-5">
           {/* CARD 1: NÍVEL ATUAL */}
           <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl flex flex-col justify-between">
             <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">NÍVEL ATUAL</span>

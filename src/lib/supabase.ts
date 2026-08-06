@@ -1621,6 +1621,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   about_feature3_title: 'Alertas Automatizados',
   about_feature3_text: 'Emissão direta para prefeituras e órgãos de segurança comunitária assim que o nível atinge a cota de atenção.',
   centro_analises_public_mode: 'original',
+  alertas_public_mode: 'original',
   updated_at: new Date().toISOString()
 };
 
@@ -1653,6 +1654,8 @@ export async function fetchSiteSettings(): Promise<SiteSettings> {
           about_feature2_text: data.about_feature2_text || DEFAULT_SITE_SETTINGS.about_feature2_text,
           about_feature3_title: data.about_feature3_title || DEFAULT_SITE_SETTINGS.about_feature3_title,
           about_feature3_text: data.about_feature3_text || DEFAULT_SITE_SETTINGS.about_feature3_text,
+          centro_analises_public_mode: data.centro_analises_public_mode || DEFAULT_SITE_SETTINGS.centro_analises_public_mode,
+          alertas_public_mode: data.alertas_public_mode || DEFAULT_SITE_SETTINGS.alertas_public_mode,
         };
         if (typeof window !== 'undefined') {
           // Merge with local storage if local storage has newer values
@@ -1707,6 +1710,17 @@ export async function saveSiteSettings(updates: Partial<SiteSettings>): Promise<
           site_description: updated.site_description,
           logo_url: updated.logo_url,
           favicon_url: updated.favicon_url,
+          about_badge: updated.about_badge,
+          about_title: updated.about_title,
+          about_text: updated.about_text,
+          about_feature1_title: updated.about_feature1_title,
+          about_feature1_text: updated.about_feature1_text,
+          about_feature2_title: updated.about_feature2_title,
+          about_feature2_text: updated.about_feature2_text,
+          about_feature3_title: updated.about_feature3_title,
+          about_feature3_text: updated.about_feature3_text,
+          centro_analises_public_mode: updated.centro_analises_public_mode,
+          alertas_public_mode: updated.alertas_public_mode,
           updated_at: updated.updated_at
         })
         .select()

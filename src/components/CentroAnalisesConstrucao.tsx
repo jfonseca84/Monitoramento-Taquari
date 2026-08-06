@@ -14,7 +14,15 @@ import {
   Code2
 } from 'lucide-react';
 
-export const CentroAnalisesConstrucao: React.FC = () => {
+interface CentroAnalisesConstrucaoProps {
+  title?: string;
+  subtitle?: string;
+}
+
+export const CentroAnalisesConstrucao: React.FC<CentroAnalisesConstrucaoProps> = ({
+  title = "Coletando dados para exibição... Volte depois.",
+  subtitle = "Estamos configurando o Centro de Análises para disponibilizar informações mais completas, consistentes e confiáveis. Volte em breve."
+}) => {
   // Folder tree open state
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({
     dashboard: true,
@@ -417,10 +425,10 @@ export const CentroAnalisesConstrucao: React.FC = () => {
                 </div>
                 <div className="space-y-1">
                   <h4 className="text-sm font-bold text-cyan-200 tracking-tight flex items-center justify-center sm:justify-start gap-2">
-                    <span>Coletando dados para exibição... Volte depois.</span>
+                    <span>{title}</span>
                   </h4>
                   <p className="text-xs text-slate-300 leading-relaxed">
-                    Estamos configurando o Centro de Análises para disponibilizar informações mais completas, consistentes e confiáveis. Volte em breve.
+                    {subtitle}
                   </p>
                 </div>
               </div>

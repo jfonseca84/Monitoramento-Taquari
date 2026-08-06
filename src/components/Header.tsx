@@ -98,8 +98,8 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* NAVIGATION LINKS - REPOSITIONED SLIGHTLY RIGHT WITH COMPACT UNIFORM SPACING */}
-        <div className="hidden xl:flex items-center justify-end flex-1 mr-2">
+        {/* NAVIGATION LINKS - CENTERED */}
+        <div className="hidden xl:flex items-center justify-center flex-1">
           <nav className="flex items-center gap-1 lg:gap-1.5">
             
             {/* Primary Nav Items */}
@@ -242,7 +242,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* MOBILE NAVIGATION BAR */}
-      <div className="flex xl:hidden overflow-x-auto touch-pan-x max-w-full no-scrollbar gap-1.5 px-3 sm:px-4 py-2 dark:border-slate-800/60 border-slate-200 border-t">
+      <div className="flex xl:hidden overflow-x-auto touch-pan-x max-w-full no-scrollbar justify-start sm:justify-center gap-1.5 px-3 sm:px-4 py-2 dark:border-slate-800/60 border-slate-200 border-t">
         {primaryNavItems.map((item) => (
           <button
             key={item.id}

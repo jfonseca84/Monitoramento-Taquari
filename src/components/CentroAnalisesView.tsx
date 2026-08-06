@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CotasLibrarySection } from './CotasLibrarySection';
 import { EditableComponent } from './visualEditor/EditableComponent';
 import { useSiteSettings } from '../context/SiteSettingsContext';
+import { useVisualEditor } from '../context/VisualEditorContext';
 import { CentroAnalisesConstrucao } from './CentroAnalisesConstrucao';
 import { 
   TrendingUp, 
@@ -690,6 +691,7 @@ function getWindCardinal(deg: number): string {
 
 export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ theme = 'dark' }) => {
   const { settings } = useSiteSettings();
+  const { isAdmin } = useVisualEditor();
 
   // Navigation & Filter States
   const [selectedStationId, setSelectedStationId] = useState<string>('lajeado');
@@ -1303,7 +1305,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
     }
   }, [chatMessages, isThinking]);
 
-  if (settings.centro_analises_public_mode === 'construcao') {
+  if (settings.centro_analises_public_mode === 'construcao' && !isAdmin) {
     return (
       <div className="w-full min-h-screen bg-transparent text-slate-800 dark:text-slate-100 font-sans flex flex-col antialiased px-0 py-0">
         <CentroAnalisesConstrucao />
@@ -1313,6 +1315,15 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
 
   return (
     <div className="w-full min-h-screen bg-transparent text-slate-800 dark:text-slate-100 font-sans flex flex-col antialiased">
+      {settings.centro_analises_public_mode === 'construcao' && isAdmin && (
+        <div className="w-full bg-amber-950/90 border-b border-amber-800 text-amber-200 px-4 py-2.5 text-xs font-bold flex items-center justify-between gap-2 shadow-md">
+          <div className="flex items-center gap-2">
+            <span className="p-1 bg-amber-500/20 text-amber-400 rounded">⚠️</span>
+            <span>Modo de Manutenção Ativo para Visitantes. Como Administrador autenticado, você tem acesso liberado a este módulo.</span>
+          </div>
+          <span className="px-2 py-0.5 bg-amber-900 text-amber-300 rounded border border-amber-700 text-[10px] uppercase tracking-wider">Acesso Admin</span>
+        </div>
+      )}
       
       {/* ============================================================ */}
       {/* MAIN LAYOUT: LEFT SIDEBAR + RIGHT DASHBOARD CANVAS */}

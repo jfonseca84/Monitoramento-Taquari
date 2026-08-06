@@ -244,7 +244,7 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({
       </div>
 
       {/* COTAS DE NÍVEL HORIZONTAL BAR */}
-      <div className="relative z-10 mt-2.5 pt-2.5 border-t border-slate-700/60 flex items-center justify-between gap-x-1 sm:gap-x-2 text-[9px] sm:text-[10px] md:text-[11px] font-semibold text-slate-200 leading-none overflow-hidden">
+      <div className="relative z-10 mt-2.5 pt-2.5 border-t border-slate-700/60 flex items-center justify-between gap-x-1.5 sm:gap-x-2 text-[9px] sm:text-[10px] md:text-[11px] font-semibold text-slate-200 leading-none overflow-x-auto touch-pan-x max-w-full no-scrollbar pb-1">
         {/* NÍVEL NORMAL */}
         <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.8)] shrink-0" />

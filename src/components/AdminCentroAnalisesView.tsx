@@ -268,7 +268,7 @@ export const AdminCentroAnalisesView: React.FC = () => {
       </div>
 
       {/* TELA PÚBLICA DO CENTRO DE ANÁLISES (SELETOR ADMINISTRATIVO) */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
@@ -276,35 +276,46 @@ export const AdminCentroAnalisesView: React.FC = () => {
               <span>Tela pública do Centro de Análises</span>
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              Defina qual visualização será exibida para os visitantes do site na aba Centro de Análises.
+              Defina qual visualização será exibida para os visitantes do site na aba Centro de Análises e clique em <strong>Salvar Alterações</strong>.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800 shrink-0">
-            <button
-              type="button"
-              onClick={() => handleTogglePublicMode('original')}
-              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                (settings.centro_analises_public_mode || 'original') === 'original'
-                  ? 'bg-cyan-600 text-white shadow-md shadow-cyan-950/50'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
-              }`}
-            >
-              <Eye className="w-3.5 h-3.5" />
-              <span>Dashboard original</span>
-            </button>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+              <button
+                type="button"
+                onClick={() => handleTogglePublicMode('original')}
+                className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  (settings.centro_analises_public_mode || 'original') === 'original'
+                    ? 'bg-cyan-600 text-white shadow-md shadow-cyan-950/50'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                }`}
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>Dashboard original</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleTogglePublicMode('construcao')}
+                className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  settings.centro_analises_public_mode === 'construcao'
+                    ? 'bg-amber-600 text-white shadow-md shadow-amber-950/50'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                }`}
+              >
+                <BarChart3 className="w-3.5 h-3.5" />
+                <span>Página de Manutenção</span>
+              </button>
+            </div>
 
             <button
               type="button"
-              onClick={() => handleTogglePublicMode('construcao')}
-              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                settings.centro_analises_public_mode === 'construcao'
-                  ? 'bg-amber-600 text-white shadow-md shadow-amber-950/50'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
-              }`}
+              onClick={() => handleTogglePublicMode(settings.centro_analises_public_mode || 'original')}
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-emerald-950/50 cursor-pointer"
             >
-              <BarChart3 className="w-3.5 h-3.5" />
-              <span>Tela de construção</span>
+              <Save className="w-4 h-4" />
+              <span>Salvar Alterações</span>
             </button>
           </div>
         </div>
@@ -313,14 +324,14 @@ export const AdminCentroAnalisesView: React.FC = () => {
           <div className="p-3.5 rounded-xl bg-amber-950/40 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2.5">
             <AlertTriangle className="w-4.5 h-4.5 text-amber-400 shrink-0" />
             <span>
-              <strong>Modo de Construção Ativo:</strong> Visitantes verão a tela temporária inspirada no VS Code com a mensagem "Coletando dados para exibição... Volte em breve." Os dashboards estão ocultos ao público.
+              <strong>Modo de Manutenção Ativo:</strong> Visitantes verão a tela de manutenção ("Coletando dados para exibição... Volte em breve."). Como Administrador, seu acesso continua liberado para configurações.
             </span>
           </div>
         ) : (
           <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2.5">
             <CheckCircle2 className="w-4.5 h-4.5 text-emerald-400 shrink-0" />
             <span>
-              <strong>Dashboard Original Ativo:</strong> Todos os dashboards hidrológicos, mapas e matrizes de análise estão completamente visíveis.
+              <strong>Dashboard Original Ativo:</strong> Todos os dashboards hidrológicos, mapas e matrizes de análise estão completamente visíveis publicamente.
             </span>
           </div>
         )}

@@ -186,7 +186,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   };
 
   return (
-    <div className="w-full dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-3xl p-5 shadow-2xl flex flex-col justify-between relative overflow-hidden h-[500px] transition-all border">
+    <div className="w-full dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-3xl p-3.5 sm:p-5 shadow-2xl flex flex-col justify-between relative overflow-hidden h-[500px] transition-all border">
       
       {/* HEADER */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4 z-10 shrink-0 border-b dark:border-slate-800/80 border-slate-200 pb-3">
@@ -206,14 +206,14 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="hidden xl:inline-flex text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20 items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             {displayCities.length} Estações On-line
           </span>
 
           {/* BACIA SELECTOR SWITCH */}
-          <div className="flex items-center dark:bg-slate-900 bg-slate-100 dark:border-slate-800 border-slate-200 border rounded-xl p-1 text-xs font-bold">
+          <div className="flex items-center dark:bg-slate-900 bg-slate-100 dark:border-slate-800 border-slate-200 border rounded-xl p-1 text-[11px] sm:text-xs font-bold overflow-x-auto max-w-full no-scrollbar">
             <button
               onClick={() => handleBasinChange('taquari')}
               className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${

@@ -76,6 +76,7 @@ import {
   FileText,
   RefreshCw,
   Settings,
+  Wrench,
   Plus,
   Trash2,
   Save,
@@ -395,6 +396,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [updateFreq, setUpdateFreq] = useState<number>(15);
   const [sourceUrl, setSourceUrl] = useState('https://niveldosrios.guerreirosdohumaita.com.br/');
   const [emergencyPhone, setEmergencyPhone] = useState('199');
+  const [centroAnalisesPublicMode, setCentroAnalisesPublicMode] = useState<'original' | 'construcao'>(siteSettings.centro_analises_public_mode || 'original');
+  const [alertasPublicMode, setAlertasPublicMode] = useState<'original' | 'construcao'>(siteSettings.alertas_public_mode || 'original');
 
   useEffect(() => {
     if (siteSettings) {
@@ -413,6 +416,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       if (siteSettings.about_feature2_text) setAboutFeature2Text(siteSettings.about_feature2_text);
       if (siteSettings.about_feature3_title) setAboutFeature3Title(siteSettings.about_feature3_title);
       if (siteSettings.about_feature3_text) setAboutFeature3Text(siteSettings.about_feature3_text);
+
+      if (siteSettings.centro_analises_public_mode) setCentroAnalisesPublicMode(siteSettings.centro_analises_public_mode);
+      if (siteSettings.alertas_public_mode) setAlertasPublicMode(siteSettings.alertas_public_mode);
     }
   }, [siteSettings]);
 
@@ -1363,6 +1369,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         site_description: siteDescription,
         logo_url: logoUrl,
         favicon_url: faviconUrl,
+        centro_analises_public_mode: centroAnalisesPublicMode,
+        alertas_public_mode: alertasPublicMode,
       });
 
       await saveSetting('site_name', siteName, 'Nome oficial do portal');
@@ -4805,6 +4813,121 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             onChange={(e) => setEmergencyPhone(e.target.value)}
                             className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-mono text-xs"
                           />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SEÇÃO 5: PÁGINAS EM MANUTENÇÃO E TELAS PÚBLICAS */}
+                    <div className="bg-[#0F172A] border border-slate-800 p-6 rounded-2xl space-y-4 shadow-sm">
+                      <div className="border-b border-slate-800 pb-3">
+                        <h4 className="text-sm font-bold text-white uppercase flex items-center gap-2">
+                          <Wrench className="w-4 h-4 text-cyan-400" />
+                          5. Páginas em Manutenção / Módulos Públicos
+                        </h4>
+                        <p className="text-slate-400 text-[11px] mt-0.5">
+                          Defina se estes módulos do portal estarão em modo de manutenção para visitantes. Administradores autenticados continuarão com acesso liberado para testes.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* CENTRO DE ANÁLISES */}
+                        <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                              <BarChart3 className="w-4 h-4 text-cyan-400" />
+                              Centro de Análises
+                            </span>
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                              centroAnalisesPublicMode === 'construcao' 
+                                ? 'bg-amber-950/80 text-amber-300 border border-amber-800' 
+                                : 'bg-emerald-950/80 text-emerald-300 border border-emerald-800'
+                            }`}>
+                              {centroAnalisesPublicMode === 'construcao' ? 'Em Manutenção' : 'Ativo (Público)'}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setCentroAnalisesPublicMode('original')}
+                              className={`px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                centroAnalisesPublicMode === 'original'
+                                  ? 'bg-cyan-600 text-white shadow-md'
+                                  : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                              }`}
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Dashboard Normal</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setCentroAnalisesPublicMode('construcao')}
+                              className={`px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                centroAnalisesPublicMode === 'construcao'
+                                  ? 'bg-amber-600 text-white shadow-md'
+                                  : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                              }`}
+                            >
+                              <Wrench className="w-3.5 h-3.5" />
+                              <span>Manutenção</span>
+                            </button>
+                          </div>
+                          <p className="text-[11px] text-slate-400 leading-relaxed">
+                            {centroAnalisesPublicMode === 'construcao' 
+                              ? 'Visitantes verão a tela de manutenção. Administradores acessam o painel completo normalmente.' 
+                              : 'Disponível publicamente para todos os visitantes do portal.'}
+                          </p>
+                        </div>
+
+                        {/* CENTRAL DE ALERTAS */}
+                        <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                              <Bell className="w-4 h-4 text-cyan-400" />
+                              Central de Alertas
+                            </span>
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                              alertasPublicMode === 'construcao' 
+                                ? 'bg-amber-950/80 text-amber-300 border border-amber-800' 
+                                : 'bg-emerald-950/80 text-emerald-300 border border-emerald-800'
+                            }`}>
+                              {alertasPublicMode === 'construcao' ? 'Em Manutenção' : 'Ativo (Público)'}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setAlertasPublicMode('original')}
+                              className={`px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                alertasPublicMode === 'original'
+                                  ? 'bg-cyan-600 text-white shadow-md'
+                                  : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                              }`}
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Cadastro Normal</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setAlertasPublicMode('construcao')}
+                              className={`px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                alertasPublicMode === 'construcao'
+                                  ? 'bg-amber-600 text-white shadow-md'
+                                  : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                              }`}
+                            >
+                              <Wrench className="w-3.5 h-3.5" />
+                              <span>Manutenção</span>
+                            </button>
+                          </div>
+                          <p className="text-[11px] text-slate-400 leading-relaxed">
+                            {alertasPublicMode === 'construcao' 
+                              ? 'Formulário oculto para visitantes com aviso de manutenção. Administradores podem visualizar e testar o formulário.' 
+                              : 'Disponível publicamente para cadastros de novos moradores.'}
+                          </p>
                         </div>
                       </div>
                     </div>
