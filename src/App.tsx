@@ -33,29 +33,42 @@ import { getBrasiliaFullDateTimeString } from './lib/dateUtils';
 import { AlertTriangle, X, Radio, Video, ChevronRight } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      if (window.location.pathname === '/defesa-civil' || window.location.hash === '#defesa-civil') {
-        return 'defesa-civil';
-      }
-    }
+  const getTabFromUrl = (): string => {
+    if (typeof window === 'undefined') return 'inicio';
+    const path = window.location.pathname.toLowerCase().replace(/\/$/, '');
+    const hash = window.location.hash.toLowerCase().replace(/^#/, '');
+
+    if (path === '/defesa-civil' || hash === 'defesa-civil') return 'defesa-civil';
+    if (path === '/centro-de-analises' || path === '/centro-analises' || path === '/nivel' || hash === 'centro-de-analises' || hash === 'centro-analises' || hash === 'nivel') return 'centro-analises';
+    if (path === '/alertas' || path === '/receber-alertas' || hash === 'alertas' || hash === 'receber-alertas') return 'alertas';
+    if (path === '/cameras' || hash === 'cameras') return 'cameras';
+    if (path === '/historico' || hash === 'historico') return 'historico';
+    if (path === '/noticias' || hash === 'noticias') return 'noticias';
+    if (path === '/prefeituras' || hash === 'prefeituras') return 'prefeituras';
+    if (path === '/sobre' || hash === 'sobre') return 'sobre';
+    if (path === '/contato' || hash === 'contato') return 'contato';
     return 'inicio';
-  });
+  };
+
+  const [activeTab, setActiveTab] = useState<string>(getTabFromUrl);
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     if (typeof window !== 'undefined') {
-      if (tab === 'defesa-civil') {
-        try {
-          window.history.pushState({}, '', '/defesa-civil');
-        } catch (e) {}
-      } else if (window.location.pathname === '/defesa-civil') {
-        try {
-          window.history.pushState({}, '', '/');
-        } catch (e) {}
-      }
+      try {
+        const targetPath = tab === 'inicio' ? '/' : `/${tab}`;
+        window.history.pushState({}, '', targetPath);
+      } catch (e) {}
     }
   };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setActiveTab(getTabFromUrl());
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
   const [cities, setCities] = useState<City[]>([]);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [news, setNews] = useState<NewsItem[]>([]);

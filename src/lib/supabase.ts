@@ -1630,6 +1630,10 @@ export async function fetchSiteSettings(): Promise<SiteSettings> {
 
   if (isSupabaseConfigured && supabase) {
     try {
+      // 1. Fetch key-value settings first
+      const kvSettings = await fetchSettings();
+
+      // 2. Fetch site_settings single row
       const { data, error } = await supabase
         .from('site_settings')
         .select('*')
@@ -1640,7 +1644,7 @@ export async function fetchSiteSettings(): Promise<SiteSettings> {
         settings = {
           ...DEFAULT_SITE_SETTINGS,
           ...data,
-          site_name: data.site_name || DEFAULT_SITE_SETTINGS.site_name,
+          site_name: data.site_name || kvSettings.site_name || DEFAULT_SITE_SETTINGS.site_name,
           site_subtitle: data.site_subtitle || DEFAULT_SITE_SETTINGS.site_subtitle,
           site_description: data.site_description || DEFAULT_SITE_SETTINGS.site_description,
           logo_url: data.logo_url || null,
@@ -1654,14 +1658,19 @@ export async function fetchSiteSettings(): Promise<SiteSettings> {
           about_feature2_text: data.about_feature2_text || DEFAULT_SITE_SETTINGS.about_feature2_text,
           about_feature3_title: data.about_feature3_title || DEFAULT_SITE_SETTINGS.about_feature3_title,
           about_feature3_text: data.about_feature3_text || DEFAULT_SITE_SETTINGS.about_feature3_text,
-          centro_analises_public_mode: data.centro_analises_public_mode || DEFAULT_SITE_SETTINGS.centro_analises_public_mode,
-          alertas_public_mode: data.alertas_public_mode || DEFAULT_SITE_SETTINGS.alertas_public_mode,
+          centro_analises_public_mode: kvSettings.centro_analises_public_mode || data.centro_analises_public_mode || DEFAULT_SITE_SETTINGS.centro_analises_public_mode,
+          alertas_public_mode: kvSettings.alertas_public_mode || data.alertas_public_mode || DEFAULT_SITE_SETTINGS.alertas_public_mode,
         };
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('taquari_site_settings', JSON.stringify(settings));
-        }
-        return settings;
+      } else {
+        if (kvSettings.centro_analises_public_mode) settings.centro_analises_public_mode = kvSettings.centro_analises_public_mode;
+        if (kvSettings.alertas_public_mode) settings.alertas_public_mode = kvSettings.alertas_public_mode;
+        if (kvSettings.site_name) settings.site_name = kvSettings.site_name;
       }
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('taquari_site_settings', JSON.stringify(settings));
+      }
+      return settings;
     } catch (e) {
       console.warn('Supabase fetchSiteSettings error:', e);
     }
@@ -1693,43 +1702,67 @@ export async function saveSiteSettings(updates: Partial<SiteSettings>): Promise<
 
   if (isSupabaseConfigured && supabase) {
     try {
-      const { data, error } = await supabase
+      // 1. Always save modes to key-value settings table as a guaranteed store
+      if (updates.centro_analises_public_mode !== undefined) {
+        await saveSetting('centro_analises_public_mode', updates.centro_analises_public_mode, 'Modo público do Centro de Análises');
+      }
+      if (updates.alertas_public_mode !== undefined) {
+        await saveSetting('alertas_public_mode', updates.alertas_public_mode, 'Modo público da Central de Alertas');
+      }
+      if (updates.site_name !== undefined) {
+        await saveSetting('site_name', updates.site_name, 'Nome do site');
+      }
+
+      // 2. Try saving to site_settings table
+      const payload: Record<string, any> = {
+        id: 'default',
+        site_name: updated.site_name,
+        site_subtitle: updated.site_subtitle,
+        site_description: updated.site_description,
+        logo_url: updated.logo_url,
+        favicon_url: updated.favicon_url,
+        about_badge: updated.about_badge,
+        about_title: updated.about_title,
+        about_text: updated.about_text,
+        about_feature1_title: updated.about_feature1_title,
+        about_feature1_text: updated.about_feature1_text,
+        about_feature2_title: updated.about_feature2_title,
+        about_feature2_text: updated.about_feature2_text,
+        about_feature3_title: updated.about_feature3_title,
+        about_feature3_text: updated.about_feature3_text,
+        centro_analises_public_mode: updated.centro_analises_public_mode,
+        alertas_public_mode: updated.alertas_public_mode,
+        updated_at: updated.updated_at
+      };
+
+      let { data, error } = await supabase
         .from('site_settings')
-        .upsert({
-          id: 'default',
-          site_name: updated.site_name,
-          site_subtitle: updated.site_subtitle,
-          site_description: updated.site_description,
-          logo_url: updated.logo_url,
-          favicon_url: updated.favicon_url,
-          about_badge: updated.about_badge,
-          about_title: updated.about_title,
-          about_text: updated.about_text,
-          about_feature1_title: updated.about_feature1_title,
-          about_feature1_text: updated.about_feature1_text,
-          about_feature2_title: updated.about_feature2_title,
-          about_feature2_text: updated.about_feature2_text,
-          about_feature3_title: updated.about_feature3_title,
-          about_feature3_text: updated.about_feature3_text,
-          centro_analises_public_mode: updated.centro_analises_public_mode,
-          alertas_public_mode: updated.alertas_public_mode,
-          updated_at: updated.updated_at
-        })
+        .upsert(payload)
         .select()
         .maybeSingle();
 
-      if (!error && data) {
-        const result = {
-          ...DEFAULT_SITE_SETTINGS,
-          ...updated,
-          ...data
-        };
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('taquari_site_settings', JSON.stringify(result));
-          window.dispatchEvent(new CustomEvent('site_settings_updated', { detail: result }));
-        }
-        return result;
+      // If column missing in site_settings table, retry payload without custom mode fields
+      if (error && (error.code === 'PGRST204' || error.message?.includes('column'))) {
+        delete payload.centro_analises_public_mode;
+        delete payload.alertas_public_mode;
+        const retry = await supabase
+          .from('site_settings')
+          .upsert(payload)
+          .select()
+          .maybeSingle();
+        data = retry.data;
       }
+
+      const result = {
+        ...DEFAULT_SITE_SETTINGS,
+        ...updated,
+        ...(data || {})
+      };
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('taquari_site_settings', JSON.stringify(result));
+        window.dispatchEvent(new CustomEvent('site_settings_updated', { detail: result }));
+      }
+      return result;
     } catch (e) {
       console.warn('Supabase saveSiteSettings exception:', e);
     }
