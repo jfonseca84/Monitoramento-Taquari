@@ -17,7 +17,18 @@ const SiteSettingsContext = createContext<SiteSettingsContextType>({
 });
 
 export const SiteSettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
+  const [settings, setSettings] = useState<SiteSettings>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('taquari_site_settings');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return { ...DEFAULT_SITE_SETTINGS, ...parsed };
+        }
+      } catch (e) {}
+    }
+    return DEFAULT_SITE_SETTINGS;
+  });
   const [loading, setLoading] = useState(true);
 
   const applyFaviconAndTitle = (currentSettings: SiteSettings) => {
