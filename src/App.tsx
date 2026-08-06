@@ -268,97 +268,99 @@ export default function App() {
         
         {/* VIEW ROUTER */}
         {activeTab === 'inicio' ? (
-          /* PRIMARY OPERATIONAL DASHBOARD (MATCHING ATTACHED SCREENSHOT) */
-          <div className="flex flex-col lg:flex-row gap-6 items-start">
+          /* PRIMARY OPERATIONAL DASHBOARD */
+          <div className="space-y-6">
             
-            {/* LEFT COLUMN: CITIES SIDEBAR & LEGEND */}
-            <LayoutBehaviorWrapper pageKey="inicio" componentKey="sidebar" className="w-full lg:w-72 shrink-0">
-              <EditableComponent id="inicio_sidebar_cidades" name="Sidebar de Cidades" type="panel" className="w-full">
-                <CitySidebar
+            {/* TOP ROW: CITIES SIDEBAR & OPERATIONAL PANEL */}
+            <div className="flex flex-col lg:flex-row gap-6 items-start">
+              
+              {/* LEFT COLUMN: CITIES SIDEBAR & LEGEND */}
+              <LayoutBehaviorWrapper pageKey="inicio" componentKey="sidebar" className="w-full lg:w-72 shrink-0">
+                <EditableComponent id="inicio_sidebar_cidades" name="Sidebar de Cidades" type="panel" className="w-full">
+                  <CitySidebar
+                    cities={cities}
+                    selectedCity={selectedCity}
+                    onSelectCity={(city) => setSelectedCity(city)}
+                    onOpenInfoModal={() => setIsInfoModalOpen(true)}
+                  />
+                </EditableComponent>
+              </LayoutBehaviorWrapper>
+
+              {/* RIGHT COLUMN: PAINEL OPERACIONAL SUPERIOR */}
+              <div className="flex-1 w-full min-w-0">
+                <LayoutBehaviorWrapper pageKey="inicio" componentKey="operational_panel">
+                  <div className="flex flex-col xl:flex-row gap-6">
+                    
+                    {/* MIDDLE COLUMN: LIVE CAMERA HERO & RECHARTS */}
+                    <div className="flex-1 flex flex-col gap-6 min-w-0">
+                      <LayoutBehaviorWrapper pageKey="inicio" componentKey="camera_hero">
+                        <EditableComponent id="inicio_camera_hero" name="Câmera ao Vivo Hero" type="card">
+                          <LiveCameraHero
+                            selectedCity={selectedCity}
+                            onOpenCameraModal={() => setIsCameraModalOpen(true)}
+                            onOpenInfoModal={() => setIsInfoModalOpen(true)}
+                            onOpenDetailModal={() => setIsDetailModalOpen(true)}
+                          />
+                        </EditableComponent>
+                      </LayoutBehaviorWrapper>
+
+                      <LayoutBehaviorWrapper pageKey="inicio" componentKey="level_chart">
+                        <EditableComponent id="inicio_grafico_nivel" name="Gráfico Telemétrico de Nível" type="chart">
+                          <LevelChart
+                            selectedCity={selectedCity}
+                            chartData={chartData}
+                            timeframe={timeframe}
+                            setTimeframe={setTimeframe}
+                          />
+                        </EditableComponent>
+                      </LayoutBehaviorWrapper>
+                    </div>
+
+                    {/* RIGHT COLUMN: TECHNICAL DATA & STATS */}
+                    <div className="w-full xl:w-80 flex flex-col gap-6 shrink-0">
+                      <LayoutBehaviorWrapper pageKey="inicio" componentKey="technical_data">
+                        <EditableComponent id="inicio_dados_tecnicos" name="Dados Técnicos e Estações" type="widget">
+                          <TechnicalData selectedCity={selectedCity} />
+                        </EditableComponent>
+                      </LayoutBehaviorWrapper>
+
+                      <LayoutBehaviorWrapper pageKey="inicio" componentKey="stats_panel">
+                        <EditableComponent id="inicio_stats_panel" name="Painel de Estatísticas e Cotas" type="indicator">
+                          <StatsPanel
+                            selectedCity={selectedCity}
+                            onOpenDetailModal={() => setIsDetailModalOpen(true)}
+                            onOpenAlertSignup={() => setActiveTab('receber-alertas')}
+                          />
+                        </EditableComponent>
+                      </LayoutBehaviorWrapper>
+                    </div>
+
+                  </div>
+                </LayoutBehaviorWrapper>
+              </div>
+
+            </div>
+
+            {/* EXPANDED REGIONAL HYDROLOGICAL MAP (FULL WIDTH, DECOUPLED FROM SIDEBAR) */}
+            <LayoutBehaviorWrapper pageKey="inicio" componentKey="map" className="relative z-0 isolate w-full">
+              <EditableComponent id="inicio_mapa_interativo" name="Mapa Hidrológico Regional" type="map" className="relative z-0 isolate w-full">
+                <InteractiveMap
                   cities={cities}
                   selectedCity={selectedCity}
                   onSelectCity={(city) => setSelectedCity(city)}
-                  onOpenInfoModal={() => setIsInfoModalOpen(true)}
                 />
               </EditableComponent>
             </LayoutBehaviorWrapper>
 
-            {/* RIGHT COLUMN: COLUNA DIREITA COMPLETA */}
-            <div className="flex-1 w-full min-w-0 space-y-6">
-              
-              {/* PAINEL OPERACIONAL SUPERIOR */}
-              <LayoutBehaviorWrapper pageKey="inicio" componentKey="operational_panel">
-                <div className="flex flex-col xl:flex-row gap-6">
-                  
-                  {/* MIDDLE COLUMN: LIVE CAMERA HERO & RECHARTS */}
-                  <div className="flex-1 flex flex-col gap-6 min-w-0">
-                    <LayoutBehaviorWrapper pageKey="inicio" componentKey="camera_hero">
-                      <EditableComponent id="inicio_camera_hero" name="Câmera ao Vivo Hero" type="card">
-                        <LiveCameraHero
-                          selectedCity={selectedCity}
-                          onOpenCameraModal={() => setIsCameraModalOpen(true)}
-                          onOpenInfoModal={() => setIsInfoModalOpen(true)}
-                          onOpenDetailModal={() => setIsDetailModalOpen(true)}
-                        />
-                      </EditableComponent>
-                    </LayoutBehaviorWrapper>
-
-                    <LayoutBehaviorWrapper pageKey="inicio" componentKey="level_chart">
-                      <EditableComponent id="inicio_grafico_nivel" name="Gráfico Telemétrico de Nível" type="chart">
-                        <LevelChart
-                          selectedCity={selectedCity}
-                          chartData={chartData}
-                          timeframe={timeframe}
-                          setTimeframe={setTimeframe}
-                        />
-                      </EditableComponent>
-                    </LayoutBehaviorWrapper>
-                  </div>
-
-                  {/* RIGHT COLUMN: TECHNICAL DATA & STATS */}
-                  <div className="w-full xl:w-80 flex flex-col gap-6 shrink-0">
-                    <LayoutBehaviorWrapper pageKey="inicio" componentKey="technical_data">
-                      <EditableComponent id="inicio_dados_tecnicos" name="Dados Técnicos e Estações" type="widget">
-                        <TechnicalData selectedCity={selectedCity} />
-                      </EditableComponent>
-                    </LayoutBehaviorWrapper>
-
-                    <LayoutBehaviorWrapper pageKey="inicio" componentKey="stats_panel">
-                      <EditableComponent id="inicio_stats_panel" name="Painel de Estatísticas e Cotas" type="indicator">
-                        <StatsPanel
-                          selectedCity={selectedCity}
-                          onOpenDetailModal={() => setIsDetailModalOpen(true)}
-                          onOpenAlertSignup={() => setActiveTab('receber-alertas')}
-                        />
-                      </EditableComponent>
-                    </LayoutBehaviorWrapper>
-                  </div>
-
-                </div>
-              </LayoutBehaviorWrapper>
-
-              {/* EXPANDED REGIONAL HYDROLOGICAL MAP */}
-              <LayoutBehaviorWrapper pageKey="inicio" componentKey="map" className="relative z-0 isolate">
-                <EditableComponent id="inicio_mapa_interativo" name="Mapa Hidrológico Regional" type="map" className="relative z-0 isolate">
-                  <InteractiveMap
-                    cities={cities}
-                    selectedCity={selectedCity}
-                    onSelectCity={(city) => setSelectedCity(city)}
-                  />
-                </EditableComponent>
-              </LayoutBehaviorWrapper>
-
-              {/* FULL WIDTH BOTTOM SECTION: NOTÍCIAS E COMUNICADOS OFICIAIS */}
-              <LayoutBehaviorWrapper pageKey="inicio" componentKey="news">
-                <EditableComponent id="inicio_noticias" name="Seção de Notícias e Comunicados" type="table">
-                  <NewsSection
-                    news={news}
-                    onViewAllNews={() => setActiveTab('noticias')}
-                  />
-                </EditableComponent>
-              </LayoutBehaviorWrapper>
-
-            </div>
+            {/* FULL WIDTH BOTTOM SECTION: NOTÍCIAS E COMUNICADOS OFICIAIS */}
+            <LayoutBehaviorWrapper pageKey="inicio" componentKey="news" className="w-full">
+              <EditableComponent id="inicio_noticias" name="Seção de Notícias e Comunicados" type="table">
+                <NewsSection
+                  news={news}
+                  onViewAllNews={() => setActiveTab('noticias')}
+                />
+              </EditableComponent>
+            </LayoutBehaviorWrapper>
 
           </div>
         ) : activeTab === 'nivel' || activeTab === 'centro-analises' ? (
