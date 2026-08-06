@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { City, Station, NewsItem, NewsSource, AlertItem, SystemLog, Sponsor, LevelTrend, LevelStatus, AdminUser, AlertSubscriber, AlertNotification, AlertStats, AlertHistoryItem, AlertDispatchItem, CityCamera, SiteSettings } from '../types';
+import { City, Station, NewsItem, NewsSource, AlertItem, SystemLog, Sponsor, LevelTrend, LevelStatus, AdminUser, AlertSubscriber, AlertNotification, AlertStats, AlertHistoryItem, AlertDispatchItem, CityCamera, SiteSettings, PageLayoutConfig } from '../types';
 import { INITIAL_CITIES, INITIAL_STATIONS, INITIAL_NEWS, INITIAL_ALERTS, INITIAL_LOGS, INITIAL_SPONSORS, INITIAL_CITY_CAMERAS, INITIAL_SUBSCRIBERS, generateHistoryForCity, calculateStatusLevel } from '../data/initialData';
 import { getCityThresholds } from '../data/cityThresholds';
 import { BRASILIA_TIMEZONE, getBrasiliaLastUpdatedString, getBrasiliaTimeString } from './dateUtils';
@@ -2930,4 +2930,258 @@ export function subscribeToRealtimeChanges(
     }
   };
 }
+
+// ==========================================
+// PAGE LAYOUT CONFIGURATIONS (page_layout_config)
+// ==========================================
+export const DEFAULT_LAYOUT_CONFIGS: PageLayoutConfig[] = [
+  // Página Inicial
+  {
+    id: 'cfg-inicio-sidebar',
+    page_key: 'inicio',
+    component_key: 'sidebar',
+    component_name: 'Sidebar de Cidades',
+    position_mode: 'flow',
+    sticky_offset: 76,
+    enabled: true
+  },
+  {
+    id: 'cfg-inicio-operational_panel',
+    page_key: 'inicio',
+    component_key: 'operational_panel',
+    component_name: 'Painel Operacional Superior',
+    position_mode: 'sticky',
+    sticky_offset: 76,
+    enabled: true
+  },
+  {
+    id: 'cfg-inicio-camera_hero',
+    page_key: 'inicio',
+    component_key: 'camera_hero',
+    component_name: 'Câmera ao Vivo',
+    position_mode: 'flow',
+    sticky_offset: 76,
+    enabled: true
+  },
+  {
+    id: 'cfg-inicio-level_chart',
+    page_key: 'inicio',
+    component_key: 'level_chart',
+    component_name: 'Gráfico de Nível',
+    position_mode: 'flow',
+    sticky_offset: 76,
+    enabled: true
+  },
+  {
+    id: 'cfg-inicio-technical_data',
+    page_key: 'inicio',
+    component_key: 'technical_data',
+    component_name: 'Dados Técnicos',
+    position_mode: 'flow',
+    sticky_offset: 76,
+    enabled: true
+  },
+  {
+    id: 'cfg-inicio-stats_panel',
+    page_key: 'inicio',
+    component_key: 'stats_panel',
+    component_name: 'Estatísticas',
+    position_mode: 'flow',
+    sticky_offset: 76,
+    enabled: true
+  },
+  {
+    id: 'cfg-inicio-map',
+    page_key: 'inicio',
+    component_key: 'map',
+    component_name: 'Mapa Hidrológico Regional',
+    position_mode: 'flow',
+    sticky_offset: 76,
+    enabled: true
+  },
+  {
+    id: 'cfg-inicio-news',
+    page_key: 'inicio',
+    component_key: 'news',
+    component_name: 'Notícias e Comunicados',
+    position_mode: 'flow',
+    sticky_offset: 76,
+    enabled: true
+  },
+
+  // Centro de Análises
+  {
+    id: 'cfg-centro-sidebar_stations',
+    page_key: 'centro_analises',
+    component_key: 'sidebar_stations',
+    component_name: 'Menu de Estações Monitoradas',
+    position_mode: 'flow',
+    sticky_offset: 76,
+    enabled: true
+  },
+  {
+    id: 'cfg-centro-analytics_cards',
+    page_key: 'centro_analises',
+    component_key: 'analytics_cards',
+    component_name: 'Cards Analíticos',
+    position_mode: 'flow',
+    sticky_offset: 76,
+    enabled: true
+  },
+  {
+    id: 'cfg-centro-charts',
+    page_key: 'centro_analises',
+    component_key: 'charts',
+    component_name: 'Gráficos',
+    position_mode: 'flow',
+    sticky_offset: 76,
+    enabled: true
+  },
+  {
+    id: 'cfg-centro-tables',
+    page_key: 'centro_analises',
+    component_key: 'tables',
+    component_name: 'Tabelas',
+    position_mode: 'flow',
+    sticky_offset: 76,
+    enabled: true
+  },
+  {
+    id: 'cfg-centro-indicator_panels',
+    page_key: 'centro_analises',
+    component_key: 'indicator_panels',
+    component_name: 'Painéis de Indicadores',
+    position_mode: 'flow',
+    sticky_offset: 76,
+    enabled: true
+  },
+  {
+    id: 'cfg-centro-technical_blocks',
+    page_key: 'centro_analises',
+    component_key: 'technical_blocks',
+    component_name: 'Blocos de Informações Técnicas',
+    position_mode: 'flow',
+    sticky_offset: 76,
+    enabled: true
+  },
+  {
+    id: 'cfg-centro-meteorology_radar',
+    page_key: 'centro_analises',
+    component_key: 'meteorology_radar',
+    component_name: 'Radar & Serviço de Cabeceiras',
+    position_mode: 'flow',
+    sticky_offset: 76,
+    enabled: true
+  },
+  {
+    id: 'cfg-centro-river_behavior',
+    page_key: 'centro_analises',
+    component_key: 'river_behavior',
+    component_name: 'Comportamento do Rio (IDR)',
+    position_mode: 'flow',
+    sticky_offset: 76,
+    enabled: true
+  },
+  {
+    id: 'cfg-centro-flood_wave',
+    page_key: 'centro_analises',
+    component_key: 'flood_wave',
+    component_name: 'Propagação da Onda de Cheia',
+    position_mode: 'flow',
+    sticky_offset: 76,
+    enabled: true
+  }
+];
+
+export async function fetchPageLayoutConfigs(): Promise<PageLayoutConfig[]> {
+  let dbConfigs: any[] = [];
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('page_layout_config')
+        .select('*');
+
+      if (!error && data && data.length > 0) {
+        dbConfigs = data;
+      }
+    } catch (e) {
+      console.warn('Supabase fetchPageLayoutConfigs failed:', e);
+    }
+  }
+
+  // Local storage fallback if dbConfigs is empty
+  let localSaved: PageLayoutConfig[] = [];
+  if (dbConfigs.length === 0 && typeof window !== 'undefined') {
+    try {
+      const savedStr = localStorage.getItem('taquari_page_layout_config');
+      if (savedStr) {
+        const parsed = JSON.parse(savedStr);
+        if (Array.isArray(parsed)) localSaved = parsed;
+      }
+    } catch (e) {}
+  }
+
+  const existingMap = new Map<string, any>();
+  for (const item of (dbConfigs.length > 0 ? dbConfigs : localSaved)) {
+    const key = `${item.page_key}:${item.component_key}`;
+    existingMap.set(key, item);
+  }
+
+  return DEFAULT_LAYOUT_CONFIGS.map(def => {
+    const key = `${def.page_key}:${def.component_key}`;
+    const found = existingMap.get(key);
+    if (found) {
+      return {
+        ...def,
+        ...found,
+        position_mode: found.position_mode || def.position_mode,
+        sticky_offset: Number(found.sticky_offset ?? def.sticky_offset)
+      };
+    }
+    return { ...def };
+  });
+}
+
+export async function savePageLayoutConfigs(configs: PageLayoutConfig[]): Promise<boolean> {
+  const now = new Date().toISOString();
+  const cleanedConfigs = configs.map(c => ({
+    page_key: c.page_key,
+    component_key: c.component_key,
+    component_name: c.component_name || '',
+    position_mode: c.position_mode,
+    sticky_offset: Number(c.sticky_offset) || 76,
+    enabled: c.enabled !== false,
+    updated_at: now
+  }));
+
+  let supabaseSuccess = false;
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { error } = await supabase
+        .from('page_layout_config')
+        .upsert(cleanedConfigs, { onConflict: 'page_key,component_key' });
+
+      if (!error) {
+        supabaseSuccess = true;
+      } else {
+        console.warn('Supabase savePageLayoutConfigs error, using local fallback:', error);
+      }
+    } catch (e) {
+      console.warn('Supabase savePageLayoutConfigs failed:', e);
+    }
+  }
+
+  // Always save to localStorage as cache/fallback
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('taquari_page_layout_config', JSON.stringify(cleanedConfigs));
+      window.dispatchEvent(new CustomEvent('page_layout_config_updated', { detail: cleanedConfigs }));
+    } catch (e) {}
+  }
+
+  return true;
+}
+
 

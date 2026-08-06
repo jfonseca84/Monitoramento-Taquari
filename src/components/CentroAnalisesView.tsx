@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CotasLibrarySection } from './CotasLibrarySection';
 import { EditableComponent } from './visualEditor/EditableComponent';
+import { LayoutBehaviorWrapper } from './LayoutBehaviorWrapper';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { useVisualEditor } from '../context/VisualEditorContext';
 import { CentroAnalisesConstrucao } from './CentroAnalisesConstrucao';
@@ -1344,11 +1345,12 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
         {/* ========================================== */}
         {/* MENU LATERAL ESQUERDO (FIXED LEFT SIDEBAR) */}
         {/* ========================================== */}
-        <EditableComponent id="centro_sidebar_estacoes" name="Menu de Estações Monitoradas" type="panel" className="w-full lg:w-[225px] xl:w-[235px] shrink-0 lg:sticky lg:top-4 lg:self-start z-20">
-          <aside className="w-full bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-3 flex flex-col gap-3 shadow-xl">
+        <LayoutBehaviorWrapper pageKey="centro_analises" componentKey="sidebar_stations" className="w-full lg:w-[225px] xl:w-[235px] shrink-0 z-20">
+          <EditableComponent id="centro_sidebar_estacoes" name="Menu de Estações Monitoradas" type="panel" className="w-full">
+            <aside className="w-full bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-3 flex flex-col gap-3 shadow-xl">
           
           {/* SEARCH BOX */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <Search className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
@@ -1360,7 +1362,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
           </div>
 
           {/* CITIES & STATIONS LIST */}
-          <div className="flex-1 overflow-y-auto space-y-3 max-h-[600px] lg:max-h-[calc(100vh-250px)] pr-0.5 custom-scrollbar">
+          <div className="flex-1 space-y-3 pr-0.5">
             
             {/* GROUP 1: CIDADES MONITORADAS */}
             <div>
@@ -1465,7 +1467,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
           </div>
 
           {/* BOTTOM LINK: DIAGNÓSTICO DE INTEGRIDADE */}
-          <div className="pt-2 border-t border-slate-300 dark:border-slate-800/80">
+          <div className="pt-2 border-t border-slate-300 dark:border-slate-800/80 shrink-0">
             <button
               onClick={() => setIsIntegrityModalOpen(true)}
               className="w-full px-2.5 py-2 bg-slate-50 dark:bg-[#050A18] hover:bg-slate-100 dark:hover:bg-[#0F1B35] border border-slate-300 dark:border-slate-800 rounded-xl text-left flex items-center gap-2.5 transition-colors cursor-pointer group"
@@ -1482,6 +1484,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
 
         </aside>
         </EditableComponent>
+        </LayoutBehaviorWrapper>
 
         {/* ============================================================ */}
         {/* RIGHT DASHBOARD CANVAS */}
@@ -1531,7 +1534,8 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
             </div>
           </header>
 
-          <EditableComponent id="centro_header_resumo" name="Painel de Resumo da Estação Selecionada" type="card">
+          <LayoutBehaviorWrapper pageKey="centro_analises" componentKey="analytics_cards">
+            <EditableComponent id="centro_header_resumo" name="Painel de Resumo da Estação Selecionada" type="card">
           {activeMainTab === 'meteorologico' ? (
             <section className="bg-white dark:bg-[#091122] border border-slate-300 dark:border-[#162342] rounded-2xl py-2.5 px-3.5 sm:px-4 shadow-2xl">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3 lg:gap-3.5 divide-y md:divide-y-0 md:divide-x divide-slate-800/80 items-center">
@@ -1735,6 +1739,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
             </section>
           )}
           </EditableComponent>
+          </LayoutBehaviorWrapper>
 
           {/* ---------------------------------------------------- */}
           {/* ABAS DE DADOS + TIME RANGE SELECTOR */}
@@ -2438,8 +2443,9 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                 
                 {/* PAINEL ESQUERDO */}
-                <EditableComponent id="centro_fluvio_comportamento_rio" name="Comportamento do Rio (IDR e Variação)" type="panel" className="lg:col-span-7">
-                <div className="bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-3.5 sm:p-4 shadow-xl flex flex-col justify-between h-full min-w-0">
+                <LayoutBehaviorWrapper pageKey="centro_analises" componentKey="river_behavior" className="lg:col-span-7">
+                  <EditableComponent id="centro_fluvio_comportamento_rio" name="Comportamento do Rio (IDR e Variação)" type="panel" className="w-full h-full">
+                  <div className="bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-3.5 sm:p-4 shadow-xl flex flex-col justify-between h-full min-w-0">
                   <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white mb-2 truncate">Comportamento do Rio <span className="text-xs text-slate-500 font-normal">(últimas 24h)</span></h4>
                   
                   <div className="flex flex-col @[520px]:flex-row gap-3 items-center mb-2 min-w-0">
@@ -2567,10 +2573,12 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                   </div>
                 </div>
                 </EditableComponent>
+                </LayoutBehaviorWrapper>
 
                 {/* PAINEL DIREITO */}
-                <EditableComponent id="centro_fluvio_propagacao_onda" name="Propagação da Onda de Cheia" type="panel" className="lg:col-span-5">
-                <div className="bg-white dark:bg-[#070F26] border border-slate-300 dark:border-slate-800/90 rounded-2xl p-3.5 sm:p-4 shadow-xl flex flex-col justify-between gap-3 h-full">
+                <LayoutBehaviorWrapper pageKey="centro_analises" componentKey="flood_wave" className="lg:col-span-5">
+                  <EditableComponent id="centro_fluvio_propagacao_onda" name="Propagação da Onda de Cheia" type="panel" className="w-full h-full">
+                  <div className="bg-white dark:bg-[#070F26] border border-slate-300 dark:border-slate-800/90 rounded-2xl p-3.5 sm:p-4 shadow-xl flex flex-col justify-between gap-3 h-full">
                   <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Propagação da Onda de Cheia</h4>
                   
                   {/* Cards Chain */}
@@ -2648,6 +2656,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                   </div>
                 </div>
                 </EditableComponent>
+                </LayoutBehaviorWrapper>
                 
               </div>
 
@@ -3077,7 +3086,8 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                 </EditableComponent>
 
                 {/* CARD 4: MODELO PRÓPRIO DE RADAR & SERVIÇO INTELIGENTE DE CABECEIRAS */}
-                <EditableComponent id="centro_meteo_radar_cabeceiras" name="Radar & Serviço de Cabeceiras" type="map">
+                <LayoutBehaviorWrapper pageKey="centro_analises" componentKey="meteorology_radar">
+                  <EditableComponent id="centro_meteo_radar_cabeceiras" name="Radar & Serviço de Cabeceiras" type="map">
                 <div className="bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-4 shadow-xl flex flex-col justify-between h-full">
                   <div className="flex-1 flex flex-col justify-between">
                     <div>
@@ -3413,6 +3423,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                   </div>
                 </div>
                 </EditableComponent>
+                </LayoutBehaviorWrapper>
 
                 {/* CARD 5: GRÁFICOS DE VARIÁVEIS (ÚLTIMAS 24H) */}
                 <EditableComponent id="centro_meteo_graficos_variaveis" name="Gráficos de Variáveis (Últimas 24h)" type="chart">

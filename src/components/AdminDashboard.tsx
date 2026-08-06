@@ -52,6 +52,7 @@ import {
 import { AlertDispatchItem } from '../types';
 import { ResidentsIntelligenceView } from './ResidentsIntelligenceView';
 import { AdminCentroAnalisesView } from './AdminCentroAnalisesView';
+import { AdminLayoutConfigView } from './AdminLayoutConfigView';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { useVisualEditor } from '../context/VisualEditorContext';
 import {
@@ -1520,6 +1521,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 { id: 'sincronizacao', label: 'Sincronização', icon: RefreshCw },
                 { id: 'logs', label: 'Registros', icon: FileText },
                 { id: 'usuarios', label: 'Usuários Administradores', icon: Users },
+                { id: 'layout_config', label: 'Configuração de Layout', icon: Sliders },
                 { id: 'configuracoes', label: 'Configurações do Site', icon: Settings },
               ].map((tab) => {
                 const Icon = tab.icon;
@@ -4542,6 +4544,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </table>
                   </div>
                 </div>
+              )}
+
+              {/* TAB LAYOUT CONFIGURATION */}
+              {activeTab === 'layout_config' && (
+                <AdminLayoutConfigView />
               )}
 
               {/* TAB 9: CONFIGURAÇÕES DO SITE */}

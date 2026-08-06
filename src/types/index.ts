@@ -379,3 +379,16 @@ export interface ProjectionParameter {
   modelo_nome: string;
 }
 
+export type PositionMode = 'sticky' | 'flow';
+
+export interface PageLayoutConfig {
+  id?: string;
+  page_key: string; // 'inicio' | 'centro_analises'
+  component_key: string;
+  component_name?: string;
+  position_mode: PositionMode;
+  sticky_offset: number;
+  enabled?: boolean;
+  updated_at?: string;
+}
+

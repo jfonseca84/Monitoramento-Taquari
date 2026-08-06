@@ -4,7 +4,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 html, body {
-  overflow-x: hidden;
+  overflow-x: clip;
   max-width: 100vw;
 }
 
