@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { ComponentConfig, DashboardLayoutState } from '../types/visualEditor';
+import { isSupabaseConfigured, supabase, verifyAdminUserProfile } from '../lib/supabase';
 
 const LAYOUT_STORAGE_KEY = 'rio_taquari_layout_editor_config_v1';
 
@@ -54,20 +55,59 @@ const VisualEditorContext = createContext<VisualEditorContextType>({
 
 export const VisualEditorProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
-  const [isAdminState, setIsAdminState] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('admin_authenticated');
-      return stored === 'true' || window.location.pathname === '/admin' || window.location.hash === '#admin';
-    }
-    return false;
-  });
+  const [isAdminState, setIsAdminState] = useState<boolean>(false);
 
   const setIsAdmin = (value: boolean) => {
     setIsAdminState(value);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('admin_authenticated', value ? 'true' : 'false');
+      if (value) {
+        localStorage.setItem('admin_authenticated', 'true');
+      } else {
+        localStorage.removeItem('admin_authenticated');
+      }
     }
   };
+
+  // Verify real admin session on mount and listen to auth state changes
+  useEffect(() => {
+    const checkAdminSession = async () => {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            const adminProfile = await verifyAdminUserProfile(session.user);
+            if (adminProfile) {
+              setIsAdmin(true);
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn('Error checking admin session:', e);
+        }
+      }
+      setIsAdmin(false);
+    };
+
+    checkAdminSession();
+
+    if (isSupabaseConfigured && supabase) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_OUT' || !session?.user) {
+          setIsAdmin(false);
+        } else if (session?.user) {
+          const adminProfile = await verifyAdminUserProfile(session.user);
+          if (adminProfile) {
+            setIsAdmin(true);
+          } else {
+            setIsAdmin(false);
+          }
+        }
+      });
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  }, []);
   const [configs, setConfigs] = useState<Record<string, ComponentConfig>>({});
   const [activeEditingId, setActiveEditingId] = useState<string | null>(null);
 
