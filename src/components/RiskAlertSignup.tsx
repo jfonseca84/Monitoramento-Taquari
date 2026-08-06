@@ -12,7 +12,7 @@ interface RiskAlertSignupProps {
 }
 
 export const RiskAlertSignup: React.FC<RiskAlertSignupProps> = ({ cities }) => {
-  const { settings, loading: settingsLoading } = useSiteSettings();
+  const { settings } = useSiteSettings();
   const { isAdmin } = useVisualEditor();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -139,17 +139,6 @@ export const RiskAlertSignup: React.FC<RiskAlertSignupProps> = ({ cities }) => {
   };
 
   const selectedCityObj = cities.find(c => c.slug === citySlug) || cities[0];
-
-  if (settingsLoading) {
-    return (
-      <div className="w-full min-h-[400px] flex items-center justify-center bg-transparent text-slate-400 py-16">
-        <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 px-5 py-3.5 rounded-2xl shadow-xl">
-          <div className="w-5 h-5 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-xs font-semibold text-slate-300">Carregando...</span>
-        </div>
-      </div>
-    );
-  }
 
   if (settings.alertas_public_mode === 'construcao' && !isAdmin) {
     return (

@@ -690,7 +690,7 @@ function getWindCardinal(deg: number): string {
 }
 
 export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ theme = 'dark' }) => {
-  const { settings, loading } = useSiteSettings();
+  const { settings } = useSiteSettings();
   const { isAdmin } = useVisualEditor();
 
   // Navigation & Filter States
@@ -1304,17 +1304,6 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
       chatBottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [chatMessages, isThinking]);
-
-  if (loading) {
-    return (
-      <div className="w-full min-h-[600px] flex items-center justify-center bg-transparent text-slate-400 py-16">
-        <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 px-5 py-3.5 rounded-2xl shadow-xl">
-          <div className="w-5 h-5 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-xs font-semibold text-slate-300">Carregando configurações do Centro de Análises...</span>
-        </div>
-      </div>
-    );
-  }
 
   if (settings.centro_analises_public_mode === 'construcao' && !isAdmin) {
     return (
