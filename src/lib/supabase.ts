@@ -1658,14 +1658,7 @@ export async function fetchSiteSettings(): Promise<SiteSettings> {
           alertas_public_mode: data.alertas_public_mode || DEFAULT_SITE_SETTINGS.alertas_public_mode,
         };
         if (typeof window !== 'undefined') {
-          // Merge with local storage if local storage has newer values
-          const saved = localStorage.getItem('taquari_site_settings');
-          if (saved) {
-            try {
-              const parsed = JSON.parse(saved);
-              settings = { ...settings, ...parsed };
-            } catch (e) {}
-          }
+          // Supabase is the source of truth; only cache it for offline fallback.
           localStorage.setItem('taquari_site_settings', JSON.stringify(settings));
         }
         return settings;
