@@ -9,4 +9,5 @@ coverage/
 !.env.example
 bun.lock
 bun.lockb
+supabase/.temp/
 
