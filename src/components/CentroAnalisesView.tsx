@@ -1297,6 +1297,28 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
   // --- DADOS METEOROLÓGICOS REAIS (Open-Meteo, coletados a cada 30 min) ---
   const [weatherNow, setWeatherNow] = useState<WeatherReadingRow | null>(null);
   const [weatherHistory, setWeatherHistory] = useState<WeatherReadingRow[]>([]);
+  const [isRefreshingData, setIsRefreshingData] = useState(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
+
+  const refreshWeatherData = React.useCallback(async (cityId: string | undefined) => {
+    if (!cityId) {
+      setWeatherNow(null);
+      setWeatherHistory([]);
+      return;
+    }
+    setIsRefreshingData(true);
+    try {
+      const [latest, history] = await Promise.all([
+        fetchLatestWeatherReading(cityId),
+        fetchWeatherHistory(cityId, 24)
+      ]);
+      setWeatherNow(latest);
+      setWeatherHistory(history);
+      setLastRefreshedAt(new Date());
+    } finally {
+      setIsRefreshingData(false);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -1314,6 +1336,7 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
       if (!cancelled) {
         setWeatherNow(latest);
         setWeatherHistory(history);
+        setLastRefreshedAt(new Date());
       }
     })();
     return () => { cancelled = true; };
@@ -1925,11 +1948,13 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
               <History className={`w-3.5 h-3.5 shrink-0 ${activeAnalysisSection === 'historico_enchentes' ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`} />
               <span className="truncate">Histórico de Enchentes</span>
             </button>
-            <button 
+            <button
               onClick={() => {
                 setActiveAnalysisSection('comparativo');
-                const el = document.getElementById('evolucao-hidrologica-panel');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                setActiveMainTab('hidrologico');
+                setTimeout(() => {
+                  document.getElementById('evolucao-hidrologica-panel')?.scrollIntoView({ behavior: 'smooth' });
+                }, 50);
               }}
               className={`w-full px-2 py-1.5 rounded-lg text-left text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer ${
                 activeAnalysisSection === 'comparativo'
@@ -1953,11 +1978,13 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
               <Activity className={`w-3.5 h-3.5 shrink-0 ${activeAnalysisSection === 'propagacao' ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`} />
               <span className="truncate">Propagação da Onda</span>
             </button>
-            <button 
+            <button
               onClick={() => {
                 setActiveAnalysisSection('tendencias');
-                const el = document.getElementById('indices-bacia-panel');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                setActiveMainTab('hidrologico');
+                setTimeout(() => {
+                  document.getElementById('indices-bacia-panel')?.scrollIntoView({ behavior: 'smooth' });
+                }, 50);
               }}
               className={`w-full px-2 py-1.5 rounded-lg text-left text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer ${
                 activeAnalysisSection === 'tendencias'
@@ -1975,20 +2002,26 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 block px-0.5 mb-1">
               INTELIGÊNCIA
             </span>
-            <button 
+            <button
               onClick={() => {
-                const el = document.getElementById('correspondencia-historica-panel');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                setActiveAnalysisSection('comparativo');
+                setActiveMainTab('hidrologico');
+                setTimeout(() => {
+                  document.getElementById('correspondencia-historica-panel')?.scrollIntoView({ behavior: 'smooth' });
+                }, 50);
               }}
               className="w-full px-2 py-1.5 rounded-lg text-left text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white flex items-center gap-2 transition-colors cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 shrink-0" />
               <span className="truncate">Correspondência Histórica</span>
             </button>
-            <button 
+            <button
               onClick={() => {
-                const el = document.getElementById('evolucao-hidrologica-panel');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                setActiveAnalysisSection('comparativo');
+                setActiveMainTab('hidrologico');
+                setTimeout(() => {
+                  document.getElementById('evolucao-hidrologica-panel')?.scrollIntoView({ behavior: 'smooth' });
+                }, 50);
               }}
               className="w-full px-2 py-1.5 rounded-lg text-left text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white flex items-center gap-2 transition-colors cursor-pointer"
             >
@@ -2074,18 +2107,22 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
             {/* RIGHT HEADER ACTIONS */}
             <div className="flex items-center gap-3 text-xs font-medium flex-wrap justify-end">
               <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-[#040814] px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
-                <Calendar className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-                <span>Período: <strong className="text-slate-800 dark:text-slate-200 font-bold">Últimas 72h</strong></span>
-                <ChevronDown className="w-3 h-3 text-slate-400 dark:text-slate-500" />
-              </div>
-
-              <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-[#040814] px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
                 <Clock className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                <span>Atualizado em: <strong className="text-slate-800 dark:text-slate-200 font-semibold">30/05/2025 09:45</strong></span>
-                <RefreshCw className="w-3 h-3 text-cyan-600 dark:text-cyan-400 ml-0.5 cursor-pointer hover:rotate-180 transition-transform" />
+                <span>Atualizado em: <strong className="text-slate-800 dark:text-slate-200 font-semibold">
+                  {lastRefreshedAt
+                    ? lastRefreshedAt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                    : (currentStation.last_updated || 'Em tempo real')}
+                </strong></span>
+                <button
+                  type="button"
+                  onClick={() => refreshWeatherData(currentStation.db_id)}
+                  disabled={isRefreshingData}
+                  aria-label="Atualizar dados meteorológicos"
+                  className="ml-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <RefreshCw className={`w-3 h-3 text-cyan-600 dark:text-cyan-400 cursor-pointer transition-transform ${isRefreshingData ? 'animate-spin' : 'hover:rotate-180'}`} />
+                </button>
               </div>
-
-              {/* Período e Atualizado em mantidos */}
             </div>
           </header>
 

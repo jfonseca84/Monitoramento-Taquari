@@ -64,6 +64,32 @@ export const HistoricoEnchentesView: React.FC<HistoricoEnchentesViewProps> = ({
     return events.find(e => e.id === selectedEventId) || events.find(e => e.isRecord) || events[0];
   }, [events, selectedEventId]);
 
+  // Exporta os eventos filtrados (CSV) — reaproveitado pelos dois botões de download
+  const handleExportCsv = () => {
+    const header = ['Ano', 'Nível Máximo (m)', 'Nível Médio (m)', 'Chuva Acumulada (mm)', 'Chuva Máx 24h (mm)', 'Vazão Média (m³/s)', 'Início', 'Pico', 'Fim'];
+    const rows = events.map(e => [
+      e.year,
+      e.maxLevel,
+      e.avgLevel,
+      e.accumulatedRainMm ?? '',
+      e.maxRain24hMm ?? '',
+      e.avgFlowM3s ?? '',
+      e.startDateTime,
+      e.peakDateTime,
+      e.endDateTime
+    ]);
+    const csv = [header, ...rows].map(r => r.join(';')).join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `historico-enchentes-${stationId}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   // Handle Station selection change
   const handleStationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
@@ -241,10 +267,10 @@ export const HistoricoEnchentesView: React.FC<HistoricoEnchentesViewProps> = ({
               className="bg-transparent text-slate-900 dark:text-white font-bold outline-none cursor-pointer pr-1"
             >
               <option value="lajeado" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Lajeado</option>
-              <option value="mucum" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Muçum</option>
-              <option value="encantado" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Encantado</option>
-              <option value="estrela" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Estrela</option>
-              <option value="santa_tereza" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Santa Tereza</option>
+              <option value="mucum" disabled className="bg-white dark:bg-slate-900 text-slate-400">Muçum (em breve)</option>
+              <option value="encantado" disabled className="bg-white dark:bg-slate-900 text-slate-400">Encantado (em breve)</option>
+              <option value="estrela" disabled className="bg-white dark:bg-slate-900 text-slate-400">Estrela (em breve)</option>
+              <option value="santa_tereza" disabled className="bg-white dark:bg-slate-900 text-slate-400">Santa Tereza (em breve)</option>
             </select>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400 pointer-events-none -ml-1" />
           </div>
@@ -312,8 +338,9 @@ export const HistoricoEnchentesView: React.FC<HistoricoEnchentesViewProps> = ({
                 </button>
               </div>
 
-              <button 
-                title="Exportar Dados Históricos"
+              <button
+                onClick={handleExportCsv}
+                title="Exportar Dados Históricos (CSV)"
                 className="p-1.5 bg-slate-100 dark:bg-[#040814] border border-slate-200 dark:border-slate-800 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
               >
                 <Download className="w-4 h-4" />
@@ -478,7 +505,7 @@ export const HistoricoEnchentesView: React.FC<HistoricoEnchentesViewProps> = ({
 
               {/* RODAPÉ INFORMATIVO */}
               <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-1">
-                * Dados referentes à estação fluviométrica de {stationId === 'lajeado' ? 'Lajeado' : stationId}. Atualizado em 30/05/2025 09:45
+                * Dados históricos catalogados para a estação fluviométrica de {stationId === 'lajeado' ? 'Lajeado' : stationId}.
               </p>
             </div>
           ) : (
@@ -540,7 +567,7 @@ export const HistoricoEnchentesView: React.FC<HistoricoEnchentesViewProps> = ({
 
               {/* RODAPÉ INFORMATIVO */}
               <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-1">
-                * Dados referentes à estação fluviométrica de {stationId === 'lajeado' ? 'Lajeado' : stationId}. Atualizado em 30/05/2025 09:45
+                * Dados históricos catalogados para a estação fluviométrica de {stationId === 'lajeado' ? 'Lajeado' : stationId}.
               </p>
             </div>
           )}
@@ -731,7 +758,7 @@ export const HistoricoEnchentesView: React.FC<HistoricoEnchentesViewProps> = ({
                   </h2>
                   <Info className="w-3.5 h-3.5 text-slate-400 cursor-pointer hover:text-cyan-500 dark:hover:text-cyan-400 transition-colors" />
                 </div>
-                <button title="Download" className="p-1 bg-slate-100 dark:bg-[#040814] border border-slate-200 dark:border-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer">
+                <button onClick={handleExportCsv} title="Exportar Dados Históricos (CSV)" className="p-1 bg-slate-100 dark:bg-[#040814] border border-slate-200 dark:border-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer">
                   <Download className="w-3.5 h-3.5" />
                 </button>
               </div>
