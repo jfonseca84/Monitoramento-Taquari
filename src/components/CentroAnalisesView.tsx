@@ -85,7 +85,7 @@ import {
   CartesianGrid,
   Brush
 } from 'recharts';
-import { fetchCitiesDirect, normalizeCitySlug } from '../lib/supabase';
+import { fetchCitiesDirect, normalizeCitySlug, fetchLatestWeatherReading, fetchWeatherHistory, WeatherReadingRow } from '../lib/supabase';
 import { INITIAL_CITIES } from '../data/initialData';
 import { StatusDot } from './StatusDot';
 import { City } from '../types';
@@ -96,6 +96,7 @@ import { City } from '../types';
 
 export interface AnalysisStation {
   id: string;
+  db_id?: string;
   name: string;
   river: string;
   category: 'cidade' | 'afluente';
@@ -117,6 +118,72 @@ export interface AnalysisStation {
   rain6h: number;
   rain24h: number;
   bairrosImpactados: string[];
+}
+
+// --- HELPERS DE FORMATAÇÃO PARA DADOS METEOROLÓGICOS REAIS (Open-Meteo) ---
+function fmtNum(value: number | null | undefined, decimals: number = 1): string {
+  if (typeof value !== 'number' || isNaN(value)) return '--';
+  return value.toFixed(decimals).replace('.', ',');
+}
+
+function degToCompass(deg: number | null | undefined): string {
+  if (typeof deg !== 'number' || isNaN(deg)) return '--';
+  const dirs = ['N', 'NE', 'L', 'SE', 'S', 'SO', 'O', 'NO'];
+  return dirs[Math.round(deg / 45) % 8];
+}
+
+function uvLabel(uv: number | null | undefined): string {
+  if (typeof uv !== 'number' || isNaN(uv)) return '--';
+  if (uv < 3) return 'Baixo';
+  if (uv < 6) return 'Moderado';
+  if (uv < 8) return 'Alto';
+  return 'Muito alto';
+}
+
+function humidityLabel(h: number | null | undefined): string {
+  if (typeof h !== 'number' || isNaN(h)) return '--';
+  if (h >= 80) return '↑ Alta';
+  if (h <= 40) return '↓ Baixa';
+  return 'Normal';
+}
+
+function pressureLabel(p: number | null | undefined): string {
+  if (typeof p !== 'number' || isNaN(p)) return '--';
+  if (p < 1005) return 'Baixa';
+  if (p > 1020) return 'Alta';
+  return 'Estável';
+}
+
+function visibilityLabel(vMeters: number | null | undefined): string {
+  if (typeof vMeters !== 'number' || isNaN(vMeters)) return '--';
+  if (vMeters >= 10000) return 'Boa';
+  if (vMeters >= 4000) return 'Moderada';
+  return 'Reduzida';
+}
+
+function radiationLabel(r: number | null | undefined): string {
+  if (typeof r !== 'number' || isNaN(r)) return '--';
+  if (r < 120) return 'Baixa';
+  if (r < 400) return 'Moderada';
+  return 'Alta';
+}
+
+function minutesAgoLabel(isoDate: string | null | undefined): string {
+  if (!isoDate) return 'Sem dados recentes';
+  const diffMs = Date.now() - new Date(isoDate).getTime();
+  const mins = Math.max(0, Math.round(diffMs / 60000));
+  if (mins < 1) return 'Atualizado agora';
+  if (mins === 1) return 'Atualizado há 1 min';
+  if (mins < 60) return `Atualizado há ${mins} min`;
+  const hours = Math.round(mins / 60);
+  return `Atualizado há ${hours}h`;
+}
+
+function rainConditionLabel(rain1h: number | null | undefined): string {
+  if (typeof rain1h !== 'number' || isNaN(rain1h) || rain1h <= 0) return 'Sem chuva no momento';
+  if (rain1h < 2.5) return 'Chuva fraca';
+  if (rain1h < 10) return 'Chuva moderada';
+  return 'Chuva forte';
 }
 
 // Complete Monitored Stations & Cities of the Taquari Basin
@@ -1199,6 +1266,7 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
 
       return {
         id: foundCity.slug || foundCity.id,
+        db_id: foundCity.id,
         name: foundCity.name,
         river: foundCity.river || baseMock?.river || 'Bacia Hidrográfica',
         category: 'cidade',
@@ -1225,6 +1293,44 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
 
     return baseMock || STATIONS_DATA[0];
   }, [selectedStationId, availableCities]);
+
+  // --- DADOS METEOROLÓGICOS REAIS (Open-Meteo, coletados a cada 30 min) ---
+  const [weatherNow, setWeatherNow] = useState<WeatherReadingRow | null>(null);
+  const [weatherHistory, setWeatherHistory] = useState<WeatherReadingRow[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const cityId = currentStation.db_id;
+    if (!cityId) {
+      setWeatherNow(null);
+      setWeatherHistory([]);
+      return;
+    }
+    (async () => {
+      const [latest, history] = await Promise.all([
+        fetchLatestWeatherReading(cityId),
+        fetchWeatherHistory(cityId, 24)
+      ]);
+      if (!cancelled) {
+        setWeatherNow(latest);
+        setWeatherHistory(history);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [currentStation.db_id]);
+
+  const realPrecipitationChartData = useMemo(() => {
+    let running = 0;
+    return weatherHistory.map((row) => {
+      const intensity = typeof row.precipitation_mm === 'number' ? row.precipitation_mm : 0;
+      running += intensity;
+      return {
+        time: new Date(row.recorded_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }),
+        intensity: Number(intensity.toFixed(1)),
+        accumulated: Number(running.toFixed(1))
+      };
+    });
+  }, [weatherHistory]);
 
   // Dynamic Index of River Dynamics (IDR) & Gauge Needle Alignment
   const idrStatus = useMemo(() => {
@@ -3095,13 +3201,13 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
                       <div className="divide-y divide-slate-200 dark:divide-slate-800/80 flex flex-col">
                         <div className="p-1.5 sm:p-2 flex-1 flex flex-col justify-between items-center text-center">
                           <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 block font-normal leading-tight text-center truncate w-full">Temperatura</span>
-                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block leading-tight my-0.5 text-center truncate w-full">22,6 °C</span>
-                          <span className="text-[9px] sm:text-[10px] text-cyan-500 dark:text-cyan-400 font-medium block text-center truncate w-full">↑ 1,4 °C (1h)</span>
+                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block leading-tight my-0.5 text-center truncate w-full">{fmtNum(weatherNow?.temperature)} °C</span>
+                          <span className="text-[9px] sm:text-[10px] text-transparent select-none block text-center truncate w-full">-</span>
                         </div>
                         <div className="p-1.5 sm:p-2 flex-1 flex flex-col justify-between items-center text-center">
                           <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 block font-normal leading-tight text-center truncate w-full">Vento</span>
-                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block leading-tight my-0.5 text-center truncate w-full">14 km/h</span>
-                          <span className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-medium block text-center truncate w-full">NE (45°)</span>
+                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block leading-tight my-0.5 text-center truncate w-full">{fmtNum(weatherNow?.wind_speed, 0)} km/h</span>
+                          <span className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-medium block text-center truncate w-full">{degToCompass(weatherNow?.wind_direction)} ({fmtNum(weatherNow?.wind_direction, 0)}°)</span>
                         </div>
                       </div>
 
@@ -3109,13 +3215,13 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
                       <div className="divide-y divide-slate-200 dark:divide-slate-800/80 flex flex-col">
                         <div className="p-1.5 sm:p-2 flex-1 flex flex-col justify-between items-center text-center">
                           <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 block font-normal leading-tight text-center truncate w-full">Sensação térmica</span>
-                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block leading-tight my-0.5 text-center truncate w-full">23,8 °C</span>
+                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block leading-tight my-0.5 text-center truncate w-full">{fmtNum(weatherNow?.apparent_temperature)} °C</span>
                           <span className="text-[9px] sm:text-[10px] text-transparent select-none block text-center truncate w-full">-</span>
                         </div>
                         <div className="p-1.5 sm:p-2 flex-1 flex flex-col justify-between items-center text-center">
                           <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 block font-normal leading-tight text-center truncate w-full">Rajadas</span>
-                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block leading-tight my-0.5 text-center truncate w-full">24 km/h</span>
-                          <span className="text-[9px] sm:text-[10px] text-rose-500 dark:text-rose-400 font-medium block text-center truncate w-full">↑ 18 km/h (máx.)</span>
+                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block leading-tight my-0.5 text-center truncate w-full">{fmtNum(weatherNow?.wind_gusts, 0)} km/h</span>
+                          <span className="text-[9px] sm:text-[10px] text-transparent select-none block text-center truncate w-full">-</span>
                         </div>
                       </div>
 
@@ -3123,13 +3229,13 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
                       <div className="divide-y divide-slate-200 dark:divide-slate-800/80 flex flex-col">
                         <div className="p-1.5 sm:p-2 flex-1 flex flex-col justify-between items-center text-center">
                           <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 block font-normal leading-tight text-center truncate w-full">Umidade relativa</span>
-                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block leading-tight my-0.5 text-center truncate w-full">86%</span>
-                          <span className="text-[9px] sm:text-[10px] text-emerald-500 dark:text-emerald-400 font-medium block text-center truncate w-full">↑ Alta</span>
+                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block leading-tight my-0.5 text-center truncate w-full">{fmtNum(weatherNow?.humidity, 0)}%</span>
+                          <span className="text-[9px] sm:text-[10px] text-emerald-500 dark:text-emerald-400 font-medium block text-center truncate w-full">{humidityLabel(weatherNow?.humidity)}</span>
                         </div>
                         <div className="p-1.5 sm:p-2 flex-1 flex flex-col justify-between items-center text-center">
                           <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 block font-normal leading-tight text-center truncate w-full">Índice UV</span>
-                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block leading-tight my-0.5 text-center truncate w-full">2</span>
-                          <span className="text-[9px] sm:text-[10px] text-emerald-500 dark:text-emerald-400 font-medium block text-center truncate w-full">Baixo</span>
+                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block leading-tight my-0.5 text-center truncate w-full">{fmtNum(weatherNow?.uv_index, 0)}</span>
+                          <span className="text-[9px] sm:text-[10px] text-emerald-500 dark:text-emerald-400 font-medium block text-center truncate w-full">{uvLabel(weatherNow?.uv_index)}</span>
                         </div>
                       </div>
 
@@ -3137,13 +3243,13 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
                       <div className="divide-y divide-slate-200 dark:divide-slate-800/80 flex flex-col">
                         <div className="p-1.5 sm:p-2 flex-1 flex flex-col justify-between items-center text-center">
                           <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 block font-normal leading-tight text-center truncate w-full">Ponto de orvalho</span>
-                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block leading-tight my-0.5 text-center truncate w-full">20,1 °C</span>
+                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block leading-tight my-0.5 text-center truncate w-full">{fmtNum(weatherNow?.dew_point)} °C</span>
                           <span className="text-[9px] sm:text-[10px] text-transparent select-none block text-center truncate w-full">-</span>
                         </div>
                         <div className="p-1.5 sm:p-2 flex-1 flex flex-col justify-between items-center text-center">
                           <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 block font-normal leading-tight text-center truncate w-full">Radiação solar</span>
-                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block leading-tight my-0.5 text-center truncate w-full">236 W/m²</span>
-                          <span className="text-[9px] sm:text-[10px] text-amber-500 dark:text-amber-400 font-medium block text-center truncate w-full">Moderada</span>
+                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block leading-tight my-0.5 text-center truncate w-full">{fmtNum(weatherNow?.solar_radiation, 0)} W/m²</span>
+                          <span className="text-[9px] sm:text-[10px] text-amber-500 dark:text-amber-400 font-medium block text-center truncate w-full">{radiationLabel(weatherNow?.solar_radiation)}</span>
                         </div>
                       </div>
 
@@ -3151,13 +3257,13 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
                       <div className="divide-y divide-slate-200 dark:divide-slate-800/80 flex flex-col">
                         <div className="p-1.5 sm:p-2 flex-1 flex flex-col justify-between items-center text-center">
                           <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 block font-normal leading-tight text-center truncate w-full">Pressão atmosférica</span>
-                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block leading-tight my-0.5 text-center truncate w-full">1012 hPa</span>
-                          <span className="text-[9px] sm:text-[10px] text-emerald-500 dark:text-emerald-400 font-medium block text-center truncate w-full">Estável</span>
+                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block leading-tight my-0.5 text-center truncate w-full">{fmtNum(weatherNow?.pressure_msl, 0)} hPa</span>
+                          <span className="text-[9px] sm:text-[10px] text-emerald-500 dark:text-emerald-400 font-medium block text-center truncate w-full">{pressureLabel(weatherNow?.pressure_msl)}</span>
                         </div>
                         <div className="p-1.5 sm:p-2 flex-1 flex flex-col justify-between items-center text-center">
                           <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 block font-normal leading-tight text-center truncate w-full">Visibilidade</span>
-                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block leading-tight my-0.5 text-center truncate w-full">16 km</span>
-                          <span className="text-[9px] sm:text-[10px] text-emerald-500 dark:text-emerald-400 font-medium block text-center truncate w-full">Boa</span>
+                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block leading-tight my-0.5 text-center truncate w-full">{typeof weatherNow?.visibility_m === 'number' ? fmtNum(weatherNow.visibility_m / 1000, 0) : '--'} km</span>
+                          <span className="text-[9px] sm:text-[10px] text-emerald-500 dark:text-emerald-400 font-medium block text-center truncate w-full">{visibilityLabel(weatherNow?.visibility_m)}</span>
                         </div>
                       </div>
 
@@ -3169,8 +3275,8 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
                     <CloudRain className="w-7 h-7 sm:w-8 sm:h-8 text-cyan-400 shrink-0" />
                     <div>
                       <span className="text-[11px] sm:text-xs text-cyan-400 font-semibold block leading-none mb-0.5">Condição do tempo</span>
-                      <span className="text-xs sm:text-sm lg:text-base font-bold text-slate-900 dark:text-white block leading-tight">Nublado com chuva fraca</span>
-                      <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 block mt-0.5">Atualizado há 5 min</span>
+                      <span className="text-xs sm:text-sm lg:text-base font-bold text-slate-900 dark:text-white block leading-tight">{rainConditionLabel(weatherNow?.rain_1h_mm)}</span>
+                      <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 block mt-0.5">{minutesAgoLabel(weatherNow?.created_at)}</span>
                     </div>
                   </div>
                 </div>
@@ -3199,7 +3305,7 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
                     {/* CHART */}
                     <div className="flex-1 min-h-[200px] sm:min-h-[220px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart data={precipitationChartData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+                        <ComposedChart data={realPrecipitationChartData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === "light" ? "#E2E8F0" : "#1E293B"} />
                           <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: theme === "light" ? "#64748B" : "#94A3B8" }} />
                           <YAxis yAxisId="left" domain={[0, 20]} axisLine={false} tickLine={false} width={22} tick={{ fontSize: 9, fill: theme === "light" ? "#64748B" : "#94A3B8" }} />
@@ -3228,19 +3334,19 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
                   <div className="grid grid-cols-4 gap-1.5 pt-3 border-t border-slate-200 dark:border-slate-800/80 text-center">
                     <div className="p-1">
                       <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium leading-tight">Acumulado últimas 1h</span>
-                      <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white block mt-0.5">3,2 mm</span>
+                      <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white block mt-0.5">{fmtNum(weatherNow?.rain_1h_mm)} mm</span>
                     </div>
                     <div className="p-1">
                       <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium leading-tight">Acumulado últimas 6h</span>
-                      <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white block mt-0.5">12,6 mm</span>
+                      <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white block mt-0.5">{fmtNum(weatherNow?.rain_6h_mm)} mm</span>
                     </div>
                     <div className="p-1">
                       <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium leading-tight">Acumulado últimas 24h</span>
-                      <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white block mt-0.5">18,4 mm</span>
+                      <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white block mt-0.5">{fmtNum(weatherNow?.rain_24h_mm)} mm</span>
                     </div>
                     <div className="p-1">
                       <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium leading-tight">Acumulado últimos 7 dias</span>
-                      <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white block mt-0.5">46,8 mm</span>
+                      <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white block mt-0.5">{fmtNum(weatherNow?.rain_7d_mm)} mm</span>
                     </div>
                   </div>
                 </div>

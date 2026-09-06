@@ -872,6 +872,71 @@ export async function fetchCitiesDirect(): Promise<City[]> {
   return mergeDbCitiesWithCatalog(dbCities, latestRiverLevelsMap);
 }
 
+// ==========================================
+// WEATHER QUERIES (chuva, umidade do solo, condições atuais)
+// ==========================================
+export interface WeatherReadingRow {
+  city_id: string;
+  recorded_at: string;
+  precipitation_mm: number | null;
+  rain_1h_mm: number | null;
+  rain_6h_mm: number | null;
+  rain_24h_mm: number | null;
+  rain_72h_mm: number | null;
+  rain_7d_mm: number | null;
+  soil_moisture_0_1cm: number | null;
+  soil_moisture_1_3cm: number | null;
+  soil_moisture_3_9cm: number | null;
+  soil_moisture_9_27cm: number | null;
+  temperature: number | null;
+  humidity: number | null;
+  apparent_temperature: number | null;
+  dew_point: number | null;
+  pressure_msl: number | null;
+  wind_speed: number | null;
+  wind_direction: number | null;
+  wind_gusts: number | null;
+  uv_index: number | null;
+  solar_radiation: number | null;
+  visibility_m: number | null;
+  created_at: string;
+}
+
+export async function fetchLatestWeatherReading(cityId: string): Promise<WeatherReadingRow | null> {
+  if (!cityId || !isSupabaseConfigured || !supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('weather_readings')
+      .select('*')
+      .eq('city_id', cityId)
+      .order('recorded_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error || !data) return null;
+    return data as WeatherReadingRow;
+  } catch (e) {
+    console.warn('fetchLatestWeatherReading failed:', e);
+    return null;
+  }
+}
+
+export async function fetchWeatherHistory(cityId: string, limit: number = 24): Promise<WeatherReadingRow[]> {
+  if (!cityId || !isSupabaseConfigured || !supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('weather_readings')
+      .select('*')
+      .eq('city_id', cityId)
+      .order('recorded_at', { ascending: false })
+      .limit(limit);
+    if (error || !data) return [];
+    return (data as WeatherReadingRow[]).reverse();
+  } catch (e) {
+    console.warn('fetchWeatherHistory failed:', e);
+    return [];
+  }
+}
+
 
 export async function saveCity(cityData: Partial<City>): Promise<City> {
   invalidateClientCache();
