@@ -143,38 +143,42 @@ export const Header: React.FC<HeaderProps> = ({
                 />
               </button>
 
-              {/* DROPDOWN MENU */}
+              {/* DROPDOWN MENU (top padding, not margin, keeps the gap inside the
+                  hoverable area so moving the cursor down doesn't trigger
+                  onMouseLeave before it reaches the menu) */}
               {isInstitucionalOpen && (
-                <div className="absolute top-full left-0 mt-1 w-48 rounded-xl bg-white dark:bg-[#0B132B] border border-slate-200 dark:border-slate-800/90 shadow-xl shadow-slate-950/20 dark:shadow-slate-950/60 p-1.5 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
-                  <button
-                    onClick={() => {
-                      setActiveTab('prefeituras');
-                      setIsInstitucionalOpen(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-2.5 cursor-pointer ${
-                      activeTab === 'prefeituras'
-                        ? 'dark:bg-cyan-950/80 bg-cyan-50 dark:text-cyan-400 text-cyan-700 dark:border-cyan-800/60 border-cyan-200 border'
-                        : 'dark:text-slate-300 text-slate-700 dark:hover:bg-slate-800/70 hover:bg-slate-100 dark:hover:text-white hover:text-slate-900'
-                    }`}
-                  >
-                    <Building2 className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
-                    <span>Prefeituras</span>
-                  </button>
+                <div className="absolute top-full left-0 pt-1 w-48 z-50">
+                  <div className="rounded-xl bg-white dark:bg-[#0B132B] border border-slate-200 dark:border-slate-800/90 shadow-xl shadow-slate-950/20 dark:shadow-slate-950/60 p-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <button
+                      onClick={() => {
+                        setActiveTab('prefeituras');
+                        setIsInstitucionalOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-2.5 cursor-pointer ${
+                        activeTab === 'prefeituras'
+                          ? 'dark:bg-cyan-950/80 bg-cyan-50 dark:text-cyan-400 text-cyan-700 dark:border-cyan-800/60 border-cyan-200 border'
+                          : 'dark:text-slate-300 text-slate-700 dark:hover:bg-slate-800/70 hover:bg-slate-100 dark:hover:text-white hover:text-slate-900'
+                      }`}
+                    >
+                      <Building2 className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
+                      <span>Prefeituras</span>
+                    </button>
 
-                  <button
-                    onClick={() => {
-                      setActiveTab('defesa-civil');
-                      setIsInstitucionalOpen(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-2.5 cursor-pointer ${
-                      activeTab === 'defesa-civil'
-                        ? 'dark:bg-cyan-950/80 bg-cyan-50 dark:text-cyan-400 text-cyan-700 dark:border-cyan-800/60 border-cyan-200 border'
-                        : 'dark:text-slate-300 text-slate-700 dark:hover:bg-slate-800/70 hover:bg-slate-100 dark:hover:text-white hover:text-slate-900'
-                    }`}
-                  >
-                    <Shield className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
-                    <span>Defesa Civil</span>
-                  </button>
+                    <button
+                      onClick={() => {
+                        setActiveTab('defesa-civil');
+                        setIsInstitucionalOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-2.5 cursor-pointer ${
+                        activeTab === 'defesa-civil'
+                          ? 'dark:bg-cyan-950/80 bg-cyan-50 dark:text-cyan-400 text-cyan-700 dark:border-cyan-800/60 border-cyan-200 border'
+                          : 'dark:text-slate-300 text-slate-700 dark:hover:bg-slate-800/70 hover:bg-slate-100 dark:hover:text-white hover:text-slate-900'
+                      }`}
+                    >
+                      <Shield className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
+                      <span>Defesa Civil</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
