@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Folder, 
-  ChevronDown, 
-  ChevronRight, 
-  Info, 
-  FileCode, 
-  Settings, 
-  Activity, 
+import {
+  Folder,
+  ChevronDown,
+  ChevronRight,
+  FileCode,
+  Settings,
+  Activity,
   Sparkles,
   Layers,
   Share2,
@@ -40,7 +39,7 @@ export const CentroAnalisesConstrucao: React.FC<CentroAnalisesConstrucaoProps> =
     setOpenFolders(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const codeSnippet = [
+  const codeSnippet: { line: number; text: string; isComment?: boolean }[] = [
     { line: 1, text: "import React from 'react';" },
     { line: 2, text: "import { Container, Title, Grid } from './styles';" },
     { line: 3, text: "" },
@@ -55,16 +54,49 @@ export const CentroAnalisesConstrucao: React.FC<CentroAnalisesConstrucaoProps> =
     { line: 12, text: "export default CentroAnalises;" }
   ];
 
+  // Wrap long comment text into terminal-width lines
+  const wrapComment = (text: string, maxChars: number = 58): string[] => {
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let current = '';
+    words.forEach((word) => {
+      const next = current ? `${current} ${word}` : word;
+      if (next.length > maxChars) {
+        if (current) lines.push(current);
+        current = word;
+      } else {
+        current = next;
+      }
+    });
+    if (current) lines.push(current);
+    return lines;
+  };
+
+  // Append the maintenance message to the typed code as comment lines
+  const fullSnippet = React.useMemo(() => {
+    const messageLines: { line: number; text: string; isComment?: boolean }[] = [];
+    let n = codeSnippet.length;
+
+    messageLines.push({ line: ++n, text: '' });
+    messageLines.push({ line: ++n, text: `// ${title}`, isComment: true });
+    messageLines.push({ line: ++n, text: '//', isComment: true });
+    wrapComment(subtitle).forEach((part) => {
+      messageLines.push({ line: ++n, text: `// ${part}`, isComment: true });
+    });
+
+    return [...codeSnippet, ...messageLines];
+  }, [title, subtitle]);
+
   // Typing animation interval
   useEffect(() => {
     const timer = setInterval(() => {
-      setTypedLineIndex(prev => (prev < codeSnippet.length ? prev + 1 : prev));
+      setTypedLineIndex(prev => (prev < fullSnippet.length ? prev + 1 : prev));
     }, 150);
     return () => clearInterval(timer);
-  }, []);
+  }, [fullSnippet.length]);
 
   return (
-    <div className="w-full max-w-7xl mx-auto mb-4 bg-[#030712] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden font-sans text-slate-300 relative flex flex-col min-h-[720px] transition-all">
+    <div className="w-full max-w-7xl mx-auto bg-[#030712] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden font-sans text-slate-300 relative flex flex-col h-[calc(100vh-9.5rem)] min-h-[420px] transition-all">
       
       {/* CSS STYLES FOR STEAM ANIMATION & GLOW */}
       <style>{`
@@ -353,52 +385,58 @@ export const CentroAnalisesConstrucao: React.FC<CentroAnalisesConstrucaoProps> =
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-500/10 blur-[100px] rounded-full pointer-events-none"></div>
 
           {/* CODE EDITOR WORKSPACE */}
-          <div className="p-4 sm:p-6 font-mono text-xs sm:text-sm leading-relaxed relative z-10 flex-1 flex flex-col justify-between">
+          <div className="p-3 sm:p-5 font-mono text-[11px] sm:text-xs leading-tight relative z-10 flex-1 flex flex-col justify-center overflow-hidden min-h-0">
             
             {/* Top TypeScript Code Block */}
             <div className="space-y-1 select-text">
-              {codeSnippet.slice(0, typedLineIndex).map((item) => (
-                <div key={item.line} className="flex items-center gap-4 group">
-                  <span className="w-6 text-right text-slate-600 text-xs select-none">{item.line}</span>
-                  <span className="text-slate-300">
-                    {item.text.startsWith('import') ? (
-                      <>
-                        <span className="text-pink-400 font-semibold">import </span>
-                        {item.text.replace('import ', '')}
-                      </>
-                    ) : item.text.startsWith('const') || item.text.startsWith('export') ? (
-                      <>
-                        <span className="text-sky-400 font-semibold">{item.text.split(' ')[0]} </span>
-                        <span className="text-amber-300">{item.text.split(' ')[1]}</span>
-                        {item.text.substring(item.text.indexOf(item.text.split(' ')[1]) + item.text.split(' ')[1].length)}
-                      </>
-                    ) : item.text.includes('<') ? (
-                      <>
-                        <span className="text-cyan-400">{item.text}</span>
-                      </>
-                    ) : (
-                      item.text
-                    )}
-                  </span>
-                </div>
-              ))}
-              {typedLineIndex <= codeSnippet.length && (
-                <span className="inline-block w-2 h-4 bg-cyan-400 animate-pulse ml-10 vertical-middle"></span>
-              )}
+              {fullSnippet.slice(0, typedLineIndex).map((item, idx) => {
+                const isLastTypedLine = idx === typedLineIndex - 1;
+                const cursor = isLastTypedLine && (
+                  <span className="text-cyan-400 font-bold animate-pulse">|</span>
+                );
+                return (
+                  <div key={item.line} className="flex items-center gap-4 group">
+                    <span className="w-6 text-right text-slate-600 text-xs select-none">{item.line}</span>
+                    <span className={item.isComment ? 'text-slate-500 italic' : 'text-slate-300'}>
+                      {item.isComment ? (
+                        item.text
+                      ) : item.text.startsWith('import') ? (
+                        <>
+                          <span className="text-pink-400 font-semibold">import </span>
+                          {item.text.replace('import ', '')}
+                        </>
+                      ) : item.text.startsWith('const') || item.text.startsWith('export') ? (
+                        <>
+                          <span className="text-sky-400 font-semibold">{item.text.split(' ')[0]} </span>
+                          <span className="text-amber-300">{item.text.split(' ')[1]}</span>
+                          {item.text.substring(item.text.indexOf(item.text.split(' ')[1]) + item.text.split(' ')[1].length)}
+                        </>
+                      ) : item.text.includes('<') ? (
+                        <>
+                          <span className="text-cyan-400">{item.text}</span>
+                        </>
+                      ) : (
+                        item.text
+                      )}
+                      {cursor}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
 
             {/* CENTER ASCII COFFEE CUP & RISING STEAM */}
-            <div className="my-6 sm:my-10 flex flex-col items-center justify-center relative">
-              
+            <div className="my-2 sm:my-3 flex flex-col items-center justify-center relative">
+
               {/* Animated Steam Lines */}
-              <div className="relative h-8 w-20 flex items-center justify-center gap-3 select-none pointer-events-none mb-1">
-                <span className="text-cyan-300/80 font-mono font-bold text-sm animate-steam-1">. :</span>
-                <span className="text-cyan-300/80 font-mono font-bold text-sm animate-steam-2">: : :: :</span>
-                <span className="text-cyan-300/80 font-mono font-bold text-sm animate-steam-3">. :</span>
+              <div className="relative h-6 w-20 flex items-center justify-center gap-3 select-none pointer-events-none">
+                <span className="text-cyan-300/80 font-mono font-bold text-xs animate-steam-1">. :</span>
+                <span className="text-cyan-300/80 font-mono font-bold text-xs animate-steam-2">: : :: :</span>
+                <span className="text-cyan-300/80 font-mono font-bold text-xs animate-steam-3">. :</span>
               </div>
 
               {/* ASCII Coffee Cup Artwork */}
-              <pre className="font-mono text-cyan-400 text-[10px] sm:text-xs md:text-sm font-bold leading-none select-none text-center drop-shadow-[0_0_16px_rgba(6,182,212,0.6)]">
+              <pre className="font-mono text-cyan-400 text-[8px] sm:text-[10px] md:text-xs font-bold leading-none select-none text-center drop-shadow-[0_0_16px_rgba(6,182,212,0.6)]">
 {`               .:
              ::.:
            ::.::.:
@@ -418,26 +456,6 @@ export const CentroAnalisesConstrucao: React.FC<CentroAnalisesConstrucaoProps> =
   . . . . . . . . . . . . . . . .`}
               </pre>
 
-              {/* MESSAGE CARD BELOW COFFEE CUP */}
-              <div className="mt-8 max-w-xl w-full px-4 sm:px-6 py-4 rounded-2xl bg-[#091122]/90 border border-cyan-500/30 shadow-xl shadow-cyan-950/40 backdrop-blur-md flex flex-col sm:flex-row items-center gap-3.5 text-center sm:text-left transition-all hover:border-cyan-500/50">
-                <div className="p-2.5 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shrink-0 animate-pulse">
-                  <Info className="w-5 h-5" />
-                </div>
-                <div className="space-y-1">
-                  <h4 className="text-sm font-bold text-cyan-200 tracking-tight flex items-center justify-center sm:justify-start gap-2">
-                    <span>{title}</span>
-                  </h4>
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    {subtitle}
-                  </p>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Dummy Bottom Code Comments */}
-            <div className="text-[11px] text-slate-600 font-mono select-none hidden sm:block">
-              <span>// Sincronizando APIs telemétricas do Rio Taquari... [OK]</span>
             </div>
 
           </div>
