@@ -196,7 +196,7 @@ export const AdminLayoutConfigView: React.FC = () => {
                 </div>
 
                 <span
-                  className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                     isSticky
                       ? 'bg-cyan-500/20 border border-cyan-500/40 text-cyan-300'
                       : 'bg-slate-800 text-slate-400 border border-slate-700'

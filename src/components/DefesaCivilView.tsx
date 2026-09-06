@@ -301,7 +301,7 @@ export const DefesaCivilView: React.FC<DefesaCivilViewProps> = ({ cities = [], o
         <div className="bg-gradient-to-br from-amber-950/70 to-slate-900 border border-amber-700/60 rounded-2xl p-4 text-white flex items-center justify-between shadow-xl">
           <div>
             <p className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">DEFESA CIVIL</p>
-            <p className="text-2xl md:text-3xl font-extrabold font-mono mt-0.5">199</p>
+            <p className="text-2xl md:text-3xl font-bold font-mono mt-0.5">199</p>
           </div>
           <PhoneCall className="w-7 h-7 text-amber-400 opacity-80" />
         </div>
@@ -309,7 +309,7 @@ export const DefesaCivilView: React.FC<DefesaCivilViewProps> = ({ cities = [], o
         <div className="bg-gradient-to-br from-red-950/70 to-slate-900 border border-red-700/60 rounded-2xl p-4 text-white flex items-center justify-between shadow-xl">
           <div>
             <p className="text-[10px] text-red-400 font-bold uppercase tracking-wider">BOMBEIROS</p>
-            <p className="text-2xl md:text-3xl font-extrabold font-mono mt-0.5">193</p>
+            <p className="text-2xl md:text-3xl font-bold font-mono mt-0.5">193</p>
           </div>
           <LifeBuoy className="w-7 h-7 text-red-400 opacity-80" />
         </div>
@@ -317,7 +317,7 @@ export const DefesaCivilView: React.FC<DefesaCivilViewProps> = ({ cities = [], o
         <div className="bg-gradient-to-br from-sky-950/70 to-slate-900 border border-sky-700/60 rounded-2xl p-4 text-white flex items-center justify-between shadow-xl">
           <div>
             <p className="text-[10px] text-sky-400 font-bold uppercase tracking-wider">BRIGADA MILITAR</p>
-            <p className="text-2xl md:text-3xl font-extrabold font-mono mt-0.5">190</p>
+            <p className="text-2xl md:text-3xl font-bold font-mono mt-0.5">190</p>
           </div>
           <Shield className="w-7 h-7 text-sky-400 opacity-80" />
         </div>
@@ -325,7 +325,7 @@ export const DefesaCivilView: React.FC<DefesaCivilViewProps> = ({ cities = [], o
         <div className="bg-gradient-to-br from-emerald-950/70 to-slate-900 border border-emerald-700/60 rounded-2xl p-4 text-white flex items-center justify-between shadow-xl">
           <div>
             <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">SAMU (EMERGÊNCIA)</p>
-            <p className="text-2xl md:text-3xl font-extrabold font-mono mt-0.5">192</p>
+            <p className="text-2xl md:text-3xl font-bold font-mono mt-0.5">192</p>
           </div>
           <Siren className="w-7 h-7 text-emerald-400 opacity-80" />
         </div>

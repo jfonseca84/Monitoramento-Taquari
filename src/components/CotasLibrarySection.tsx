@@ -173,24 +173,24 @@ export const CotasLibrarySection: React.FC = () => {
 
   return (
     <>
-      <div className="bg-[#0A1226] border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-5">
+      <div className="bg-white dark:bg-[#0A1226] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 shadow-md dark:shadow-2xl space-y-5 transition-colors">
         
         {/* HEADER DA BIBLIOTECA */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-sky-950 text-cyan-400 border border-sky-800 shrink-0">
-              <FolderOpen className="w-6 h-6 text-cyan-300" />
+            <div className="p-3 rounded-2xl bg-sky-100 dark:bg-sky-950 text-cyan-700 dark:text-cyan-400 border border-sky-200 dark:border-sky-800 shrink-0">
+              <FolderOpen className="w-6 h-6 text-cyan-600 dark:text-cyan-300" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base sm:text-lg font-black text-white uppercase tracking-wider">
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white uppercase tracking-wider">
                   BIBLIOTECA TÉCNICA HIDROLÓGICA POR COTAS
                 </h2>
-                <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-sky-950 text-sky-300 border border-sky-800">
+                <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
                   DOCUMENTAÇÃO INSTITUCIONAL
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5 max-w-3xl">
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 max-w-3xl">
                 Cards de acesso direto por elevação de cota (19m a 34m). Clique sobre qualquer cota para abrir a caixa de exibição do documento técnico.
               </p>
             </div>
@@ -204,11 +204,11 @@ export const CotasLibrarySection: React.FC = () => {
                 value={librarySearchTerm}
                 onChange={(e) => setLibrarySearchTerm(e.target.value)}
                 placeholder="Buscar cota..."
-                className="w-full bg-[#050A18] text-xs text-slate-100 placeholder-slate-500 pl-8 pr-3 py-1.5 rounded-xl border border-slate-700 focus:outline-none focus:border-cyan-400"
+                className="w-full bg-slate-100 dark:bg-[#050A18] text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 pl-8 pr-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-cyan-500 dark:focus:border-cyan-400"
               />
             </div>
 
-            <span className="text-xs font-mono font-bold text-cyan-300 bg-cyan-950 px-3 py-1.5 rounded-xl border border-cyan-800 shrink-0 hidden sm:inline">
+            <span className="text-xs font-mono font-bold text-cyan-700 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-950 px-3 py-1.5 rounded-xl border border-cyan-200 dark:border-cyan-800 shrink-0 hidden sm:inline">
               16 Cotas Mapeadas
             </span>
           </div>
@@ -228,20 +228,20 @@ export const CotasLibrarySection: React.FC = () => {
               <div
                 key={item.cotaNum}
                 onClick={() => handleOpenDirectCotaFile(item)}
-                className={`p-3.5 rounded-2xl bg-[#050A18] border ${item.color} hover:bg-slate-900 hover:scale-105 transition-all cursor-pointer group shadow-lg flex flex-col justify-between space-y-3 min-h-[95px]`}
+                className={`p-3.5 rounded-2xl bg-slate-50 dark:bg-[#050A18] border ${item.color} hover:bg-slate-100 dark:hover:bg-slate-900 hover:scale-105 transition-all cursor-pointer group shadow-sm dark:shadow-lg flex flex-col justify-between space-y-3 min-h-[95px]`}
               >
                 <div>
-                  <span className="text-sm font-mono font-black text-white group-hover:text-cyan-300 block">
+                  <span className="text-sm font-mono font-bold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-300 block">
                     {item.cota}
                   </span>
-                  <span className="text-[9px] font-extrabold uppercase block mt-1 text-slate-300 truncate">
+                  <span className="text-[9px] font-bold uppercase block mt-1 text-slate-700 dark:text-slate-300 truncate">
                     {item.status}
                   </span>
                 </div>
 
-                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-cyan-400 font-extrabold group-hover:underline">
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-[10px] text-cyan-600 dark:text-cyan-400 font-bold group-hover:underline">
                   <span>Abrir Arquivo</span>
-                  <FileText className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  <FileText className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 shrink-0" />
                 </div>
               </div>
             ))}
@@ -251,28 +251,28 @@ export const CotasLibrarySection: React.FC = () => {
       {/* VISUALIZADOR DIRETO DE ARQUIVO DA COTA (CAIXA DE EXIBIÇÃO) */}
       {selectedDirectDocument && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6">
-          <div className="bg-[#0A1226] border-2 border-cyan-500/80 rounded-3xl p-5 max-w-5xl w-full h-[85vh] flex flex-col justify-between shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800 flex-wrap gap-2">
+          <div className="bg-white dark:bg-[#0A1226] border-2 border-cyan-500/80 rounded-3xl p-5 max-w-5xl w-full h-[85vh] flex flex-col justify-between shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 flex-wrap gap-2">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-cyan-950 text-cyan-300 border border-cyan-700">
-                  <FileText className="w-5 h-5 text-cyan-400" />
+                <div className="p-2.5 rounded-xl bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-700">
+                  <FileText className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-white uppercase">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white uppercase">
                     ARQUIVO DA {selectedDirectDocument.cotaTitle.toUpperCase()}
                   </h3>
-                  <span className="text-[10px] font-bold uppercase text-cyan-400 font-mono">
+                  <span className="text-[10px] font-bold uppercase text-cyan-600 dark:text-cyan-400 font-mono">
                     Supabase Storage • cota_{selectedDirectDocument.cotaNum}m.pdf
                   </span>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
-                <label className="px-3.5 py-1.5 bg-cyan-950 hover:bg-cyan-900 text-cyan-200 border border-cyan-500/50 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-md">
+                <label className="px-3.5 py-1.5 bg-cyan-100 dark:bg-cyan-950 hover:bg-cyan-200 dark:hover:bg-cyan-900 text-cyan-800 dark:text-cyan-200 border border-cyan-300 dark:border-cyan-500/50 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-md">
                   {isUploading ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-600 dark:text-cyan-400" />
                   ) : (
-                    <Upload className="w-3.5 h-3.5 text-cyan-400" />
+                    <Upload className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                   )}
                   <span>{isUploading ? 'Enviando...' : 'Enviar do computador'}</span>
                   <input
@@ -288,15 +288,15 @@ export const CotasLibrarySection: React.FC = () => {
                   href={selectedDirectDocument.fileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/40 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-500/40 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  <ExternalLink className="w-3.5 h-3.5 text-cyan-400" />
+                  <ExternalLink className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                   <span>Abrir em nova aba</span>
                 </a>
 
                 <button
                   onClick={() => handleDownload(selectedDirectDocument.fileUrl, `cota_${selectedDirectDocument.cotaNum}m.pdf`)}
-                  className="px-3.5 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs rounded-xl flex items-center gap-1.5 transition-colors shadow cursor-pointer"
+                  className="px-3.5 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors shadow cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Download</span>
@@ -304,7 +304,7 @@ export const CotasLibrarySection: React.FC = () => {
 
                 <button
                   onClick={() => setSelectedDirectDocument(null)}
-                  className="text-slate-400 hover:text-white p-1.5 rounded-xl bg-slate-900 border border-slate-800 cursor-pointer ml-1"
+                  className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white p-1.5 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 cursor-pointer ml-1"
                   title="Fechar"
                 >
                   <X className="w-5 h-5" />
@@ -314,14 +314,14 @@ export const CotasLibrarySection: React.FC = () => {
 
             {/* UPLOAD STATUS NOTIFICATION */}
             {uploadMessage && (
-              <div className="px-4 py-2 rounded-xl bg-cyan-950/90 border border-cyan-500/50 text-cyan-200 text-xs font-medium flex items-center gap-2 animate-fade-in">
-                <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0" />
+              <div className="px-4 py-2 rounded-xl bg-cyan-50 dark:bg-cyan-950/90 border border-cyan-300 dark:border-cyan-500/50 text-cyan-800 dark:text-cyan-200 text-xs font-medium flex items-center gap-2 animate-fade-in">
+                <CheckCircle2 className="w-4 h-4 text-cyan-600 dark:text-cyan-400 shrink-0" />
                 <span>{uploadMessage}</span>
               </div>
             )}
 
             {/* DOCUMENT EMBEDDED PREVIEW / IFRAME */}
-            <div className="flex-1 w-full bg-[#050A18] rounded-2xl border border-slate-800 overflow-hidden relative flex flex-col items-center justify-center">
+            <div className="flex-1 w-full bg-slate-100 dark:bg-[#050A18] rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden relative flex flex-col items-center justify-center">
               <iframe
                 src={selectedDirectDocument.fileUrl}
                 className="w-full h-full rounded-xl border-0"
@@ -329,13 +329,13 @@ export const CotasLibrarySection: React.FC = () => {
               />
             </div>
 
-            <div className="pt-2 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between text-xs font-mono text-slate-400 gap-2">
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between text-xs font-mono text-slate-500 dark:text-slate-400 gap-2">
               <span className="truncate max-w-xl">
-                Caminho do arquivo no Supabase: <span className="text-cyan-300 font-semibold">{selectedDirectDocument.fileUrl}</span>
+                Caminho do arquivo no Supabase: <span className="text-cyan-700 dark:text-cyan-300 font-semibold">{selectedDirectDocument.fileUrl}</span>
               </span>
               <button
                 onClick={() => setSelectedDirectDocument(null)}
-                className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                className="px-5 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold text-xs rounded-xl transition-colors cursor-pointer"
               >
                 FECHAR DOCUMENTO
               </button>

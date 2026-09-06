@@ -51,10 +51,9 @@ export const LevelChart: React.FC<LevelChartProps> = ({
   const maxDataLevel = validLevels.length > 0 ? Math.max(...validLevels, currentLevel, floodLevel) : Math.max(currentLevel, floodLevel);
   const minDataLevel = validLevels.length > 0 ? Math.min(...validLevels, currentLevel, normalLevel) : Math.min(currentLevel, normalLevel);
 
-  const calcYMin = Math.max(0, Math.floor(minDataLevel - 1));
-  const calcYMax = Math.ceil(maxDataLevel + 2);
-  const yMin = isFinite(calcYMin) ? calcYMin : 0;
-  const yMax = isFinite(calcYMax) ? calcYMax : 20;
+  const yMin = 12;
+  const yMax = 34;
+  const yTicks = [12, 15, 18, 21, 24, 27, 30, 34];
 
   // Custom Dark Tooltip
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -95,10 +94,10 @@ export const LevelChart: React.FC<LevelChartProps> = ({
   };
 
   return (
-    <div className="dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-3xl p-5 lg:p-6 shadow-2xl flex flex-col justify-between transition-colors">
+    <div className="dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-2xl p-4 sm:p-5 shadow-2xl flex flex-col justify-between transition-colors">
       
       {/* HEADER & PERIOD SELECTOR */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
         <div>
           <h3 className="text-xs font-bold dark:text-slate-400 text-slate-500 tracking-wider uppercase">
             HISTÓRICO DE LEITURAS DA ESTAÇÃO
@@ -127,7 +126,7 @@ export const LevelChart: React.FC<LevelChartProps> = ({
       </div>
 
       {/* RECHARTS CANVAS */}
-      <div className="relative w-full h-[260px] sm:h-[300px]">
+      <div className="relative w-full h-[190px] sm:h-[210px]">
         
         {/* INSUFFICIENT DATA OVERLAY */}
         {(!chartData || chartData.length < 2) && (
@@ -142,15 +141,10 @@ export const LevelChart: React.FC<LevelChartProps> = ({
           </div>
         )}
 
-        {/* CURRENT LEVEL BADGE OVER CHART */}
-        <div className="absolute right-4 top-2 z-10 bg-cyan-600 text-white font-mono font-bold text-xs px-3 py-1 rounded-lg shadow-lg shadow-cyan-900/50 border border-cyan-400/50 animate-bounce">
-          {currentLevel.toFixed(2).replace('.', ',')} m
-        </div>
-
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
             data={chartData}
-            margin={{ top: 20, right: 20, left: -20, bottom: 0 }}
+            margin={{ top: 15, right: 20, left: -20, bottom: 0 }}
           >
             <defs>
               <linearGradient id="levelGradient" x1="0" y1="0" x2="0" y2="1">
@@ -172,6 +166,7 @@ export const LevelChart: React.FC<LevelChartProps> = ({
 
             <YAxis
               domain={[yMin, yMax]}
+              ticks={yTicks}
               stroke="#64748B"
               fontSize={10}
               tickLine={false}

@@ -177,8 +177,6 @@ export const EditableComponent: React.FC<EditableComponentProps> = ({
   return (
     <div
       ref={containerRef}
-      draggable={!config.isLocked}
-      onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -189,7 +187,11 @@ export const EditableComponent: React.FC<EditableComponentProps> = ({
       <div className="absolute -top-3 left-3 right-3 z-30 flex items-center justify-between gap-1 bg-slate-900 border border-cyan-500/50 text-white rounded-xl px-2.5 py-1 shadow-2xl opacity-90 group-hover/editable:opacity-100 transition-opacity text-[11px] font-sans">
         
         {/* COMPONENT NAME BADGE */}
-        <div className="flex items-center gap-1.5 min-w-0 cursor-grab active:cursor-grabbing">
+        <div
+          draggable={!config.isLocked}
+          onDragStart={handleDragStart}
+          className="flex items-center gap-1.5 min-w-0 cursor-grab active:cursor-grabbing select-none"
+        >
           <GripHorizontal className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
           <span className="font-mono text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 shrink-0">
             {config.type || type}
@@ -300,7 +302,7 @@ export const EditableComponent: React.FC<EditableComponentProps> = ({
       </div>
 
       {/* CHILDREN WRAPPER */}
-      <div className={`w-full h-full flex-1 flex flex-col rounded-2xl overflow-hidden ${isHiddenInPublic ? 'opacity-40 grayscale-[50%]' : ''}`}>
+      <div className={`w-full h-full flex-1 flex flex-col rounded-2xl ${isHiddenInPublic ? 'opacity-40 grayscale-[50%]' : ''}`}>
         {children}
       </div>
 

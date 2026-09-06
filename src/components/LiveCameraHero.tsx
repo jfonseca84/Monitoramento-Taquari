@@ -153,7 +153,7 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({
       <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
         {/* TOP LEFT: CITY NAME + AO VIVO BADGE */}
         <div className="flex items-center gap-3">
-          <h1 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase">
+          <h1 className="text-xl sm:text-2xl font-bold text-white tracking-wide uppercase">
             {selectedCity.name} – RS
           </h1>
           <span className="inline-flex items-center gap-1.5 bg-[#103D2E] border border-[#1A6349] text-[#2AE89B] text-xs font-bold px-3 py-1 rounded-full shadow-sm">
@@ -195,10 +195,10 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({
             title="Clique para ver gráficos e histórico detalhado"
           >
             <div className="flex items-baseline gap-2">
-              <span className="text-6xl sm:text-7xl lg:text-8xl font-black text-white tracking-tight leading-none group-hover:text-cyan-300 transition-colors">
+              <span className="text-6xl sm:text-7xl lg:text-8xl font-bold text-white tracking-tight leading-none group-hover:text-cyan-300 transition-colors">
                 {formattedLevel}
               </span>
-              <span className="text-3xl sm:text-4xl lg:text-5xl font-black text-white leading-none">
+              <span className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-none">
                 m
               </span>
             </div>
@@ -221,7 +221,7 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({
       <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-4 mb-2">
         {/* BOTTOM LEFT: STATUS PILL BADGE */}
         <div className={`rounded-2xl px-5 py-3.5 border flex flex-col justify-center min-w-[260px] max-w-sm ${statusStyle.boxClass}`}>
-          <span className="text-sm sm:text-base font-black tracking-wider uppercase text-white">
+          <span className="text-sm sm:text-base font-bold tracking-wider uppercase text-white">
             {statusStyle.title}
           </span>
           <p className="text-xs text-white/95 font-semibold tracking-wide mt-0.5">
@@ -244,36 +244,36 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({
       </div>
 
       {/* COTAS DE NÍVEL HORIZONTAL BAR */}
-      <div className="relative z-10 mt-2.5 pt-2.5 border-t border-slate-700/60 flex items-center justify-between gap-x-1.5 sm:gap-x-2 text-[9px] sm:text-[10px] md:text-[11px] font-semibold text-slate-200 leading-none overflow-x-auto touch-pan-x max-w-full no-scrollbar pb-1">
+      <div className="relative z-10 mt-2.5 pt-2.5 border-t border-slate-700/60 flex flex-wrap items-center justify-center gap-x-2.5 sm:gap-x-4 md:gap-x-5 gap-y-1.5 text-[10px] sm:text-[11px] font-semibold text-slate-200 leading-none max-w-full pb-0.5">
         {/* NÍVEL NORMAL */}
-        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.8)] shrink-0" />
           <span className="text-slate-300">Nível normal</span>
           <span className="text-emerald-400 font-bold font-mono">{normalQuotaStr}m</span>
         </div>
 
-        <span className="text-slate-700 dark:text-slate-600 font-bold select-none shrink-0">|</span>
+        <span className="text-slate-600 font-bold select-none shrink-0 hidden xs:inline">|</span>
 
         {/* COTA DE ATENÇÃO */}
-        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shadow-[0_0_6px_rgba(251,191,36,0.8)] shrink-0" />
           <span className="text-slate-300">Cota de atenção</span>
           <span className="text-amber-400 font-bold font-mono">{attentionQuotaStr}m</span>
         </div>
 
-        <span className="text-slate-700 dark:text-slate-600 font-bold select-none shrink-0">|</span>
+        <span className="text-slate-600 font-bold select-none shrink-0 hidden xs:inline">|</span>
 
         {/* COTA DE ALERTA */}
-        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse shadow-[0_0_6px_rgba(251,146,60,0.8)] shrink-0" />
           <span className="text-slate-300">Cota de alerta</span>
           <span className="text-orange-400 font-bold font-mono">{alertQuotaStr}m</span>
         </div>
 
-        <span className="text-slate-700 dark:text-slate-600 font-bold select-none shrink-0">|</span>
+        <span className="text-slate-600 font-bold select-none shrink-0 hidden xs:inline">|</span>
 
         {/* COTA DE INUNDAÇÃO */}
-        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_6px_rgba(239,68,68,0.8)] shrink-0" />
           <span className="text-slate-300">Cota de inundação</span>
           <span className="text-red-400 font-bold font-mono">{floodQuotaStr}m</span>

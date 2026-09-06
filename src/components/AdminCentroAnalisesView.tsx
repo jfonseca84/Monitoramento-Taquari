@@ -370,13 +370,13 @@ export const AdminCentroAnalisesView: React.FC = () => {
                   }`}
                 >
                   <div className="flex items-center gap-2.5 overflow-hidden">
-                    <div className="w-10 h-10 rounded-lg bg-cyan-950 text-cyan-400 border border-cyan-800 flex flex-col items-center justify-center font-mono font-black text-sm shrink-0">
+                    <div className="w-10 h-10 rounded-lg bg-cyan-950 text-cyan-400 border border-cyan-800 flex flex-col items-center justify-center font-mono font-bold text-sm shrink-0">
                       {c.cota_m.toFixed(0)}m
                     </div>
 
                     <div className="overflow-hidden">
                       <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded border uppercase ${
+                        <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border uppercase ${
                           c.nivel_risco === 'inundacao' ? 'bg-rose-950 text-rose-400 border-rose-800' :
                           c.nivel_risco === 'alerta' ? 'bg-orange-950 text-orange-400 border-orange-800' :
                           'bg-amber-950 text-amber-400 border-amber-800'

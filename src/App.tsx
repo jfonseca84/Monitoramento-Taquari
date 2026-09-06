@@ -364,7 +364,12 @@ export default function App() {
 
           </div>
         ) : activeTab === 'nivel' || activeTab === 'centro-analises' ? (
-          <CentroAnalisesView theme={theme} />
+          <CentroAnalisesView
+            theme={theme}
+            cities={cities}
+            selectedCity={selectedCity}
+            onSelectCity={(city) => setSelectedCity(city)}
+          />
         ) : activeTab === 'receber-alertas' ? (
           <EditableComponent id="risk_alert_signup_module" name="Módulo Cadastro de Alertas de Risco" type="module">
             <RiskAlertSignup cities={cities} />

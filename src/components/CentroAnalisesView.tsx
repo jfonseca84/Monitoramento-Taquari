@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CotasLibrarySection } from './CotasLibrarySection';
+import { ChuvaAcumuladaBacia } from './ChuvaAcumuladaBacia';
 import { EditableComponent } from './visualEditor/EditableComponent';
 import { LayoutBehaviorWrapper } from './LayoutBehaviorWrapper';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { useVisualEditor } from '../context/VisualEditorContext';
 import { CentroAnalisesConstrucao } from './CentroAnalisesConstrucao';
+import { HistoricoEnchentesView } from './HistoricoEnchentesView';
+import { PropagacaoOndaView } from './PropagacaoOndaView';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -62,6 +65,7 @@ import {
   Layers,
   Lock,
   Shield,
+  MoreVertical,
   CloudSun
 } from 'lucide-react';
 import { 
@@ -81,7 +85,9 @@ import {
   CartesianGrid,
   Brush
 } from 'recharts';
-import { fetchCitiesDirect } from '../lib/supabase';
+import { fetchCitiesDirect, normalizeCitySlug } from '../lib/supabase';
+import { INITIAL_CITIES } from '../data/initialData';
+import { StatusDot } from './StatusDot';
 import { City } from '../types';
 
 // ==========================================
@@ -290,8 +296,441 @@ export interface AnalysisStation {
       { time: '09:00', val: 236 }
     ]
   };
+
 const STATIONS_DATA: AnalysisStation[] = [
-  // --- Cidades Principais (Taquari Main Channel) ---
+  // --- Cidades Principais (Ordem da Referência) ---
+  {
+    id: 'mucum',
+    name: 'Muçum',
+    river: 'Rio Taquari',
+    category: 'cidade',
+    current_level: 18.42,
+    attention_threshold: 13.00,
+    warning_threshold: 15.00,
+    flood_threshold: 18.00,
+    emergency_threshold: 22.00,
+    rate_of_change: 0.022,
+    status_level: 'alerta',
+    trend: 'subindo',
+    last_updated: 'Há 8 min',
+    transit_time: '~2h a 3h de Santa Tereza',
+    temp: 22.0,
+    humidity: 87,
+    wind: '13 km/h NE',
+    pressure: 1013,
+    rain1h: 1.2,
+    rain6h: 14.0,
+    rain24h: 142.0,
+    bairrosImpactados: ['Centro Urbano Baixo', 'Fátima', 'Nossa Senhora do Rosário']
+  },
+  {
+    id: 'encantado',
+    name: 'Encantado',
+    river: 'Rio Taquari',
+    category: 'cidade',
+    current_level: 15.80,
+    attention_threshold: 12.50,
+    warning_threshold: 14.00,
+    flood_threshold: 16.00,
+    emergency_threshold: 19.50,
+    rate_of_change: 0.018,
+    status_level: 'alerta',
+    trend: 'subindo',
+    last_updated: 'Há 4 min',
+    transit_time: '~3h a 4h de Muçum',
+    temp: 22.2,
+    humidity: 85,
+    wind: '11 km/h E',
+    pressure: 1013,
+    rain1h: 1.0,
+    rain6h: 15.2,
+    rain24h: 128.0,
+    bairrosImpactados: ['Navegantes', 'Barra do Guaporé', 'Lenz']
+  },
+  {
+    id: 'lajeado',
+    name: 'Lajeado',
+    river: 'Rio Taquari',
+    category: 'cidade',
+    current_level: 22.31,
+    attention_threshold: 15.00,
+    warning_threshold: 17.00,
+    flood_threshold: 19.00,
+    emergency_threshold: 22.50,
+    rate_of_change: 0.014,
+    status_level: 'alerta',
+    trend: 'subindo',
+    last_updated: '23/05/2025 09:30',
+    transit_time: '~5h a 6h de Muçum',
+    temp: 22.6,
+    humidity: 86,
+    wind: '14 km/h NE',
+    pressure: 1012,
+    rain1h: 2.4,
+    rain6h: 18.0,
+    rain24h: 142.0,
+    bairrosImpactados: ['Conservas', 'Navegantes', 'Carneiros', 'Centro Baixo', 'Praia dos Paus']
+  },
+  {
+    id: 'estrela',
+    name: 'Estrela',
+    river: 'Rio Taquari',
+    category: 'cidade',
+    current_level: 21.90,
+    attention_threshold: 15.00,
+    warning_threshold: 17.00,
+    flood_threshold: 19.00,
+    emergency_threshold: 22.50,
+    rate_of_change: 0.012,
+    status_level: 'atencao',
+    trend: 'subindo',
+    last_updated: 'Há 3 min',
+    transit_time: 'Confluência imediata a Lajeado',
+    temp: 22.5,
+    humidity: 86,
+    wind: '14 km/h NE',
+    pressure: 1012,
+    rain1h: 2.2,
+    rain6h: 17.8,
+    rain24h: 138.0,
+    bairrosImpactados: ['Imigrantes', 'União', 'Moinhos', 'Três Maios']
+  },
+  {
+    id: 'bom-retiro-do-sul',
+    name: 'Bom Retiro do Sul',
+    river: 'Rio Taquari',
+    category: 'cidade',
+    current_level: 20.15,
+    attention_threshold: 13.00,
+    warning_threshold: 14.50,
+    flood_threshold: 15.00,
+    emergency_threshold: 18.00,
+    rate_of_change: 0.010,
+    status_level: 'atencao',
+    trend: 'subindo',
+    last_updated: 'Há 9 min',
+    transit_time: '~3h de Cruzeiro do Sul (Barragem)',
+    temp: 23.0,
+    humidity: 84,
+    wind: '10 km/h NE',
+    pressure: 1011,
+    rain1h: 1.5,
+    rain6h: 15.0,
+    rain24h: 120.0,
+    bairrosImpactados: ['Jardim do Canto', 'Avis', 'Barragem de Bom Retiro']
+  },
+  {
+    id: 'taquari',
+    name: 'Taquari',
+    river: 'Foz do Taquari',
+    category: 'cidade',
+    current_level: 12.92,
+    attention_threshold: 10.00,
+    warning_threshold: 11.50,
+    flood_threshold: 13.00,
+    emergency_threshold: 15.00,
+    rate_of_change: 0.008,
+    status_level: 'normal',
+    trend: 'subindo',
+    last_updated: 'Há 12 min',
+    transit_time: 'Foz de desembocadura no Jacuí',
+    temp: 23.5,
+    humidity: 82,
+    wind: '12 km/h NE',
+    pressure: 1011,
+    rain1h: 1.0,
+    rain6h: 13.0,
+    rain24h: 110.0,
+    bairrosImpactados: ['Praia do das Caixas', 'Porto de Taquari', 'Centro Baixo']
+  },
+  {
+    id: 'cruzeiro-do-sul',
+    name: 'Cruzeiro do Sul',
+    river: 'Rio Taquari',
+    category: 'cidade',
+    current_level: 18.17,
+    attention_threshold: 14.00,
+    warning_threshold: 16.00,
+    flood_threshold: 17.50,
+    emergency_threshold: 20.00,
+    rate_of_change: 0.011,
+    status_level: 'atencao',
+    trend: 'subindo',
+    last_updated: 'Há 7 min',
+    transit_time: '~2h a 3h de Lajeado',
+    temp: 22.8,
+    humidity: 85,
+    wind: '12 km/h E',
+    pressure: 1012,
+    rain1h: 1.9,
+    rain6h: 16.5,
+    rain24h: 125.0,
+    bairrosImpactados: ['Passeio', 'Zwirtes', 'Bairro Passo de Estrela']
+  },
+  {
+    id: 'colinas',
+    name: 'Colinas',
+    river: 'Rio Taquari',
+    category: 'cidade',
+    current_level: 14.30,
+    attention_threshold: 12.00,
+    warning_threshold: 14.00,
+    flood_threshold: 16.00,
+    emergency_threshold: 19.00,
+    rate_of_change: 0.009,
+    status_level: 'atencao',
+    trend: 'subindo',
+    last_updated: 'Há 5 min',
+    transit_time: '~2h de Roca Sales',
+    temp: 22.3,
+    humidity: 86,
+    wind: '12 km/h NE',
+    pressure: 1012,
+    rain1h: 1.4,
+    rain6h: 14.5,
+    rain24h: 118.0,
+    bairrosImpactados: ['Linha Seca', 'Vila Colinas', 'Centro Baixo']
+  },
+  {
+    id: 'roca-sales',
+    name: 'Roca Sales',
+    river: 'Rio Taquari',
+    category: 'cidade',
+    current_level: 16.41,
+    attention_threshold: 13.00,
+    warning_threshold: 14.50,
+    flood_threshold: 17.00,
+    emergency_threshold: 20.00,
+    rate_of_change: 0.015,
+    status_level: 'atencao',
+    trend: 'subindo',
+    last_updated: 'Há 6 min',
+    transit_time: '~2h de Encantado',
+    temp: 22.4,
+    humidity: 86,
+    wind: '14 km/h NE',
+    pressure: 1012,
+    rain1h: 1.8,
+    rain6h: 16.0,
+    rain24h: 132.0,
+    bairrosImpactados: ['Centro Baixo', 'Avenida General Daltro Filho', 'Bento Gonçalves']
+  },
+  {
+    id: 'imigrante',
+    name: 'Imigrante',
+    river: 'Arroio Boa Vista',
+    category: 'cidade',
+    current_level: 6.80,
+    attention_threshold: 6.00,
+    warning_threshold: 7.50,
+    flood_threshold: 9.00,
+    emergency_threshold: 11.00,
+    rate_of_change: 0.007,
+    status_level: 'atencao',
+    trend: 'subindo',
+    last_updated: 'Há 8 min',
+    transit_time: 'Afluente direto',
+    temp: 22.1,
+    humidity: 87,
+    wind: '11 km/h E',
+    pressure: 1013,
+    rain1h: 1.1,
+    rain6h: 12.8,
+    rain24h: 105.0,
+    bairrosImpactados: ['Centro', 'Daltro Filho']
+  },
+  {
+    id: 'teutonia',
+    name: 'Teutônia',
+    river: 'Arroio Boa Vista',
+    category: 'cidade',
+    current_level: 5.40,
+    attention_threshold: 5.50,
+    warning_threshold: 7.00,
+    flood_threshold: 8.50,
+    emergency_threshold: 10.50,
+    rate_of_change: 0.005,
+    status_level: 'normal',
+    trend: 'subindo',
+    last_updated: 'Há 10 min',
+    transit_time: 'Bacia do Boa Vista',
+    temp: 22.0,
+    humidity: 85,
+    wind: '13 km/h NE',
+    pressure: 1013,
+    rain1h: 1.0,
+    rain6h: 11.5,
+    rain24h: 98.0,
+    bairrosImpactados: ['Languiru', 'Canabarro', 'Teutônia Baixa']
+  },
+  {
+    id: 'paverama',
+    name: 'Paverama',
+    river: 'Arroio Paverama',
+    category: 'cidade',
+    current_level: 4.20,
+    attention_threshold: 4.50,
+    warning_threshold: 5.80,
+    flood_threshold: 7.00,
+    emergency_threshold: 8.50,
+    rate_of_change: 0.004,
+    status_level: 'normal',
+    trend: 'estavel',
+    last_updated: 'Há 12 min',
+    transit_time: 'Bacia local',
+    temp: 22.5,
+    humidity: 84,
+    wind: '10 km/h E',
+    pressure: 1012,
+    rain1h: 0.8,
+    rain6h: 10.2,
+    rain24h: 92.0,
+    bairrosImpactados: ['Centro', 'Morro Bonito']
+  },
+  {
+    id: 'fazenda-vilanova',
+    name: 'Fazenda Vilanova',
+    river: 'Afluente do Taquari',
+    category: 'cidade',
+    current_level: 3.90,
+    attention_threshold: 4.20,
+    warning_threshold: 5.50,
+    flood_threshold: 6.80,
+    emergency_threshold: 8.00,
+    rate_of_change: 0.003,
+    status_level: 'normal',
+    trend: 'estavel',
+    last_updated: 'Há 15 min',
+    transit_time: 'Sub-bacia',
+    temp: 22.7,
+    humidity: 83,
+    wind: '11 km/h NE',
+    pressure: 1012,
+    rain1h: 0.7,
+    rain6h: 9.8,
+    rain24h: 88.0,
+    bairrosImpactados: ['Posses', 'Centro']
+  },
+  {
+    id: 'santa-clara-do-sul',
+    name: 'Santa Clara do Sul',
+    river: 'Arroio Saraquá',
+    category: 'cidade',
+    current_level: 4.80,
+    attention_threshold: 5.00,
+    warning_threshold: 6.20,
+    flood_threshold: 7.50,
+    emergency_threshold: 9.00,
+    rate_of_change: 0.006,
+    status_level: 'normal',
+    trend: 'subindo',
+    last_updated: 'Há 9 min',
+    transit_time: 'Afluente do Taquari',
+    temp: 22.2,
+    humidity: 86,
+    wind: '12 km/h NE',
+    pressure: 1013,
+    rain1h: 1.2,
+    rain6h: 13.0,
+    rain24h: 102.0,
+    bairrosImpactados: ['Centro', 'Sampainho']
+  },
+  {
+    id: 'venancio-aires',
+    name: 'Venâncio Aires',
+    river: 'Arroio Castelhano',
+    category: 'cidade',
+    current_level: 7.10,
+    attention_threshold: 6.80,
+    warning_threshold: 8.00,
+    flood_threshold: 9.50,
+    emergency_threshold: 11.50,
+    rate_of_change: 0.009,
+    status_level: 'atencao',
+    trend: 'subindo',
+    last_updated: 'Há 7 min',
+    transit_time: 'Bacia do Castelhano',
+    temp: 23.1,
+    humidity: 82,
+    wind: '14 km/h E',
+    pressure: 1011,
+    rain1h: 1.6,
+    rain6h: 16.2,
+    rain24h: 115.0,
+    bairrosImpactados: ['Vila Freese', 'União', 'Gressler']
+  },
+  {
+    id: 'marques-de-souza',
+    name: 'Marques de Souza',
+    river: 'Rio Forqueta',
+    category: 'cidade',
+    current_level: 8.50,
+    attention_threshold: 7.50,
+    warning_threshold: 9.00,
+    flood_threshold: 11.00,
+    emergency_threshold: 13.50,
+    rate_of_change: 0.016,
+    status_level: 'atencao',
+    trend: 'subindo',
+    last_updated: 'Há 4 min',
+    transit_time: 'Bacia do Forqueta',
+    temp: 21.8,
+    humidity: 88,
+    wind: '15 km/h N',
+    pressure: 1014,
+    rain1h: 2.5,
+    rain6h: 20.4,
+    rain24h: 145.0,
+    bairrosImpactados: ['Centro', 'Linha Tamandaré', 'Orla Forqueta']
+  },
+  {
+    id: 'serio',
+    name: 'Sério',
+    river: 'Arroio Fão',
+    category: 'cidade',
+    current_level: 3.80,
+    attention_threshold: 4.00,
+    warning_threshold: 5.20,
+    flood_threshold: 6.50,
+    emergency_threshold: 8.00,
+    rate_of_change: 0.005,
+    status_level: 'normal',
+    trend: 'estavel',
+    last_updated: 'Há 11 min',
+    transit_time: 'Cabeceira Fão',
+    temp: 21.2,
+    humidity: 89,
+    wind: '13 km/h NE',
+    pressure: 1014,
+    rain1h: 1.1,
+    rain6h: 12.0,
+    rain24h: 96.0,
+    bairrosImpactados: ['Centro', 'Linha Paredão']
+  },
+  {
+    id: 'canudos-do-vale',
+    name: 'Canudos do Vale',
+    river: 'Arroio Forquetinha',
+    category: 'cidade',
+    current_level: 3.60,
+    attention_threshold: 3.80,
+    warning_threshold: 5.00,
+    flood_threshold: 6.20,
+    emergency_threshold: 7.80,
+    rate_of_change: 0.004,
+    status_level: 'normal',
+    trend: 'estavel',
+    last_updated: 'Há 14 min',
+    transit_time: 'Bacia do Forquetinha',
+    temp: 21.0,
+    humidity: 90,
+    wind: '12 km/h N',
+    pressure: 1014,
+    rain1h: 1.0,
+    rain6h: 11.2,
+    rain24h: 94.0,
+    bairrosImpactados: ['Centro', 'Acessos Rurais']
+  },
   {
     id: 'santa-tereza',
     name: 'Santa Tereza',
@@ -315,222 +754,6 @@ const STATIONS_DATA: AnalysisStation[] = [
     rain6h: 12.4,
     rain24h: 24.1,
     bairrosImpactados: ['Orla Fluvial', 'Passo de Santa Tereza', 'Zona Rural Baixa']
-  },
-  {
-    id: 'mucum',
-    name: 'Muçum',
-    river: 'Rio Taquari',
-    category: 'cidade',
-    current_level: 11.32,
-    attention_threshold: 13.00,
-    warning_threshold: 15.00,
-    flood_threshold: 18.00,
-    emergency_threshold: 22.00,
-    rate_of_change: -0.015,
-    status_level: 'normal',
-    trend: 'descendo',
-    last_updated: 'Há 8 min',
-    transit_time: '~2h a 3h de Santa Tereza',
-    temp: 22.0,
-    humidity: 87,
-    wind: '13 km/h NE',
-    pressure: 1013,
-    rain1h: 1.2,
-    rain6h: 14.0,
-    rain24h: 26.5,
-    bairrosImpactados: ['Centro Urbano Baixo', 'Fátima', 'Nossa Senhora do Rosário']
-  },
-  {
-    id: 'encantado',
-    name: 'Encantado',
-    river: 'Rio Taquari',
-    category: 'cidade',
-    current_level: 11.89,
-    attention_threshold: 12.50,
-    warning_threshold: 14.00,
-    flood_threshold: 16.00,
-    emergency_threshold: 19.50,
-    rate_of_change: -0.012,
-    status_level: 'normal',
-    trend: 'estavel',
-    last_updated: 'Há 4 min',
-    transit_time: '~3h a 4h de Muçum',
-    temp: 22.2,
-    humidity: 85,
-    wind: '11 km/h E',
-    pressure: 1013,
-    rain1h: 1.0,
-    rain6h: 15.2,
-    rain24h: 28.0,
-    bairrosImpactados: ['Navegantes', 'Barra do Guaporé', 'Lenz']
-  },
-  {
-    id: 'roca-sales',
-    name: 'Roca Sales',
-    river: 'Rio Taquari',
-    category: 'cidade',
-    current_level: 12.41,
-    attention_threshold: 13.00,
-    warning_threshold: 14.50,
-    flood_threshold: 17.00,
-    emergency_threshold: 20.00,
-    rate_of_change: -0.010,
-    status_level: 'normal',
-    trend: 'estavel',
-    last_updated: 'Há 6 min',
-    transit_time: '~2h de Encantado',
-    temp: 22.4,
-    humidity: 86,
-    wind: '14 km/h NE',
-    pressure: 1012,
-    rain1h: 1.8,
-    rain6h: 16.0,
-    rain24h: 29.5,
-    bairrosImpactados: ['Centro Baixo', 'Avenida General Daltro Filho', 'Bento Gonçalves']
-  },
-  {
-    id: 'lajeado',
-    name: 'Lajeado',
-    river: 'Rio Taquari',
-    category: 'cidade',
-    current_level: 13.42,
-    attention_threshold: 15.00,
-    warning_threshold: 17.00,
-    flood_threshold: 19.00,
-    emergency_threshold: 22.50,
-    rate_of_change: 0.002,
-    status_level: 'normal',
-    trend: 'estavel',
-    last_updated: '30/05/2025 09:45',
-    transit_time: '~5h a 6h de Muçum',
-    temp: 22.6,
-    humidity: 86,
-    wind: '14 km/h NE',
-    pressure: 1012,
-    rain1h: 2.4,
-    rain6h: 18.0,
-    rain24h: 31.2,
-    bairrosImpactados: ['Conservas', 'Navegantes', 'Carneiros', 'Centro Baixo', 'Praia dos Paus']
-  },
-  {
-    id: 'estrela',
-    name: 'Estrela',
-    river: 'Rio Taquari',
-    category: 'cidade',
-    current_level: 13.20,
-    attention_threshold: 15.00,
-    warning_threshold: 17.00,
-    flood_threshold: 19.00,
-    emergency_threshold: 22.50,
-    rate_of_change: 0.001,
-    status_level: 'normal',
-    trend: 'estavel',
-    last_updated: 'Há 3 min',
-    transit_time: 'Confluência imediata a Lajeado',
-    temp: 22.5,
-    humidity: 86,
-    wind: '14 km/h NE',
-    pressure: 1012,
-    rain1h: 2.2,
-    rain6h: 17.8,
-    rain24h: 30.9,
-    bairrosImpactados: ['Imigrantes', 'União', 'Moinhos', 'Três Maios']
-  },
-  {
-    id: 'cruzeiro-do-sul',
-    name: 'Cruzeiro do Sul',
-    river: 'Rio Taquari',
-    category: 'cidade',
-    current_level: 12.17,
-    attention_threshold: 14.00,
-    warning_threshold: 16.00,
-    flood_threshold: 17.50,
-    emergency_threshold: 20.00,
-    rate_of_change: -0.008,
-    status_level: 'normal',
-    trend: 'estavel',
-    last_updated: 'Há 7 min',
-    transit_time: '~2h a 3h de Lajeado',
-    temp: 22.8,
-    humidity: 85,
-    wind: '12 km/h E',
-    pressure: 1012,
-    rain1h: 1.9,
-    rain6h: 16.5,
-    rain24h: 28.7,
-    bairrosImpactados: ['Passeio', 'Zwirtes', 'Bairro Passo de Estrela']
-  },
-  {
-    id: 'bom-retiro-do-sul',
-    name: 'Bom Retiro do Sul',
-    river: 'Rio Taquari',
-    category: 'cidade',
-    current_level: 11.48,
-    attention_threshold: 13.00,
-    warning_threshold: 14.50,
-    flood_threshold: 15.00,
-    emergency_threshold: 18.00,
-    rate_of_change: -0.005,
-    status_level: 'normal',
-    trend: 'estavel',
-    last_updated: 'Há 9 min',
-    transit_time: '~3h de Cruzeiro do Sul (Barragem)',
-    temp: 23.0,
-    humidity: 84,
-    wind: '10 km/h NE',
-    pressure: 1011,
-    rain1h: 1.5,
-    rain6h: 15.0,
-    rain24h: 27.2,
-    bairrosImpactados: ['Jardim do Canto', 'Avis', 'Barragem de Bom Retiro']
-  },
-  {
-    id: 'porto-mariante',
-    name: 'Porto Mariante',
-    river: 'Rio Taquari',
-    category: 'cidade',
-    current_level: 9.85,
-    attention_threshold: 11.00,
-    warning_threshold: 12.50,
-    flood_threshold: 14.00,
-    emergency_threshold: 16.50,
-    rate_of_change: -0.004,
-    status_level: 'normal',
-    trend: 'estavel',
-    last_updated: 'Há 11 min',
-    transit_time: '~4h de Bom Retiro do Sul',
-    temp: 23.2,
-    humidity: 83,
-    wind: '11 km/h E',
-    pressure: 1011,
-    rain1h: 1.1,
-    rain6h: 13.8,
-    rain24h: 25.0,
-    bairrosImpactados: ['Vila Mariante', 'Orla do Taquari', 'Estrada Velha']
-  },
-  {
-    id: 'taquari',
-    name: 'Taquari',
-    river: 'Foz do Taquari',
-    category: 'cidade',
-    current_level: 8.92,
-    attention_threshold: 10.00,
-    warning_threshold: 11.50,
-    flood_threshold: 13.00,
-    emergency_threshold: 15.00,
-    rate_of_change: -0.002,
-    status_level: 'normal',
-    trend: 'estavel',
-    last_updated: 'Há 12 min',
-    transit_time: 'Foz de desembocadura no Jacuí',
-    temp: 23.5,
-    humidity: 82,
-    wind: '12 km/h NE',
-    pressure: 1011,
-    rain1h: 1.0,
-    rain6h: 13.0,
-    rain24h: 24.5,
-    bairrosImpactados: ['Praia do das Caixas', 'Porto de Taquari', 'Centro Baixo']
   },
 
   // --- Estações de Afluentes (Tributaries) ---
@@ -690,12 +913,47 @@ function getWindCardinal(deg: number): string {
   return 'NE';
 }
 
-export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ theme = 'dark' }) => {
+// Basin Classification Slugs matching CitySidebar
+const TAQUARI_SLUGS = [
+  'santatereza',
+  'linhajosejulio',
+  'passocarreiro',
+  'linhacolombo',
+  'passotainhas',
+  'barradofao',
+  'mucum',
+  'encantado',
+  'rocasales',
+  'lajeado',
+  'estrela',
+  'cruzeirodosul',
+  'bomretirodosul',
+  'portomariante',
+  'taquari'
+];
+
+const GUAIBA_SLUGS = ['portoalegre', 'saoleopoldo', 'gravatai', 'montenegro', 'saosebastiaodocai', 'taquara', 'cachoeiradosul', 'donafrancisca', 'feliz'];
+
+export interface CentroAnalisesViewProps {
+  theme?: 'light' | 'dark';
+  cities?: City[];
+  selectedCity?: City | null;
+  onSelectCity?: (city: City) => void;
+}
+
+export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
+  theme = 'dark',
+  cities: propCities = [],
+  selectedCity,
+  onSelectCity
+}) => {
   const { settings, loading } = useSiteSettings();
   const { isAdmin } = useVisualEditor();
 
   // Navigation & Filter States
   const [selectedStationId, setSelectedStationId] = useState<string>('lajeado');
+  const [activeAnalysisSection, setActiveAnalysisSection] = useState<'historico_enchentes' | 'comparativo' | 'propagacao' | 'tendencias' | 'painel_geral'>('historico_enchentes');
+  const [activeBasin, setActiveBasin] = useState<'taquari' | 'guaiba'>('taquari');
   const [activeMainTab, setActiveMainTab] = useState<'hidrologico' | 'fluviologico' | 'meteorologico'>('fluviologico');
   const [timeframe, setTimeframe] = useState<'6h' | '24h' | '7d' | '30d' | 'custom'>('24h');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -704,6 +962,53 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
   // Proprietary Taquari Headwaters Radar State
   const [selectedRadarCityId, setSelectedRadarCityId] = useState<string>('lajeado');
   const [rainScenarioMode, setRainScenarioMode] = useState<'auto' | 'dry' | 'light' | 'moderate' | 'heavy'>('auto');
+
+  // Helper for Historical Match / Risk Color Coding (0-20: Green, 20-40: Yellow, 40-60: Orange, >60: Red)
+  const getRiskStyle = (val: number) => {
+    if (val > 60) {
+      return {
+        bgCard: 'bg-red-950/20 border-red-500/30',
+        labelColor: 'text-red-200/70',
+        strokeTrack: 'text-red-950/60',
+        strokeRing: 'text-red-500',
+        textColor: 'text-red-400',
+        ringBg: 'bg-red-950/30',
+        isHighRisk: true,
+      };
+    }
+    if (val > 40) {
+      return {
+        bgCard: 'bg-orange-950/20 border-orange-500/30',
+        labelColor: 'text-orange-200/70',
+        strokeTrack: 'text-orange-950/60',
+        strokeRing: 'text-orange-400',
+        textColor: 'text-orange-400',
+        ringBg: 'bg-orange-950/30',
+        isHighRisk: false,
+      };
+    }
+    if (val > 20) {
+      return {
+        bgCard: 'bg-yellow-950/20 border-yellow-500/30',
+        labelColor: 'text-yellow-200/70',
+        strokeTrack: 'text-yellow-950/60',
+        strokeRing: 'text-yellow-400',
+        textColor: 'text-yellow-400',
+        ringBg: 'bg-yellow-950/30',
+        isHighRisk: false,
+      };
+    }
+    // 0 to 20
+    return {
+      bgCard: 'bg-emerald-950/20 border-emerald-500/30',
+      labelColor: 'text-emerald-200/70',
+      strokeTrack: 'text-emerald-950/60',
+      strokeRing: 'text-emerald-400',
+      textColor: 'text-emerald-400',
+      ringBg: 'bg-emerald-950/30',
+      isHighRisk: false,
+    };
+  };
   const [lastTelemetryUpdate, setLastTelemetryUpdate] = useState<string>('12:45');
   const [isRefreshingTelemetry, setIsRefreshingTelemetry] = useState<boolean>(false);
 
@@ -853,21 +1158,73 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
     return () => { isMounted = false; };
   }, []);
 
+  // Unified available cities array (Prop -> Supabase -> Initial)
+  const availableCities: City[] = useMemo(() => {
+    if (propCities && propCities.length > 0) return propCities;
+    if (supabaseCities && supabaseCities.length > 0) return supabaseCities;
+    return INITIAL_CITIES;
+  }, [propCities, supabaseCities]);
+
+  useEffect(() => {
+    if (selectedCity) {
+      const targetId = selectedCity.slug || selectedCity.id;
+      if (targetId) {
+        setSelectedStationId(targetId);
+      }
+    }
+  }, [selectedCity]);
+
   // Compute Active Station (Merge telemetry data if available)
   const currentStation: AnalysisStation = useMemo(() => {
-    const base = STATIONS_DATA.find(s => s.id === selectedStationId) || STATIONS_DATA[4]; // Default Lajeado
-    const supa = supabaseCities.find(c => c.slug === base.id || c.name.toLowerCase().includes(base.name.toLowerCase()));
-    if (supa) {
+    const normSelected = normalizeCitySlug(selectedStationId);
+    const foundCity = availableCities.find(c => 
+      c.slug === selectedStationId || 
+      c.id === selectedStationId ||
+      normalizeCitySlug(c.slug) === normSelected ||
+      c.name.toLowerCase() === selectedStationId.toLowerCase()
+    ) || availableCities[0];
+
+    const baseMock = STATIONS_DATA.find(s => 
+      s.id === selectedStationId || 
+      s.id === foundCity?.slug || 
+      s.name.toLowerCase() === foundCity?.name.toLowerCase()
+    );
+
+    if (foundCity) {
+      const lvl = typeof foundCity.current_level === 'number' && !isNaN(foundCity.current_level) ? foundCity.current_level : (baseMock?.current_level ?? 5.0);
+      const att = foundCity.attention_level || baseMock?.attention_threshold || 6.0;
+      const warn = foundCity.alert_level || baseMock?.warning_threshold || 8.0;
+      const flood = foundCity.flood_level || baseMock?.flood_threshold || 10.0;
+      const emg = baseMock?.emergency_threshold || (flood + 3.0);
+
       return {
-        ...base,
-        current_level: supa.current_level || base.current_level,
-        status_level: (supa.status_level as any) || base.status_level,
-        trend: (supa.trend as any) || base.trend,
-        last_updated: supa.last_updated || base.last_updated
+        id: foundCity.slug || foundCity.id,
+        name: foundCity.name,
+        river: foundCity.river || baseMock?.river || 'Bacia Hidrográfica',
+        category: 'cidade',
+        current_level: lvl,
+        attention_threshold: att,
+        warning_threshold: warn,
+        flood_threshold: flood,
+        emergency_threshold: emg,
+        rate_of_change: foundCity.rate_of_change ?? baseMock?.rate_of_change ?? 0.01,
+        status_level: (foundCity.status_level as any) || baseMock?.status_level || 'normal',
+        trend: (foundCity.trend as any) || baseMock?.trend || 'estavel',
+        last_updated: foundCity.last_updated || baseMock?.last_updated || 'Em tempo real',
+        transit_time: baseMock?.transit_time || 'Monitoramento telemétrico SGB/ANA',
+        temp: baseMock?.temp || 22.0,
+        humidity: baseMock?.humidity || 85,
+        wind: baseMock?.wind || '12 km/h NE',
+        pressure: baseMock?.pressure || 1012,
+        rain1h: baseMock?.rain1h || 0,
+        rain6h: baseMock?.rain6h || 5.0,
+        rain24h: baseMock?.rain24h || 25.0,
+        bairrosImpactados: baseMock?.bairrosImpactados || ['Áreas Ribeirinhas Baixas', 'Orla e Acessos Rurais']
       };
     }
-    return base;
-  }, [selectedStationId, supabaseCities]);
+
+    return baseMock || STATIONS_DATA[0];
+  }, [selectedStationId, availableCities]);
 
   // Dynamic Index of River Dynamics (IDR) & Gauge Needle Alignment
   const idrStatus = useMemo(() => {
@@ -1013,13 +1370,26 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
     ]);
   }, [currentStation]);
 
-  // Filter sidebar items by search
-  const filteredCities = useMemo(() => {
-    return STATIONS_DATA.filter(s => s.category === 'cidade' && (
-      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.river.toLowerCase().includes(searchQuery.toLowerCase())
-    ));
-  }, [searchQuery]);
+  // Filter sidebar items by search and basin (matching CitySidebar homepage)
+  const taquariCities = useMemo(() => {
+    return availableCities.filter(c => c.basin === 'taquari' || TAQUARI_SLUGS.includes(c.slug));
+  }, [availableCities]);
+
+  const guaibaCities = useMemo(() => {
+    return availableCities.filter(c => c.basin === 'guaiba' || GUAIBA_SLUGS.includes(c.slug));
+  }, [availableCities]);
+
+  const displayedCities = useMemo(() => {
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      return availableCities.filter(c =>
+        c.name.toLowerCase().includes(q) ||
+        (c.river && c.river.toLowerCase().includes(q)) ||
+        c.slug.toLowerCase().includes(q)
+      );
+    }
+    return activeBasin === 'guaiba' ? guaibaCities : taquariCities;
+  }, [searchQuery, activeBasin, availableCities, taquariCities, guaibaCities]);
 
   const filteredAfluentes = useMemo(() => {
     return STATIONS_DATA.filter(s => s.category === 'afluente' && (
@@ -1033,46 +1403,41 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
     const lvl = currentStation.current_level;
     if (timeframe === '6h') {
       return [
-        { time: '04:00', level: Number((lvl - 0.08).toFixed(2)) },
-        { time: '05:00', level: Number((lvl - 0.05).toFixed(2)) },
-        { time: '06:00', level: Number((lvl - 0.03).toFixed(2)) },
-        { time: '07:00', level: Number((lvl - 0.01).toFixed(2)) },
-        { time: '08:00', level: Number((lvl + 0.01).toFixed(2)) },
-        { time: '09:00', level: Number((lvl + 0.03).toFixed(2)) },
-        { time: '09:45', level: Number(lvl.toFixed(2)) },
+        { time: '04:00', level: Number((lvl - 0.08).toFixed(2)), mucum: 10.2, encantado: 8.1, lajeado: 6.4, estrela: 5.2, bomRetiro: 4.1 },
+        { time: '05:00', level: Number((lvl - 0.05).toFixed(2)), mucum: 10.8, encantado: 8.5, lajeado: 6.8, estrela: 5.5, bomRetiro: 4.3 },
+        { time: '06:00', level: Number((lvl - 0.03).toFixed(2)), mucum: 11.2, encantado: 9.0, lajeado: 7.2, estrela: 5.8, bomRetiro: 4.5 },
+        { time: '07:00', level: Number((lvl - 0.01).toFixed(2)), mucum: 11.8, encantado: 9.6, lajeado: 7.8, estrela: 6.3, bomRetiro: 4.8 },
+        { time: '08:00', level: Number((lvl + 0.01).toFixed(2)), mucum: 12.5, encantado: 10.2, lajeado: 8.4, estrela: 6.9, bomRetiro: 5.2 },
+        { time: '09:00', level: Number((lvl + 0.03).toFixed(2)), mucum: 13.1, encantado: 10.8, lajeado: 9.0, estrela: 7.4, bomRetiro: 5.6 },
+        { time: '09:45', level: Number(lvl.toFixed(2)), mucum: 13.5, encantado: 11.2, lajeado: 9.4, estrela: 7.8, bomRetiro: 5.9 },
       ];
     } else if (timeframe === '7d') {
       return [
-        { time: '24/05', level: Number((lvl - 0.56).toFixed(2)) },
-        { time: '25/05', level: Number((lvl + 0.86).toFixed(2)) },
-        { time: '26/05', level: Number((lvl + 0.40).toFixed(2)) },
-        { time: '27/05', level: Number((lvl + 0.15).toFixed(2)) },
-        { time: '28/05', level: Number((lvl - 0.10).toFixed(2)) },
-        { time: '29/05', level: Number((lvl - 0.05).toFixed(2)) },
-        { time: '30/05', level: Number(lvl.toFixed(2)) },
+        { time: '24/05', level: Number((lvl - 0.56).toFixed(2)), mucum: 10.0, encantado: 8.0, lajeado: 6.2, estrela: 5.0, bomRetiro: 4.0 },
+        { time: '25/05', level: Number((lvl + 0.86).toFixed(2)), mucum: 14.2, encantado: 12.0, lajeado: 10.1, estrela: 8.2, bomRetiro: 6.5 },
+        { time: '26/05', level: Number((lvl + 0.40).toFixed(2)), mucum: 16.5, encantado: 14.1, lajeado: 12.0, estrela: 10.1, bomRetiro: 8.0 },
+        { time: '27/05', level: Number((lvl + 0.15).toFixed(2)), mucum: 18.0, encantado: 15.8, lajeado: 13.5, estrela: 11.5, bomRetiro: 9.2 },
+        { time: '28/05', level: Number((lvl - 0.10).toFixed(2)), mucum: 19.5, encantado: 17.2, lajeado: 15.0, estrela: 12.8, bomRetiro: 10.5 },
+        { time: '29/05', level: Number((lvl - 0.05).toFixed(2)), mucum: 21.0, encantado: 18.8, lajeado: 16.4, estrela: 14.2, bomRetiro: 11.8 },
+        { time: '30/05', level: Number(lvl.toFixed(2)), mucum: 22.8, encantado: 20.3, lajeado: 18.1, estrela: 16.2, bomRetiro: 13.9 },
       ];
     } else if (timeframe === '30d') {
       return [
-        { time: '01/05', level: Number((lvl + 2.40).toFixed(2)) },
-        { time: '05/05', level: Number((lvl + 6.80).toFixed(2)) },
-        { time: '10/05', level: Number((lvl + 3.20).toFixed(2)) },
-        { time: '15/05', level: Number((lvl + 1.10).toFixed(2)) },
-        { time: '20/05', level: Number((lvl + 0.45).toFixed(2)) },
-        { time: '25/05', level: Number((lvl + 0.86).toFixed(2)) },
-        { time: '30/05', level: Number(lvl.toFixed(2)) },
+        { time: '01/05', level: Number((lvl + 2.40).toFixed(2)), mucum: 8.5, encantado: 6.8, lajeado: 5.2, estrela: 4.2, bomRetiro: 3.5 },
+        { time: '05/05', level: Number((lvl + 6.80).toFixed(2)), mucum: 23.5, encantado: 21.0, lajeado: 19.2, estrela: 17.5, bomRetiro: 14.8 },
+        { time: '10/05', level: Number((lvl + 3.20).toFixed(2)), mucum: 18.2, encantado: 16.0, lajeado: 14.1, estrela: 12.4, bomRetiro: 10.2 },
+        { time: '15/05', level: Number((lvl + 1.10).toFixed(2)), mucum: 14.0, encantado: 12.1, lajeado: 10.2, estrela: 8.5, bomRetiro: 6.8 },
+        { time: '20/05', level: Number((lvl + 0.45).toFixed(2)), mucum: 10.5, encantado: 8.5, lajeado: 6.8, estrela: 5.5, bomRetiro: 4.3 },
+        { time: '25/05', level: Number((lvl + 0.86).toFixed(2)), mucum: 15.2, encantado: 13.1, lajeado: 11.0, estrela: 9.2, bomRetiro: 7.1 },
+        { time: '30/05', level: Number(lvl.toFixed(2)), mucum: 22.8, encantado: 20.3, lajeado: 18.1, estrela: 16.2, bomRetiro: 13.9 },
       ];
     } else {
-      // 24h default
+      // 72h / 24h default dataset matching the exact dates in reference design
       return [
-        { time: '09:00', level: Number((lvl - 0.85).toFixed(2)) },
-        { time: '12:00', level: Number((lvl - 0.45).toFixed(2)) },
-        { time: '15:00', level: Number((lvl - 0.15).toFixed(2)) },
-        { time: '18:00', level: Number((lvl + 0.10).toFixed(2)) },
-        { time: '21:00', level: Number((lvl + 0.25).toFixed(2)) },
-        { time: '00:00', level: Number((lvl + 0.18).toFixed(2)) },
-        { time: '03:00', level: Number((lvl + 0.08).toFixed(2)) },
-        { time: '06:00', level: Number((lvl + 0.02).toFixed(2)) },
-        { time: '09:00', level: Number(lvl.toFixed(2)) },
+        { time: '20/05 09:00', level: Number((lvl - 0.85).toFixed(2)), mucum: 10.4, encantado: 8.2, lajeado: 6.5, estrela: 5.1, bomRetiro: 4.2 },
+        { time: '21/05 09:00', level: Number((lvl - 0.45).toFixed(2)), mucum: 12.8, encantado: 10.5, lajeado: 8.7, estrela: 7.2, bomRetiro: 5.8 },
+        { time: '22/05 09:00', level: Number((lvl + 0.20).toFixed(2)), mucum: 15.8, encantado: 13.4, lajeado: 11.2, estrela: 9.5, bomRetiro: 7.6 },
+        { time: '23/05 09:00', level: Number(lvl.toFixed(2)), mucum: 22.8, encantado: 20.3, lajeado: 18.1, estrela: 16.2, bomRetiro: 13.9 },
       ];
     }
   }, [currentStation, timeframe]);
@@ -1347,138 +1712,193 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
         {/* ========================================== */}
         <LayoutBehaviorWrapper pageKey="centro_analises" componentKey="sidebar_stations" className="w-full lg:w-[225px] xl:w-[235px] shrink-0 z-20">
           <EditableComponent id="centro_sidebar_estacoes" name="Menu de Estações Monitoradas" type="panel" className="w-full">
-            <aside className="w-full bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-3 flex flex-col gap-3 shadow-xl">
+            <aside className="w-full bg-white dark:bg-[#081023] border border-slate-200 dark:border-slate-800/90 rounded-2xl p-3 flex flex-col gap-3 shadow-md dark:shadow-2xl transition-colors">
           
-          {/* SEARCH BOX */}
-          <div className="relative shrink-0">
-            <Search className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Pesquisar cidade ou estação..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-2.5 py-1.5 bg-slate-50 dark:bg-[#050A18] border border-slate-300 dark:border-slate-800 rounded-xl text-[11px] text-slate-700 dark:text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
-            />
+          {/* BRAND HEADER */}
+          <div className="pb-2.5 border-b border-slate-200 dark:border-slate-800/90">
+            <h1 className="text-xs font-bold text-slate-900 dark:text-white tracking-widest uppercase leading-none">
+              CENTRO DE ANÁLISES
+            </h1>
           </div>
 
-          {/* CITIES & STATIONS LIST */}
-          <div className="flex-1 space-y-3 pr-0.5">
-            
-            {/* GROUP 1: CIDADES MONITORADAS */}
-            <div>
-              <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1 mb-1.5 block">
-                CIDADES MONITORADAS
-              </span>
-              <div className="space-y-1">
-                {filteredCities.map((st) => {
-                  const isSelected = st.id === selectedStationId;
-                  const isNormal = st.status_level === 'normal';
-                  const isWarning = st.status_level === 'atencao';
-                  const isAlert = st.status_level === 'alerta';
-                  const isFlood = st.status_level === 'inundacao';
+          {/* CIDADES SECTION */}
+          <div className="space-y-2">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 px-0.5 block">
+              ESTAÇÕES / CIDADES
+            </span>
 
-                  const statusLabel = isNormal ? 'Normal' : isWarning ? 'Atenção' : isAlert ? 'Alerta' : 'Inundação';
-                  const statusColor = isNormal ? 'text-emerald-500' : isWarning ? 'text-amber-400' : isAlert ? 'text-orange-500' : 'text-red-500';
-                  const dotBg = isNormal ? 'bg-emerald-500' : isWarning ? 'bg-amber-400' : isAlert ? 'bg-orange-500' : 'bg-red-500 animate-pulse';
+            {/* SEARCH BOX */}
+            <div className="relative shrink-0">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Pesquisar cidade..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-8 pr-2.5 py-1.5 bg-slate-50 dark:bg-[#040814] border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+              />
+            </div>
+
+            {/* BASIN SELECTOR TABS */}
+            {!searchQuery && (
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#040814] p-1 rounded-xl border border-slate-200 dark:border-slate-800/90 text-[10px] font-semibold">
+                <button
+                  onClick={() => setActiveBasin('taquari')}
+                  className={`flex-1 py-1 px-1 rounded-lg transition-all text-center cursor-pointer ${
+                    activeBasin === 'taquari'
+                      ? 'bg-cyan-100 dark:bg-cyan-950 text-cyan-800 dark:text-cyan-300 border-cyan-300 dark:border-cyan-800 border font-bold'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/50'
+                  }`}
+                >
+                  Vale do Taquari
+                </button>
+                <button
+                  onClick={() => setActiveBasin('guaiba')}
+                  className={`flex-1 py-1 px-1 rounded-lg transition-all text-center cursor-pointer ${
+                    activeBasin === 'guaiba'
+                      ? 'bg-cyan-100 dark:bg-cyan-950 text-cyan-800 dark:text-cyan-300 border-cyan-300 dark:border-cyan-800 border font-bold'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/50'
+                  }`}
+                >
+                  Bacia do Guaíba
+                </button>
+              </div>
+            )}
+
+            {/* CITIES LIST WITH INNER SCROLLBAR */}
+            <div className="max-h-[340px] overflow-y-auto overscroll-contain touch-pan-y pr-1 space-y-1 custom-scrollbar">
+              {displayedCities.length === 0 ? (
+                <p className="text-xs text-slate-500 text-center py-4">Nenhuma cidade encontrada</p>
+              ) : (
+                displayedCities.map((city) => {
+                  const isSelected = selectedStationId === city.slug || selectedStationId === city.id;
+                  const levelFormatted = typeof city.current_level === 'number' && !isNaN(city.current_level)
+                    ? `${city.current_level.toFixed(2).replace('.', ',')} m`
+                    : '-- m';
 
                   return (
                     <button
-                      key={st.id}
-                      onClick={() => setSelectedStationId(st.id)}
-                      className={`w-full px-2.5 py-1.5 rounded-xl text-left transition-all flex items-center justify-between group cursor-pointer ${
-                        isSelected 
-                          ? 'bg-cyan-600 dark:bg-[#16223B] border border-cyan-600 dark:border-cyan-500/60 shadow-md text-white' 
-                          : 'bg-slate-100/60 dark:bg-[#081023]/60 hover:bg-slate-200 dark:hover:bg-[#0E1B36] border border-slate-300/60 dark:border-slate-800/40 text-slate-600 dark:text-slate-300'
+                      key={city.id}
+                      onClick={() => {
+                        setSelectedStationId(city.slug || city.id);
+                        if (onSelectCity) onSelectCity(city);
+                      }}
+                      className={`w-full px-2.5 py-1.5 rounded-lg text-left transition-all flex items-center justify-between gap-1.5 cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#1D4ED8] text-white font-semibold shadow-md'
+                          : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Waves className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-cyan-400' : 'text-slate-400 dark:text-slate-500'}`} />
-                        <div className="truncate">
-                          <span className={`text-[11px] font-bold block truncate ${isSelected ? 'text-white' : 'text-slate-800 dark:text-slate-200'}`}>
-                            {st.name}
-                          </span>
-                          <span className="text-[9px] text-slate-500 dark:text-slate-400 block truncate font-medium">
-                            {st.river}
-                          </span>
-                        </div>
+                      <div className="flex items-center gap-1.5 min-w-0 pr-1">
+                        <StatusDot status={city.status_level} size="sm" />
+                        <span className="text-xs truncate">{city.name}</span>
                       </div>
-
-                      <div className="flex items-center gap-1.5 shrink-0 ml-1">
-                        <span className={`w-2 h-2 rounded-full ${dotBg}`} />
-                        <span className={`text-[10px] font-medium ${isSelected ? 'text-cyan-200' : statusColor}`}>
-                          {statusLabel}
-                        </span>
-                      </div>
+                      <span className={`text-[11px] font-mono font-bold shrink-0 ${isSelected ? 'text-cyan-200' : 'text-slate-500 dark:text-slate-400'}`}>
+                        {levelFormatted}
+                      </span>
                     </button>
                   );
-                })}
-              </div>
+                })
+              )}
             </div>
-
-            {/* GROUP 2: ESTAÇÕES DE AFLUENTES */}
-            <div>
-              <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1 mb-1.5 block">
-                ESTAÇÕES AFLUENTES
-              </span>
-              <div className="space-y-1">
-                {filteredAfluentes.map((st) => {
-                  const isSelected = st.id === selectedStationId;
-                  const isNormal = st.status_level === 'normal';
-                  const isWarning = st.status_level === 'atencao';
-
-                  const statusLabel = isNormal ? 'Normal' : 'Atenção';
-                  const statusColor = isNormal ? 'text-emerald-500' : 'text-amber-400';
-                  const dotBg = isNormal ? 'bg-emerald-500' : 'bg-amber-400 animate-pulse';
-
-                  return (
-                    <button
-                      key={st.id}
-                      onClick={() => setSelectedStationId(st.id)}
-                      className={`w-full px-2.5 py-1.5 rounded-xl text-left transition-all flex items-center justify-between group cursor-pointer ${
-                        isSelected 
-                          ? 'bg-cyan-600 dark:bg-[#16223B] border border-cyan-600 dark:border-cyan-500/60 shadow-md text-white' 
-                          : 'bg-slate-100/60 dark:bg-[#081023]/60 hover:bg-slate-200 dark:hover:bg-[#0E1B36] border border-slate-300/60 dark:border-slate-800/40 text-slate-600 dark:text-slate-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Activity className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-cyan-400' : 'text-slate-400 dark:text-slate-500'}`} />
-                        <div className="truncate">
-                          <span className={`text-[11px] font-bold block truncate ${isSelected ? 'text-white' : 'text-slate-800 dark:text-slate-200'}`}>
-                            {st.name}
-                          </span>
-                          <span className="text-[9px] text-slate-500 dark:text-slate-400 block truncate font-medium">
-                            {st.river}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 shrink-0 ml-1">
-                        <span className={`w-2 h-2 rounded-full ${dotBg}`} />
-                        <span className={`text-[10px] font-medium ${isSelected ? 'text-cyan-200' : statusColor}`}>
-                          {statusLabel}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
           </div>
 
-          {/* BOTTOM LINK: DIAGNÓSTICO DE INTEGRIDADE */}
-          <div className="pt-2 border-t border-slate-300 dark:border-slate-800/80 shrink-0">
-            <button
-              onClick={() => setIsIntegrityModalOpen(true)}
-              className="w-full px-2.5 py-2 bg-slate-50 dark:bg-[#050A18] hover:bg-slate-100 dark:hover:bg-[#0F1B35] border border-slate-300 dark:border-slate-800 rounded-xl text-left flex items-center gap-2.5 transition-colors cursor-pointer group"
+          {/* ANÁLISES SECTION */}
+          <div className="pt-2 border-t border-slate-200 dark:border-slate-800/90 space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 block px-0.5 mb-1">
+              ANÁLISES
+            </span>
+            <button 
+              onClick={() => setActiveAnalysisSection('historico_enchentes')}
+              className={`w-full px-2 py-1.5 rounded-lg text-left text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer ${
+                activeAnalysisSection === 'historico_enchentes'
+                  ? 'bg-blue-600 text-white font-semibold shadow-md'
+                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
+              }`}
             >
-              <div className="w-6 h-6 rounded-lg bg-emerald-950/80 border border-emerald-800/60 flex items-center justify-center text-emerald-400 shrink-0">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              </div>
-              <div className="min-w-0">
-                <span className="text-[11px] font-bold text-slate-900 dark:text-white block truncate">Diagnóstico de Integridade</span>
-                <span className="text-[9px] text-slate-500 dark:text-slate-400 block truncate">Verificação do sistema e consistência</span>
-              </div>
+              <History className={`w-3.5 h-3.5 shrink-0 ${activeAnalysisSection === 'historico_enchentes' ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`} />
+              <span className="truncate">Histórico de Enchentes</span>
+            </button>
+            <button 
+              onClick={() => {
+                setActiveAnalysisSection('comparativo');
+                const el = document.getElementById('evolucao-hidrologica-panel');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className={`w-full px-2 py-1.5 rounded-lg text-left text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer ${
+                activeAnalysisSection === 'comparativo'
+                  ? 'bg-blue-600 text-white font-semibold shadow-md'
+                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <BarChart2 className={`w-3.5 h-3.5 shrink-0 ${activeAnalysisSection === 'comparativo' ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`} />
+              <span className="truncate">Comparativo de Eventos</span>
+            </button>
+            <button 
+              onClick={() => {
+                setActiveAnalysisSection('propagacao');
+              }}
+              className={`w-full px-2 py-1.5 rounded-lg text-left text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer ${
+                activeAnalysisSection === 'propagacao'
+                  ? 'bg-blue-600 text-white font-semibold shadow-md'
+                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Activity className={`w-3.5 h-3.5 shrink-0 ${activeAnalysisSection === 'propagacao' ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`} />
+              <span className="truncate">Propagação da Onda</span>
+            </button>
+            <button 
+              onClick={() => {
+                setActiveAnalysisSection('tendencias');
+                const el = document.getElementById('indices-bacia-panel');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className={`w-full px-2 py-1.5 rounded-lg text-left text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer ${
+                activeAnalysisSection === 'tendencias'
+                  ? 'bg-blue-600 text-white font-semibold shadow-md'
+                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <TrendingUp className={`w-3.5 h-3.5 shrink-0 ${activeAnalysisSection === 'tendencias' ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`} />
+              <span className="truncate">Tendências</span>
+            </button>
+          </div>
+
+          {/* INTELIGÊNCIA SECTION */}
+          <div className="pt-2 border-t border-slate-200 dark:border-slate-800/90 space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 block px-0.5 mb-1">
+              INTELIGÊNCIA
+            </span>
+            <button 
+              onClick={() => {
+                const el = document.getElementById('correspondencia-historica-panel');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="w-full px-2 py-1.5 rounded-lg text-left text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white flex items-center gap-2 transition-colors cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 shrink-0" />
+              <span className="truncate">Correspondência Histórica</span>
+            </button>
+            <button 
+              onClick={() => {
+                const el = document.getElementById('evolucao-hidrologica-panel');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="w-full px-2 py-1.5 rounded-lg text-left text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white flex items-center gap-2 transition-colors cursor-pointer"
+            >
+              <Compass className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 shrink-0" />
+              <span className="truncate">Projeções</span>
+            </button>
+          </div>
+
+          {/* BOTTOM BUTTON: RELATÓRIOS */}
+          <div className="pt-2 border-t border-slate-200 dark:border-slate-800/90 shrink-0">
+            <button
+              onClick={() => setIsCotasModalOpen(true)}
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-[#040814] hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs font-semibold flex items-center gap-2 justify-center transition-colors cursor-pointer group"
+            >
+              <FileText className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 group-hover:text-cyan-700 dark:group-hover:text-cyan-300" />
+              <span>Relatórios</span>
             </button>
           </div>
 
@@ -1494,944 +1914,745 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
           {/* ---------------------------------------------------- */}
           {/* CABEÇALHO SUPERIOR (HEADER INSIDE DASHBOARD) */}
           {/* ---------------------------------------------------- */}
-          <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-0.5 px-0.5">
-            <div>
-              <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-wider uppercase">
-                CENTRO DE ANÁLISES
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                Dados integrados de hidrologia, fluviologia e meteorologia
-              </p>
+          <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#081023] border border-slate-200 dark:border-slate-800/90 rounded-2xl p-3 shadow-md dark:shadow-2xl transition-colors">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* MAIN TABS */}
+              <div className="flex items-center gap-1 sm:gap-2 bg-slate-100 dark:bg-[#040814] px-3 pt-1 pb-0 rounded-xl border border-slate-200 dark:border-slate-800">
+                <button
+                  onClick={() => setActiveMainTab('hidrologico')}
+                  className={`relative px-3 py-2 text-xs font-bold tracking-wider uppercase flex items-center gap-2 transition-all cursor-pointer ${
+                    activeMainTab === 'hidrologico'
+                      ? 'text-cyan-600 dark:text-cyan-400 font-bold'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <Droplets className={`w-3.5 h-3.5 ${activeMainTab === 'hidrologico' ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-500 dark:text-slate-400'}`} />
+                  <span>HIDROLÓGICO</span>
+                  {activeMainTab === 'hidrologico' && (
+                    <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-cyan-600 dark:bg-cyan-400 rounded-t-full shadow-[0_0_8px_rgba(34,211,238,0.5)]" />
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveMainTab('fluviologico')}
+                  className={`relative px-3 py-2 text-xs font-bold tracking-wider uppercase flex items-center gap-2 transition-all cursor-pointer ${
+                    activeMainTab === 'fluviologico'
+                      ? 'text-cyan-600 dark:text-cyan-400 font-bold'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <Waves className={`w-3.5 h-3.5 ${activeMainTab === 'fluviologico' ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-500 dark:text-slate-400'}`} />
+                  <span>FLUVIOLÓGICO</span>
+                  {activeMainTab === 'fluviologico' && (
+                    <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-cyan-600 dark:bg-cyan-400 rounded-t-full shadow-[0_0_8px_rgba(34,211,238,0.5)]" />
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveMainTab('meteorologico')}
+                  className={`relative px-3 py-2 text-xs font-bold tracking-wider uppercase flex items-center gap-2 transition-all cursor-pointer ${
+                    activeMainTab === 'meteorologico'
+                      ? 'text-cyan-600 dark:text-cyan-400 font-bold'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <CloudRain className={`w-3.5 h-3.5 ${activeMainTab === 'meteorologico' ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-500 dark:text-slate-400'}`} />
+                  <span>METEOROLÓGICO</span>
+                  {activeMainTab === 'meteorologico' && (
+                    <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-cyan-600 dark:bg-cyan-400 rounded-t-full shadow-[0_0_8px_rgba(34,211,238,0.5)]" />
+                  )}
+                </button>
+              </div>
             </div>
 
-            <div className="flex items-center gap-4 text-xs font-medium flex-wrap">
-              <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
-                <span>Última atualização:</span>
-                <span className="text-slate-700 dark:text-slate-200 font-medium">30/05/2025 09:45</span>
+            {/* RIGHT HEADER ACTIONS */}
+            <div className="flex items-center gap-3 text-xs font-medium flex-wrap justify-end">
+              <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-[#040814] px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
+                <Calendar className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+                <span>Período: <strong className="text-slate-800 dark:text-slate-200 font-bold">Últimas 72h</strong></span>
+                <ChevronDown className="w-3 h-3 text-slate-400 dark:text-slate-500" />
               </div>
 
-              <div className="flex items-center gap-1.5 text-emerald-400 font-semibold">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Ao vivo</span>
+              <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-[#040814] px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
+                <Clock className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                <span>Atualizado em: <strong className="text-slate-800 dark:text-slate-200 font-semibold">30/05/2025 09:45</strong></span>
+                <RefreshCw className="w-3 h-3 text-cyan-600 dark:text-cyan-400 ml-0.5 cursor-pointer hover:rotate-180 transition-transform" />
               </div>
 
-              <div className="flex items-center gap-2 ml-1">
-                <button
-                  onClick={() => setIsAiModalOpen(true)}
-                  className="w-7 h-7 rounded-full border border-slate-700/80 hover:border-slate-500 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-white flex items-center justify-center transition-colors cursor-pointer"
-                  title="Ajuda"
-                >
-                  <HelpCircle className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => setIsAiModalOpen(true)}
-                  className="w-7 h-7 rounded-full border border-slate-700/80 hover:border-slate-500 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-white flex items-center justify-center transition-colors cursor-pointer relative"
-                  title="Notificações"
-                >
-                  <Bell className="w-3.5 h-3.5" />
-                </button>
-              </div>
+              {/* Período e Atualizado em mantidos */}
             </div>
           </header>
 
+          {/* CONTENT AREA */}
+          {activeAnalysisSection === 'historico_enchentes' ? (
+            <HistoricoEnchentesView 
+              selectedStationId={selectedStationId}
+              onSelectStation={(stId) => setSelectedStationId(stId)}
+            />
+          ) : activeAnalysisSection === 'propagacao' ? (
+            <PropagacaoOndaView 
+              selectedStationId={selectedStationId}
+              onSelectStation={(stId) => setSelectedStationId(stId)}
+              availableCities={availableCities}
+            />
+          ) : (
+            <>
+              {/* MAIN PAGE BANNER TITLE */}
+              <div className="flex items-center justify-between px-1">
+                <div>
+                  <h2 className="text-base sm:text-lg font-bold text-white tracking-widest uppercase flex items-center gap-2">
+                    ESTADO HIDROLÓGICO DA BACIA DO TAQUARI
+                  </h2>
+                  <p className="text-xs text-slate-400 font-medium">
+                    Sintese das variáveis fluviométricas, meteorológicas e históricas do Rio Taquari
+                  </p>
+                </div>
+                <div className="hidden sm:flex items-center gap-2 text-[10px] font-bold text-cyan-400 uppercase tracking-widest bg-cyan-950/60 border border-cyan-800/60 px-3 py-1 rounded-full">
+                  <Activity className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                  <span>TELEMETRIA INTEGRADA</span>
+                </div>
+              </div>
+
+          {/* ============================================================ */}
+          {/* ABA 1: HIDROLÓGICO */}
+          {/* ============================================================ */}
+          {activeMainTab === 'hidrologico' && (
+            <div className="flex flex-col gap-4">
+
+          {/* ---------------------------------------------------- */}
+          {/* PARTE 3: CARDS DE INDICADORES PRINCIPAIS (6 CARDS ROW) */}
+          {/* ---------------------------------------------------- */}
           <LayoutBehaviorWrapper pageKey="centro_analises" componentKey="analytics_cards">
             <EditableComponent id="centro_header_resumo" name="Painel de Resumo da Estação Selecionada" type="card">
-          {activeMainTab === 'meteorologico' ? (
-            <section className="bg-white dark:bg-[#091122] border border-slate-300 dark:border-[#162342] rounded-2xl py-2.5 px-3.5 sm:px-4 shadow-2xl">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3 lg:gap-3.5 divide-y md:divide-y-0 md:divide-x divide-slate-800/80 items-center">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
                 
-                {/* COL 1: CITY & BADGE */}
-                <div className="space-y-1 pr-1">
-                  <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase leading-none">
-                    {currentStation.name} - RS
-                  </h3>
-                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                    <Waves className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                    <span>{currentStation.river}</span>
-                  </div>
-                  <div className="pt-0.5">
-                    <span className="inline-block px-2 py-0.5 rounded bg-emerald-500/10 dark:bg-[#09221B] border border-emerald-500/30 text-emerald-400 text-[9px] font-black tracking-wider uppercase">
-                      CONDIÇÕES ATUAIS
-                    </span>
-                  </div>
-                </div>
-
-                {/* COL 2: TEMPERATURA */}
-                <div className="pt-2 md:pt-0 md:pl-3 pr-1 flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full border border-cyan-500/40 bg-cyan-950/40 flex items-center justify-center text-cyan-400 shrink-0">
-                    <Thermometer className="w-4 h-4 text-cyan-400" />
+                {/* CARD 1: CHUVA 24H */}
+                <div className="bg-white dark:bg-[#081023] border border-slate-200 dark:border-slate-800/90 rounded-2xl p-3 shadow-md dark:shadow-xl flex flex-col justify-between transition-colors">
+                  <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Chuva 24h</span>
+                    <CloudRain className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                   </div>
                   <div>
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block leading-tight">Temperatura</span>
-                    <span className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight block">
-                      {currentStation.temp ? `${currentStation.temp.toFixed(1).replace('.', ',')} °C` : '22,6 °C'}
+                    <span className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight leading-none block">
+                      142 mm
                     </span>
-                    <span className="text-[10px] text-cyan-400 font-semibold block">↑ Sensação 23,8 °C</span>
+                    <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 block mt-1">
+                      ↑ 18% acima da média
+                    </span>
                   </div>
                 </div>
 
-                {/* COL 3: UMIDADE */}
-                <div className="pt-2 md:pt-0 md:pl-3 pr-1 flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full border border-cyan-500/40 bg-cyan-950/40 flex items-center justify-center text-cyan-400 shrink-0">
-                    <Droplets className="w-4 h-4 text-cyan-400" />
+                {/* CARD 2: CHUVA 72H */}
+                <div className="bg-white dark:bg-[#081023] border border-slate-200 dark:border-slate-800/90 rounded-2xl p-3 shadow-md dark:shadow-xl flex flex-col justify-between transition-colors">
+                  <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Chuva 72h</span>
+                    <CloudRain className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div>
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block leading-tight">Umidade</span>
-                    <span className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight block">
-                      {currentStation.humidity ? `${currentStation.humidity}%` : '86%'}
+                    <span className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight leading-none block">
+                      238 mm
+                    </span>
+                    <span className="text-[10px] font-semibold text-cyan-600 dark:text-cyan-400 block mt-1">
+                      ↑ 24% acima da média
                     </span>
                   </div>
                 </div>
 
-                {/* COL 4: CHUVA (1H) */}
-                <div className="pt-2 md:pt-0 md:pl-3 pr-1 flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full border border-cyan-500/40 bg-cyan-950/40 flex items-center justify-center text-cyan-400 shrink-0">
-                    <CloudRain className="w-4 h-4 text-cyan-400" />
+                {/* CARD 3: VAZÃO INTEGRADA */}
+                <div className="bg-white dark:bg-[#081023] border border-slate-200 dark:border-slate-800/90 rounded-2xl p-3 shadow-md dark:shadow-xl flex flex-col justify-between transition-colors">
+                  <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Vazão Integrada</span>
+                    <Waves className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                   </div>
                   <div>
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block leading-tight">Chuva (1h)</span>
-                    <span className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight block">
-                      {currentStation.rain1h ? `${currentStation.rain1h.toFixed(1).replace('.', ',')} mm` : '3,2 mm'}
+                    <span className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight leading-none block">
+                      8.420 m³/s
                     </span>
-                    <span className="text-[10px] text-slate-400 block">Acumulado hoje: {currentStation.rain24h ? `${currentStation.rain24h.toFixed(1).replace('.', ',')} mm` : '18,4 mm'}</span>
+                    <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 block mt-1">
+                      ↑ Tendência de alta
+                    </span>
                   </div>
                 </div>
 
-                {/* COL 5: VENTO */}
-                <div className="pt-2 md:pt-0 md:pl-3 pr-1 flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full border border-slate-700 bg-slate-900/60 flex items-center justify-center text-cyan-400 shrink-0">
-                    <Wind className="w-4 h-4 text-cyan-400" />
+                {/* CARD 4: NÍVEL MÉDIO DOS RIOS */}
+                <div className="bg-white dark:bg-[#081023] border border-slate-200 dark:border-slate-800/90 rounded-2xl p-3 shadow-md dark:shadow-xl flex flex-col justify-between transition-colors">
+                  <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Nível Médio</span>
+                    <Gauge className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                   </div>
                   <div>
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block leading-tight">Vento</span>
-                    <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-tight block">
-                      {currentStation.wind || '14 km/h'}
-                    </span>
-                    <span className="text-[10px] text-slate-400 block">Rajadas: 24 km/h</span>
-                  </div>
-                </div>
-
-                {/* COL 6: PRESSÃO */}
-                <div className="pt-2 md:pt-0 md:pl-3 pr-1 flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full border border-slate-700 bg-slate-900/60 flex items-center justify-center text-cyan-400 shrink-0">
-                    <Gauge className="w-4 h-4 text-cyan-400" />
-                  </div>
-                  <div>
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block leading-tight">Pressão</span>
-                    <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-tight block">
-                      {currentStation.pressure || 1012} hPa
-                    </span>
-                    <span className="text-[10px] text-emerald-400 font-semibold block">Estável</span>
-                  </div>
-                </div>
-
-                {/* COL 7: ÚLTIMA LEITURA */}
-                <div className="pt-2 md:pt-0 md:pl-3 pr-1 flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full border border-slate-700 bg-slate-900/60 flex items-center justify-center text-cyan-400 shrink-0">
-                    <Clock className="w-4 h-4 text-cyan-400" />
-                  </div>
-                  <div>
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block leading-tight">Última leitura</span>
-                    <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight block">
-                      09:40 - 30/05
-                    </span>
-                    <span className="text-[10px] text-slate-400 block">Fonte: CLIMATEMPO</span>
-                  </div>
-                </div>
-
-              </div>
-            </section>
-          ) : (
-            <section className="bg-white dark:bg-[#091122] border border-slate-300 dark:border-[#162342] rounded-2xl py-2.5 px-3.5 sm:px-4 shadow-2xl">
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3 lg:gap-3.5 divide-y md:divide-y-0 md:divide-x divide-slate-800/80 items-center">
-                
-                {/* COL 1: CITY & BADGE */}
-                <div className="space-y-1 pr-1">
-                  <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase leading-none">
-                    {currentStation.name} - RS
-                  </h3>
-                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                    <Waves className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                    <span>{currentStation.river}</span>
-                  </div>
-                  <div className="pt-0.5">
-                    <span className="inline-block px-2 py-0.5 rounded bg-emerald-500/10 dark:bg-[#09221B] border border-emerald-500/30 text-emerald-400 text-[9px] font-black tracking-wider uppercase">
-                      NÍVEL {currentStation.status_level === 'normal' ? 'NORMAL' : currentStation.status_level.toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-
-                {/* COL 2: NÍVEL ATUAL */}
-                <div className="pt-2 md:pt-0 md:pl-3 pr-1 flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full border border-cyan-500/40 bg-cyan-950/40 flex items-center justify-center text-cyan-400 shrink-0">
-                    <Waves className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block leading-tight">Nível atual</span>
-                    <span className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+                    <span className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight leading-none block">
                       {currentStation.current_level.toFixed(2).replace('.', ',')} m
                     </span>
-                  </div>
-                </div>
-
-                {/* COL 3: TENDÊNCIA (1H) */}
-                <div className="pt-2 md:pt-0 md:pl-3 pr-1 flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full border border-slate-700 bg-slate-900/60 flex items-center justify-center text-cyan-400 shrink-0">
-                    <Compass className="w-4 h-4 text-cyan-400" />
-                  </div>
-                  <div>
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block leading-tight">Tendência (1h)</span>
-                    <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-1 leading-tight">
-                      {currentStation.trend === 'subindo' ? 'Subindo ↑' : currentStation.trend === 'descendo' ? 'Descendo ↓' : 'Estável →'}
+                    <span className="text-[10px] font-semibold text-red-600 dark:text-red-400 block mt-1">
+                      ↑ Subindo (+{Math.round(currentStation.rate_of_change * 100)} cm/h)
                     </span>
                   </div>
                 </div>
 
-                {/* COL 4: VARIAÇÃO (24H) */}
-                <div className="pt-2 md:pt-0 md:pl-3 pr-1 flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full border border-slate-700 bg-slate-900/60 flex items-center justify-center text-cyan-400 shrink-0">
-                    <RefreshCw className="w-4 h-4 text-cyan-400" />
+                {/* CARD 5: UMIDADE ANTECEDENTE */}
+                <div className="bg-white dark:bg-[#081023] border border-slate-200 dark:border-slate-800/90 rounded-2xl p-3 shadow-md dark:shadow-xl flex flex-col justify-between transition-colors">
+                  <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Umidade Solo</span>
+                    <Droplets className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                   </div>
                   <div>
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block leading-tight">Variação (24h)</span>
-                    <span className="text-sm sm:text-base font-bold text-cyan-400 leading-tight block">
-                      {currentStation.rate_of_change >= 0 ? '+' : ''}{(currentStation.rate_of_change * 100).toFixed(0)} cm
+                    <span className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight leading-none block">
+                      Alta
+                    </span>
+                    <span className="text-[10px] font-semibold text-cyan-600 dark:text-cyan-400 block mt-1">
+                      Solo saturado (92%)
                     </span>
                   </div>
                 </div>
 
-                {/* COL 5: ÚLTIMA LEITURA */}
-                <div className="pt-2 md:pt-0 md:pl-3 pr-1 flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full border border-slate-700 bg-slate-900/60 flex items-center justify-center text-cyan-400 shrink-0">
-                    <Clock className="w-4 h-4 text-cyan-400" />
+                {/* CARD 6: RESPOSTA DA BACIA */}
+                <div className="bg-white dark:bg-[#081023] border border-slate-200 dark:border-slate-800/90 rounded-2xl p-3 shadow-md dark:shadow-xl flex flex-col justify-between transition-colors">
+                  <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Resposta Bacia</span>
+                    <Activity className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                   </div>
                   <div>
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block leading-tight">Última leitura</span>
-                    <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight block">
-                      09:40 - 30/05
+                    <span className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight leading-none block">
+                      Crescente
                     </span>
-                  </div>
-                </div>
-
-                {/* COL 6: COTA DE ALERTA */}
-                <div className="pt-2 md:pt-0 md:pl-3 space-y-0.5">
-                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200 block leading-tight mb-0.5">Cota de Alerta</span>
-                  <div className="space-y-0.5 text-[10px] sm:text-[10.5px] font-medium leading-tight">
-                    <div className="flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block shrink-0" />
-                      <span className="text-amber-400 font-bold">Atenção:</span>
-                      <span className="text-slate-700 dark:text-slate-300 font-mono ml-auto">{currentStation.attention_threshold.toFixed(2).replace('.', ',')} m</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-orange-500 inline-block shrink-0" />
-                      <span className="text-orange-400 font-bold">Alerta:</span>
-                      <span className="text-slate-700 dark:text-slate-300 font-mono ml-auto">{currentStation.warning_threshold.toFixed(2).replace('.', ',')} m</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block shrink-0" />
-                      <span className="text-red-400 font-bold">Emergência:</span>
-                      <span className="text-slate-700 dark:text-slate-300 font-mono ml-auto">{currentStation.flood_threshold.toFixed(2).replace('.', ',')} m</span>
-                    </div>
+                    <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 block mt-1">
+                      Alta sensibilidade
+                    </span>
                   </div>
                 </div>
 
               </div>
-            </section>
-          )}
-          </EditableComponent>
+            </EditableComponent>
           </LayoutBehaviorWrapper>
 
           {/* ---------------------------------------------------- */}
-          {/* ABAS DE DADOS + TIME RANGE SELECTOR */}
+          {/* MIDDLE ROW: PARTE 4 (EVOLUÇÃO HIDROLÓGICA) + PARTE 5 (CORRESPONDÊNCIA HISTÓRICA) */}
           {/* ---------------------------------------------------- */}
-          <EditableComponent id="centro_tabs_nav" name="Navegação por Abas e Período" type="banner">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-2 shadow-xl">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
             
-            {/* SUB-TABS */}
-            <div className="flex items-center gap-1 bg-slate-50 dark:bg-[#050A18] p-1 rounded-xl border border-slate-300 dark:border-slate-800">
-              <button
-                onClick={() => setActiveMainTab('hidrologico')}
-                className={`px-4 py-2 rounded-lg text-xs font-extrabold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer ${
-                  activeMainTab === 'hidrologico'
-                    ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-200 dark:hover:bg-slate-800/60'
-                }`}
-              >
-                <Droplets className="w-4 h-4" />
-                <span>HIDROLÓGICO</span>
-              </button>
-
-              <button
-                onClick={() => setActiveMainTab('fluviologico')}
-                className={`px-4 py-2 rounded-lg text-xs font-extrabold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer ${
-                  activeMainTab === 'fluviologico'
-                    ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-200 dark:hover:bg-slate-800/60'
-                }`}
-              >
-                <Waves className="w-4 h-4" />
-                <span>FLUVIOLÓGICO</span>
-              </button>
-
-              <button
-                onClick={() => setActiveMainTab('meteorologico')}
-                className={`px-4 py-2 rounded-lg text-xs font-extrabold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer ${
-                  activeMainTab === 'meteorologico'
-                    ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-200 dark:hover:bg-slate-800/60'
-                }`}
-              >
-                <CloudRain className="w-4 h-4" />
-                <span>METEOROLÓGICO</span>
-              </button>
-            </div>
-
-            {/* TIMEFRAME SELECTOR BUTTONS */}
-            <div className="flex items-center gap-1 bg-slate-50 dark:bg-[#050A18] p-1 rounded-xl border border-slate-300 dark:border-slate-800 justify-end flex-wrap">
-              {(['6h', '24h', '7d', '15d', '30d'] as const).map((tf) => (
-                <button
-                  key={tf}
-                  onClick={() => setTimeframe(tf as any)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    timeframe === tf
-                      ? 'bg-cyan-600 text-white shadow'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  {tf === '7d' ? '7 dias' : tf === '15d' ? '15 dias' : tf === '30d' ? '30 dias' : tf}
-                </button>
-              ))}
-
-              <button
-                onClick={() => setTimeframe('custom')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                  timeframe === 'custom'
-                    ? 'bg-cyan-600 text-white shadow'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800'
-                }`}
-              >
-                <span>Personalizado</span>
-                <Calendar className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-          </div>
-          </EditableComponent>
-
-          {/* ============================================================ */}
-          {/* CONTENT ACCORDING TO ACTIVE MAIN TAB */}
-          {/* ============================================================ */}
-
-          {activeMainTab === 'hidrologico' && (
-            <div className="flex flex-col gap-4">
-              
-              {/* TOP ROW: MAIN LEVEL EVOLUTION CHART (2 COLS) + PREVISÃO & CONDIÇÕES/RADAR (1 COL) */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                
-                {/* LEFT 2 COLUMNS: MAIN CHART CARD */}
-                <EditableComponent id="centro_grafico_hidrologico" name="Gráfico Nível do Rio (Evolução)" type="chart" className="lg:col-span-2">
-                  <div className="bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-xl h-full flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                            Nível do Rio (m)
-                          </h4>
-                          <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                            Evolução do nível telemetrado em tempo real com cotas de atenção e emergência
-                          </span>
-                        </div>
-                        <span className="text-xs font-mono text-cyan-400 font-bold bg-cyan-950/60 border border-cyan-800/60 px-2.5 py-1 rounded-lg">
-                          {currentStation.current_level.toFixed(2)} m
-                        </span>
-                      </div>
-
-                      {/* RECHARTS COMPOSED AREA CHART */}
-                      <div className="h-72 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <ComposedChart data={hydroChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                            <defs>
-                              <linearGradient id="hydroLevelGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.4} />
-                                <stop offset="95%" stopColor="#06B6D4" stopOpacity={0.0} />
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke={theme === "light" ? "#CBD5E1" : "#1E293B"} vertical={false} />
-                            <XAxis dataKey="time" stroke="#64748B" tick={{ fontSize: 11 }} />
-                            <YAxis 
-                              domain={[
-                                (dataMin: number) => Math.max(0, Math.floor(dataMin - 1)),
-                                (dataMax: number) => Math.ceil(Math.max(dataMax + 1, currentStation.flood_threshold + 0.5))
-                              ]} 
-                              stroke="#64748B" 
-                              tick={{ fontSize: 11 }}
-                            />
-                            <Tooltip 
-                              contentStyle={{ backgroundColor: '#050A18', borderColor: '#334155', borderRadius: '12px', color: '#fff' }}
-                              formatter={(val: any) => [`${Number(val).toFixed(2)} m`, 'Nível do Rio']}
-                            />
-                            
-                            {/* REFERENCE LINES FOR QUOTAS */}
-                            <ReferenceLine y={currentStation.attention_threshold} stroke="#F59E0B" strokeDasharray="4 4" label={{ value: `Atenção (${currentStation.attention_threshold}m)`, fill: '#F59E0B', fontSize: 10, position: 'insideTopRight' }} />
-                            <ReferenceLine y={currentStation.warning_threshold} stroke="#F97316" strokeDasharray="4 4" label={{ value: `Alerta (${currentStation.warning_threshold}m)`, fill: '#F97316', fontSize: 10, position: 'insideTopRight' }} />
-                            <ReferenceLine y={currentStation.flood_threshold} stroke="#EF4444" strokeDasharray="4 4" label={{ value: `Emergência (${currentStation.flood_threshold}m)`, fill: '#EF4444', fontSize: 10, position: 'insideTopRight' }} />
-
-                            <Area type="monotone" dataKey="level" stroke="#06B6D4" strokeWidth={3} fill="url(#hydroLevelGrad)" />
-                            <Line type="monotone" dataKey="level" stroke="#38BDF8" strokeWidth={3} dot={{ fill: '#38BDF8', r: 4 }} activeDot={{ r: 6 }} />
-                          </ComposedChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-
-                    {/* CHART LEGEND ROW */}
-                    <div className="flex items-center justify-center gap-6 mt-4 pt-3 border-t border-slate-300 dark:border-slate-800/80 text-xs font-semibold text-slate-600 dark:text-slate-300 flex-wrap">
-                      <div className="flex items-center gap-2">
-                        <span className="w-3 h-0.5 bg-cyan-400 rounded-full" />
-                        <span>Nível do Rio</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-3 h-0.5 bg-amber-400 rounded-full" />
-                        <span>Atenção ({currentStation.attention_threshold.toFixed(2)} m)</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-3 h-0.5 bg-orange-500 rounded-full" />
-                        <span>Alerta ({currentStation.warning_threshold.toFixed(2)} m)</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-3 h-0.5 bg-red-500 rounded-full" />
-                        <span>Emergência ({currentStation.flood_threshold.toFixed(2)} m)</span>
-                      </div>
-                    </div>
-
-                  </div>
-                </EditableComponent>
-
-                {/* RIGHT COLUMN: PREVISÃO + CONDIÇÕES ATUAIS + RADAR DE CHUVA */}
-                <div className="flex flex-col gap-4">
+            {/* PARTE 4: PAINEL EVOLUÇÃO HIDROLÓGICA DA BACIA (lg:col-span-8) */}
+            <div id="evolucao-hidrologica-panel" className="lg:col-span-8 flex flex-col">
+              <EditableComponent id="centro_grafico_hidrologico" name="Evolução Hidrológica da Bacia" type="chart" className="h-full flex flex-col">
+                <div className="bg-[#081023] border border-slate-800/90 rounded-2xl p-3.5 sm:p-4 shadow-2xl h-full flex flex-col justify-between">
                   
-                  {/* PREVISÃO PARA [CIDADE] */}
-                  <EditableComponent id="centro_meteo_previsao_cidade" name="Previsão Meteorológica da Cidade" type="card">
-                  <div className="bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-4 shadow-xl">
-                    <div className="flex items-center justify-between mb-3">
-                      <h5 className="text-xs font-black uppercase text-slate-900 dark:text-white tracking-wider flex items-center gap-1.5">
-                        <CloudRain className="w-4 h-4 text-cyan-400" />
-                        Previsão para {currentStation.name}
-                      </h5>
-                      <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">Fonte: CLIMATEMPO</span>
-                    </div>
-
-                    <div className="grid grid-cols-5 gap-1.5 text-center">
-                      {[
-                        { day: 'Hoje', date: '30/05', max: 24, min: 18, rain: 15, icon: <CloudRain className="w-4 h-4 text-cyan-400 mx-auto" /> },
-                        { day: 'Sáb', date: '31/05', max: 26, min: 17, rain: 5, icon: <Sun className="w-4 h-4 text-amber-400 mx-auto" /> },
-                        { day: 'Dom', date: '01/06', max: 27, min: 16, rain: 0, icon: <Sun className="w-4 h-4 text-amber-300 mx-auto" /> },
-                        { day: 'Seg', date: '02/06', max: 24, min: 18, rain: 10, icon: <CloudRain className="w-4 h-4 text-blue-400 mx-auto" /> },
-                        { day: 'Ter', date: '03/06', max: 22, min: 16, rain: 8, icon: <Cloud className="w-4 h-4 text-slate-500 dark:text-slate-400 mx-auto" /> },
-                      ].map((item, idx) => (
-                        <div key={idx} className="bg-slate-50 dark:bg-[#050A18] border border-slate-300 dark:border-slate-800/80 rounded-xl p-2 flex flex-col justify-between items-center gap-1">
-                          <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 block">{item.day}</span>
-                          <span className="text-[9px] text-slate-400 dark:text-slate-500 block">{item.date}</span>
-                          <div className="my-1">{item.icon}</div>
-                          <div className="text-[10px] font-black text-slate-900 dark:text-white">
-                            {item.max}° <span className="text-slate-500 dark:text-slate-400 font-normal">{item.min}°</span>
-                          </div>
-                          <span className="text-[9px] font-bold text-cyan-400">{item.rain} mm</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  </EditableComponent>
-
-                  {/* BLOCO: CONDIÇÕES ATUAIS & RADAR DE CHUVA */}
-                  <EditableComponent id="centro_meteo_condicoes_locais" name="Condições Atuais e Radar de Chuva" type="map">
-                  <div className="bg-slate-50 dark:bg-[#050A18] border border-slate-300 dark:border-[#121d36] rounded-2xl p-3 shadow-2xl">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-stretch">
-                      
-                      {/* CONDIÇÕES ATUAIS */}
-                      <div className="bg-slate-50 dark:bg-[#081020] border border-slate-300 dark:border-[#152342] rounded-xl p-3.5 flex flex-col justify-between h-full">
-                        <h5 className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-2.5">
-                          Condições atuais
-                        </h5>
-
-                        <div className="space-y-2 text-xs">
-                          <div className="flex items-center justify-between py-1 border-b border-slate-300 dark:border-slate-800/40">
-                            <span className="text-slate-600 dark:text-slate-300 flex items-center gap-2">
-                              <Thermometer className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300 shrink-0 stroke-[1.75]" />
-                              <span className="whitespace-nowrap">Temperatura</span>
-                            </span>
-                            <span className="font-medium text-slate-800 dark:text-slate-100 whitespace-nowrap ml-2">
-                              {liveWeather.temp.toString().replace('.', ',')} °C
-                            </span>
-                          </div>
-
-                          <div className="flex items-center justify-between py-1 border-b border-slate-300 dark:border-slate-800/40">
-                            <span className="text-slate-600 dark:text-slate-300 flex items-center gap-2">
-                              <Droplets className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300 shrink-0 stroke-[1.75]" />
-                              <span className="whitespace-nowrap">Umidade</span>
-                            </span>
-                            <span className="font-medium text-slate-800 dark:text-slate-100 whitespace-nowrap ml-2">
-                              {liveWeather.humidity} %
-                            </span>
-                          </div>
-
-                          <div className="flex items-center justify-between py-1 border-b border-slate-300 dark:border-slate-800/40">
-                            <span className="text-slate-600 dark:text-slate-300 flex items-center gap-2">
-                              <Wind className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300 shrink-0 stroke-[1.75]" />
-                              <span className="whitespace-nowrap">Vento</span>
-                            </span>
-                            <span className="font-medium text-slate-800 dark:text-slate-100 whitespace-nowrap ml-2">
-                              {liveWeather.wind}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center justify-between py-1 border-b border-slate-300 dark:border-slate-800/40">
-                            <span className="text-slate-600 dark:text-slate-300 flex items-center gap-2">
-                              <Clock className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300 shrink-0 stroke-[1.75]" />
-                              <span className="whitespace-nowrap">Pressão</span>
-                            </span>
-                            <span className="font-medium text-slate-800 dark:text-slate-100 whitespace-nowrap ml-2">
-                              {liveWeather.pressure} hPa
-                            </span>
-                          </div>
-
-                          <div className="flex items-center justify-between py-1">
-                            <span className="text-slate-600 dark:text-slate-300 flex items-center gap-2">
-                              <CloudRain className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300 shrink-0 stroke-[1.75]" />
-                              <span className="whitespace-nowrap">Chuva (1h)</span>
-                            </span>
-                            <span className="font-medium text-slate-800 dark:text-slate-100 whitespace-nowrap ml-2">
-                              {liveWeather.rain1h.toString().replace('.', ',')} mm
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* RADAR DE CHUVA */}
-                      <div className="bg-slate-50 dark:bg-[#081020] border border-slate-300 dark:border-[#152342] rounded-xl p-3.5 flex flex-col justify-between h-full">
-                        <h5 className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-2.5">
-                          Radar de Chuva
-                        </h5>
-
-                        {/* MAP CANVAS WITH MATCHING HEIGHT */}
-                        <div className="relative w-full flex-1 min-h-[135px] rounded-xl overflow-hidden border border-slate-300 dark:border-[#1a2846] bg-slate-100 dark:bg-[#101b2d] flex items-center justify-center">
-                          <svg className="absolute inset-0 w-full h-full object-cover" viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice">
-                            {/* Base Terrain Background */}
-                            <rect width="320" height="180" fill={theme === "light" ? "#F1F5F9" : "#121d2d"} />
-                            <path d="M0,35 Q100,55 160,18 T320,45 L320,180 L0,180 Z" fill={theme === "light" ? "#E2E8F0" : "#16253c"} opacity="0.6" />
-                            <path d="M0,105 Q120,75 220,125 T320,95 L320,180 L0,180 Z" fill={theme === "light" ? "#CBD5E1" : "#0d1624"} opacity="0.8" />
-                            
-                            {/* River Paths */}
-                            <path d="M -10,30 C 50,60 90,80 140,85 C 190,90 220,50 260,30 C 290,15 310,25 330,35" stroke="#1d4ed8" strokeWidth="4" fill="none" opacity="0.8" />
-                            <path d="M -10,30 C 50,60 90,80 140,85 C 190,90 220,50 260,30 C 290,15 310,25 330,35" stroke="#38bdf8" strokeWidth="1.5" fill="none" opacity="0.9" />
-                            <path d="M 140,85 C 130,120 160,150 180,190" stroke="#1d4ed8" strokeWidth="2.5" fill="none" opacity="0.7" />
-
-                            {/* Rain Radar Overlays */}
-                            <g opacity="0.6" style={{ mixBlendMode: 'screen' }}>
-                              <path d="M 30,75 Q 100,35 190,65 Q 280,95 250,155 Q 170,165 90,125 Z" fill="url(#radarGreenGrad)" />
-                              <path d="M 110,65 Q 170,45 220,75 Q 240,115 190,135 Q 140,135 100,95 Z" fill="url(#radarYellowGrad)" />
-                              <circle cx="205" cy="85" r="24" fill="#e11d48" opacity="0.65" filter="blur(4px)" />
-                            </g>
-
-                            <defs>
-                              <radialGradient id="radarGreenGrad" cx="50%" cy="50%" r="50%">
-                                <stop offset="0%" stopColor="#22c55e" stopOpacity="0.85" />
-                                <stop offset="60%" stopColor="#10b981" stopOpacity="0.5" />
-                                <stop offset="100%" stopColor="#06b6d4" stopOpacity="0" />
-                              </radialGradient>
-                              <radialGradient id="radarYellowGrad" cx="50%" cy="50%" r="50%">
-                                <stop offset="0%" stopColor="#eab308" stopOpacity="0.9" />
-                                <stop offset="70%" stopColor="#f97316" stopOpacity="0.5" />
-                                <stop offset="100%" stopColor="#22c55e" stopOpacity="0" />
-                              </radialGradient>
-                            </defs>
-
-                            {/* City labels */}
-                            <text x="65" y="38" fill={theme === "light" ? "#334155" : "#ffffff"} fontSize="11" fontWeight="600" textAnchor="middle" filter={theme === "light" ? "drop-shadow(0px 1px 3px rgba(255,255,255,0.9))" : "drop-shadow(0px 1px 3px rgba(0,0,0,0.9))"}>Arroio do Meio</text>
-                            <text x="215" y="32" fill={theme === "light" ? "#334155" : "#ffffff"} fontSize="11" fontWeight="600" textAnchor="middle" filter={theme === "light" ? "drop-shadow(0px 1px 3px rgba(255,255,255,0.9))" : "drop-shadow(0px 1px 3px rgba(0,0,0,0.9))"}>Estrela</text>
-
-                            {/* Lajeado Pin and Badge */}
-                            <g transform="translate(195, 90)">
-                              <path d="M0 -18 C-6 -18 -10 -14 -10 -8 C-10 0 0 10 0 10 C0 10 10 0 10 -8 C10 -14 6 -18 0 -18 Z" fill="#2563eb" stroke="#60a5fa" strokeWidth="1" />
-                              <circle cx="0" cy="-8" r="3.5" fill="#ffffff" />
-                              <rect x="12" y="-16" width="56" height="18" rx="4" fill={theme === "light" ? "#ffffff" : "#090d16"} opacity="0.9" stroke="#2563eb" strokeWidth="0.8" />
-                              <text x="40" y="-3" fill={theme === "light" ? "#0f172a" : "#ffffff"} fontSize="10" fontWeight="700" textAnchor="middle">Lajeado</text>
-                            </g>
-                          </svg>
-
-                          {/* Legend Bar Overlay */}
-                          <div className="absolute bottom-1.5 left-2 right-2 bg-white dark:bg-[#080d1a]/90 backdrop-blur-sm border border-slate-300 dark:border-[#1e2d4d] rounded-md px-2.5 py-0.5 flex items-center justify-between text-[11px] font-medium text-slate-700 dark:text-slate-200">
-                            <span className="text-slate-600 dark:text-slate-300 font-medium">Fraco</span>
-                            <div className="h-1.5 flex-1 mx-2 rounded-full bg-gradient-to-r from-sky-400 via-emerald-400 via-amber-400 via-orange-500 to-fuchsia-600" />
-                            <span className="text-slate-600 dark:text-slate-300 font-medium">Forte</span>
-                          </div>
-                        </div>
-                      </div>
-
-                    </div>
-                  </div>
-                  </EditableComponent>
-
-                </div>
-
-              </div>
-
-              {/* ROW 2: FULL-WIDTH 3 CARDS (HISTÓRICO + ANÁLISE INTEGRADA + PROJEÇÕES) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                
-                {/* CARD 1: HISTÓRICO DE ENCHENTES - lg:col-span-5 */}
-                <EditableComponent id="centro_hidro_historico_enchentes" name="Histórico de Enchentes" type="chart" className="lg:col-span-5">
-                <div className="bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between shadow-xl relative h-full">
+                  {/* HEADER CONTROL BAR */}
                   <div>
-                    <h5 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white mb-3 flex items-center justify-between">
-                      <span className="flex items-center gap-1.5">
-                        <span>Histórico de Enchentes</span>
-                        <span className="text-slate-500 dark:text-slate-400 font-normal text-xs sm:text-sm">({historicalFloodsData.length} registradas)</span>
-                      </span>
-                      <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/80 border border-cyan-800/60 px-2 py-0.5 rounded-full">
-                        {currentStation.name} / {currentStation.river}
-                      </span>
-                    </h5>
-
-                    {/* 4 TOP STAT BOXES DYNAMICALLY COMPUTED FOR SELECTED CITY */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs mb-3.5">
-                      <div className="bg-slate-50 dark:bg-[#050A18] p-2.5 rounded-xl border border-red-900/50 flex flex-col justify-between">
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Recorde Histórico</span>
-                        <span className="text-sm sm:text-base font-black text-red-400 my-0.5">
-                          {floodStats.record.toFixed(2).replace('.', ',')} m
-                        </span>
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">{floodStats.recordYear}</span>
-                      </div>
-
-                      <div className="bg-slate-50 dark:bg-[#050A18] p-2.5 rounded-xl border border-slate-300 dark:border-slate-800/80 flex flex-col justify-between">
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">2ª Maior Marca</span>
-                        <span className="text-sm sm:text-base font-black text-amber-300 my-0.5">
-                          {floodStats.second.toFixed(2).replace('.', ',')} m
-                        </span>
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">{floodStats.secondYear}</span>
-                      </div>
-
-                      <div className="bg-slate-50 dark:bg-[#050A18] p-2.5 rounded-xl border border-slate-300 dark:border-slate-800/80 flex flex-col justify-between">
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">3ª Maior Marca</span>
-                        <span className="text-sm sm:text-base font-black text-cyan-300 my-0.5">
-                          {floodStats.third.toFixed(2).replace('.', ',')} m
-                        </span>
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">{floodStats.thirdYear}</span>
-                      </div>
-
-                      <div className="bg-slate-50 dark:bg-[#050A18] p-2.5 rounded-xl border border-slate-300 dark:border-slate-800/80 flex flex-col justify-between">
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Média das Cheias</span>
-                        <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white my-0.5">
-                          {floodStats.avg.toFixed(2).replace('.', ',')} m
-                        </span>
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Pico médio</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* POP-UP COMPLETO EXIBIDO SEM ROLAGEM E SEM CORTES AO CLICAR NA BARRA */}
-                  {activeFloodIndex !== null && historicalFloodsData[activeFloodIndex] && (
-                    <div className="absolute inset-x-3 top-10 z-50 bg-white text-slate-900 border border-slate-200/90 rounded-2xl p-3.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-                      <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2 mb-2">
-                        <div className="flex items-center gap-2 overflow-hidden">
-                          <span className="font-bold text-slate-900 text-xs sm:text-sm leading-tight truncate">
-                            {historicalFloodsData[activeFloodIndex].title}
-                          </span>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase shrink-0 ${
-                            historicalFloodsData[activeFloodIndex].event === 'Atual' ? 'bg-cyan-100 text-cyan-800 border border-cyan-300 animate-pulse' :
-                            historicalFloodsData[activeFloodIndex].level === floodStats.record ? 'bg-red-100 text-red-700 border border-red-200' :
-                            historicalFloodsData[activeFloodIndex].event.includes('1941') ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                            'bg-sky-100 text-sky-800 border border-sky-200'
-                          }`}>
-                            {historicalFloodsData[activeFloodIndex].event}
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveFloodIndex(null);
-                          }}
-                          className="p-1 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
-                          title="Fechar"
-                        >
-                          <X className="w-4 h-4" />
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-800/80">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <h3 className="text-xs sm:text-sm font-bold text-white tracking-wider uppercase flex items-center gap-1.5 truncate">
+                          EVOLUÇÃO HIDROLÓGICA DA BACIA
+                        </h3>
+                        <button className="text-slate-400 hover:text-white cursor-pointer shrink-0" title="Informações">
+                          <Info className="w-3.5 h-3.5" />
                         </button>
                       </div>
 
-                      <div className="space-y-1.5 text-xs">
-                        <div className="flex justify-between items-center bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-100">
-                          <span className="text-slate-400 dark:text-slate-500 font-medium text-[11px]">Cota Máxima:</span>
-                          <span className="font-black text-slate-900 text-sm">
-                            {historicalFloodsData[activeFloodIndex].level.toFixed(2).replace('.', ',')} m
-                          </span>
-                        </div>
-
-                        <div className="flex justify-between items-center text-[11px] px-0.5">
-                          <span className="text-slate-400 dark:text-slate-500">Período:</span>
-                          <span className="font-semibold text-slate-800">{historicalFloodsData[activeFloodIndex].dateStr}</span>
-                        </div>
-
-                        <div className="flex justify-between items-center text-[11px] px-0.5">
-                          <span className="text-slate-400 dark:text-slate-500">Chuva estimada:</span>
-                          <span className="font-bold text-cyan-700">{historicalFloodsData[activeFloodIndex].rain}</span>
-                        </div>
-
-                        <div className="flex justify-between items-center text-[11px] px-0.5">
-                          <span className="text-slate-400 dark:text-slate-500">Comportamento:</span>
-                          <span className="font-semibold text-slate-800">{historicalFloodsData[activeFloodIndex].duration}</span>
-                        </div>
-
-                        <div className="mt-2 text-[11px] leading-relaxed text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
-                          <strong className="text-slate-900 block mb-0.5 font-bold">Impacto Registrado:</strong>
-                          {historicalFloodsData[activeFloodIndex].impact}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* BAR CHART DE ENCHENTES COM RÉGUA NUMÉRICA FIXA À ESQUERDA E ROLAGEM HORIZONTAL APENAS NAS BARRAS */}
-                  <div className="flex items-center w-full relative">
-                    {/* Fixed Y-Axis Scale on the Left */}
-                    <div className="w-[56px] h-48 shrink-0 z-10 bg-white dark:bg-[#0B132B]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={historicalFloodsData} margin={{ top: 22, right: 0, left: 2, bottom: 0 }}>
-                          <XAxis dataKey="event" height={24} axisLine={{ stroke: '#475569', strokeWidth: 1.5 }} tickLine={false} tick={false} />
-                          <YAxis
-                            width={50}
-                            stroke="#475569"
-                            tick={{ fontSize: 10, fontWeight: 700, fill: theme === "light" ? "#334155" : "#CBD5E1" }}
-                            domain={yTicks.domain}
-                            ticks={yTicks.ticks}
-                            tickFormatter={(val) => `${val},00`}
-                            axisLine={{ stroke: '#475569', strokeWidth: 1.5 }}
-                            tickLine={{ stroke: '#475569', strokeWidth: 1.5 }}
-                          />
-                          <Bar dataKey="level" opacity={0} isAnimationActive={false} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-
-                    {/* Scrollable Bar Area */}
-                    <div ref={chartScrollRef} className="flex-1 overflow-x-auto overflow-y-hidden thin-h-scrollbar pb-1.5 pt-1">
-                      <div className="h-48 w-full relative" style={{ minWidth: `${Math.max(480, historicalFloodsData.length * 60)}px` }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart
-                            data={historicalFloodsData}
-                            barCategoryGap="18%"
-                            margin={{ top: 22, right: 20, left: 0, bottom: 0 }}
-                            onClick={(e: any) => {
-                              if (e && e.activeTooltipIndex !== undefined) {
-                                setActiveFloodIndex(e.activeTooltipIndex);
-                              }
-                            }}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {/* TIMEFRAME PILLS */}
+                        <div className="flex items-center bg-[#040814] p-0.5 rounded-xl border border-slate-800/90 text-[11px] font-medium">
+                          <button
+                            onClick={() => setTimeframe('24h')}
+                            className={`px-2.5 py-0.5 rounded-lg text-[11px] font-semibold cursor-pointer transition-all ${
+                              timeframe === '24h' || timeframe === '6h' ? 'bg-[#1D4ED8] text-white shadow-md' : 'text-slate-400 hover:text-white'
+                            }`}
                           >
-                            <CartesianGrid strokeDasharray="3 3" stroke={theme === "light" ? "#CBD5E1" : "#1E293B"} vertical={false} />
-                            <XAxis
-                              dataKey="event"
-                              height={24}
-                              stroke="#475569"
-                              axisLine={{ stroke: '#475569', strokeWidth: 1.5 }}
-                              tickLine={{ stroke: '#475569', strokeWidth: 1.5 }}
-                              tick={{ fontSize: 10, fontWeight: 700, fill: theme === "light" ? "#334155" : "#CBD5E1" }}
-                            />
-                            <YAxis domain={yTicks.domain} ticks={yTicks.ticks} hide />
-                            <Bar
-                              dataKey="level"
-                              barSize={28}
-                              radius={[6, 6, 0, 0]}
-                              onClick={(_, index) => setActiveFloodIndex(index)}
-                            >
-                              {historicalFloodsData.map((entry, index) => {
-                                const isSelected = activeFloodIndex === index;
-                                const isRecord = entry.level === floodStats.record;
-                                const is1941 = entry.event.includes('1941');
-                                const isCurrent = entry.event === 'Atual';
-                                
-                                let defaultFill = '#38BDF8';
-                                if (isCurrent) defaultFill = '#00E5FF';
-                                else if (isRecord) defaultFill = '#EF4444';
-                                else if (is1941) defaultFill = '#F59E0B';
+                            72h
+                          </button>
+                          <button
+                            onClick={() => setTimeframe('7d')}
+                            className={`px-2.5 py-0.5 rounded-lg text-[11px] font-semibold cursor-pointer transition-all ${
+                              timeframe === '7d' ? 'bg-[#1D4ED8] text-white shadow-md' : 'text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            7 dias
+                          </button>
+                          <button
+                            onClick={() => setTimeframe('30d')}
+                            className={`px-2.5 py-0.5 rounded-lg text-[11px] font-semibold cursor-pointer transition-all ${
+                              timeframe === '30d' ? 'bg-[#1D4ED8] text-white shadow-md' : 'text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            30 dias
+                          </button>
+                          <button
+                            onClick={() => setTimeframe('custom')}
+                            className={`px-2.5 py-0.5 rounded-lg text-[11px] font-semibold cursor-pointer transition-all ${
+                              timeframe === 'custom' ? 'bg-[#1D4ED8] text-white shadow-md' : 'text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            Personalizado
+                          </button>
+                        </div>
 
-                                return (
-                                  <Cell
-                                    key={`cell-${index}`}
-                                    fill={defaultFill}
-                                    stroke={isSelected ? '#FFFFFF' : 'none'}
-                                    strokeWidth={isSelected ? 2 : 0}
-                                    opacity={activeFloodIndex === null || isSelected ? 1 : 0.85}
-                                    className="transition-all duration-150 cursor-pointer"
-                                  />
-                                );
-                              })}
-                              <LabelList dataKey="label" position="top" fill={theme === "light" ? "#0F172A" : "#FFFFFF"} fontSize={10} fontWeight={800} />
-                            </Bar>
-                          </BarChart>
-                        </ResponsiveContainer>
+                        <button className="text-slate-400 hover:text-white cursor-pointer p-1 rounded-lg hover:bg-slate-800/50 transition-colors shrink-0">
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
-                  </div>
 
-                  {/* LEGEND ROW */}
-                  <div className="flex items-center justify-between mt-2 text-xs text-slate-600 dark:text-slate-300 font-medium pt-1 border-t border-slate-300 dark:border-slate-800/60 flex-wrap gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 bg-sky-400 rounded-sm inline-block" />
-                      <span className="text-[11px] text-slate-600 dark:text-slate-300">Picos Históricos</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 bg-amber-500 rounded-sm inline-block" />
-                      <span className="text-[11px] text-slate-600 dark:text-slate-300">Cheia 1941</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 bg-red-500 rounded-sm inline-block" />
-                      <span className="text-[11px] text-slate-600 dark:text-slate-300">Recorde</span>
-                    </div>
-                    {historicalFloodsData.some(d => d.event === 'Atual') && (
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 bg-cyan-400 rounded-sm inline-block animate-pulse" />
-                        <span className="text-[11px] text-cyan-300 font-bold">Enchente Atual</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                </EditableComponent>
-
-                {/* CARD 2: ANÁLISE INTEGRADA - lg:col-span-3 */}
-                <EditableComponent id="centro_hidro_analise_integrada" name="Análise Integrada IA Hidrológica" type="card" className="lg:col-span-3">
-                <div className="bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between shadow-xl h-full">
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h5 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                        <span>Análise Integrada</span>
-                      </h5>
-                      <span className="text-[9px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-800/70 px-2 py-0.5 rounded-full">
-                        IA Hidrológica
-                      </span>
+                    {/* METRIC SUB-TABS (Nível / Vazão / Chuva) */}
+                    <div className="flex items-center gap-4 mb-1 text-xs font-semibold">
+                      <button className="text-cyan-400 font-bold border-b-2 border-cyan-400 pb-0.5 cursor-pointer">
+                        Nível
+                      </button>
+                      <button className="text-slate-400 hover:text-slate-200 cursor-pointer pb-0.5 transition-colors">
+                        Vazão
+                      </button>
+                      <button className="text-slate-400 hover:text-slate-200 cursor-pointer pb-0.5 transition-colors">
+                        Chuva
+                      </button>
                     </div>
 
-                    <ul className="space-y-2.5 text-[11px] text-slate-600 dark:text-slate-300">
-                      <li className="flex items-start gap-2">
-                        <div className="w-5 h-5 rounded-full bg-cyan-950/90 border border-cyan-800/80 flex items-center justify-center shrink-0 mt-0.5">
-                          <Droplets className="w-3 h-3 text-cyan-400" />
-                        </div>
-                        <span className="leading-snug">
-                          O nível do rio está dentro da normalidade e estável nas últimas horas.
-                        </span>
-                      </li>
-
-                      <li className="flex items-start gap-2">
-                        <div className="w-5 h-5 rounded-full bg-cyan-950/90 border border-cyan-800/80 flex items-center justify-center shrink-0 mt-0.5">
-                          <CloudRain className="w-3 h-3 text-cyan-400" />
-                        </div>
-                        <span className="leading-snug">
-                          Foram registrados <strong>18 mm</strong> de chuva nas últimas 6h na região de {currentStation.name}.
-                        </span>
-                      </li>
-
-                      <li className="flex items-start gap-2">
-                        <div className="w-5 h-5 rounded-full bg-emerald-950/90 border border-emerald-800/80 flex items-center justify-center shrink-0 mt-0.5">
-                          <Waves className="w-3 h-3 text-emerald-400" />
-                        </div>
-                        <span className="leading-snug">
-                          Não há previsão de chuva significativa para as próximas 48h.
-                        </span>
-                      </li>
-
-                      <li className="flex items-start gap-2">
-                        <div className="w-5 h-5 rounded-full bg-emerald-950/90 border border-emerald-800/80 flex items-center justify-center shrink-0 mt-0.5">
-                          <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                        </div>
-                        <span className="leading-snug">
-                          <strong className="text-emerald-400 font-semibold">Cenário de estabilidade. Risco baixo</strong> para elevação do nível do rio no curto prazo.
-                        </span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  <button
-                    onClick={() => setIsAiModalOpen(true)}
-                    className="w-full mt-3 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-md"
-                  >
-                    <Bot className="w-4 h-4" />
-                    <span>CONSULTAR IA HIDROLÓGICA</span>
-                  </button>
-                </div>
-                </EditableComponent>
-
-                {/* CARD 3: PROJEÇÕES (NÍVEL DO RIO) - lg:col-span-4 */}
-                <EditableComponent id="centro_hidro_projecoes" name="Projeções do Nível do Rio" type="chart" className="lg:col-span-4">
-                <div className="bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between shadow-xl h-full">
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h5 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                        <span>Projeções</span>
-                        <span className="text-slate-500 dark:text-slate-400 font-normal text-xs sm:text-sm">(nível do rio)</span>
-                      </h5>
-                      <span className="text-xs font-mono text-slate-500 dark:text-slate-400 font-medium">
-                        Modelo: SGB/SACE
-                      </span>
+                    <div className="text-[10px] text-slate-400 font-mono pl-0.5">
+                      Nível (m)
                     </div>
                   </div>
 
-                  <div className="h-44 w-full my-1">
+                  {/* RECHARTS CHART CONTAINER */}
+                  <div className="h-40 sm:h-44 w-full relative my-1">
                     <ResponsiveContainer width="100%" height="100%">
-                      <ComposedChart data={projectionData} margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={theme === "light" ? "#CBD5E1" : "#1E293B"} vertical={false} />
-                        <XAxis dataKey="time" stroke="#64748B" tick={{ fontSize: 10 }} tickFormatter={(val) => val.replace(' (Agora)', '').replace(/ \(\+\d+h\)/, '')} />
-                        <YAxis stroke="#64748B" tick={{ fontSize: 10 }} domain={[10, 18]} ticks={[10, 12, 14, 16, 18]} tickFormatter={(val) => `${val},00`} />
-                        <Tooltip contentStyle={{ backgroundColor: '#050A18', borderColor: '#334155', borderRadius: '10px', fontSize: '11px' }} />
+                      <ComposedChart data={hydroChartData} margin={{ top: 5, right: 10, left: 5, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" vertical={false} />
+                        <XAxis dataKey="time" stroke="#475569" tick={{ fontSize: 10, fill: '#94A3B8' }} dy={2} />
+                        <YAxis
+                          domain={[0, 24]}
+                          ticks={[0, 4, 8, 12, 16, 20, 24]}
+                          width={22}
+                          stroke="#475569"
+                          tick={{ fontSize: 10, fill: '#94A3B8' }}
+                          tickLine={{ stroke: '#475569' }}
+                          axisLine={{ stroke: '#475569' }}
+                        />
+                        <Tooltip contentStyle={{ backgroundColor: '#040814', borderColor: '#334155', borderRadius: '12px', color: '#fff', fontSize: '11px' }} />
                         
-                        {/* REFERENCE LINE AT AGORA */}
-                        <ReferenceLine x="03:00 (Agora)" stroke={theme === "light" ? "#64748B" : "#94A3B8"} strokeDasharray="3 3" label={{ value: 'Agora', fill: '#F8FAFC', fontSize: 11, position: 'top' }} />
-
-                        {/* UNCERTAINTY BAND */}
-                        <Area type="monotone" dataKey="incertezaMax" stroke="none" fill="#1D4ED8" fillOpacity={0.35} />
-
-                        {/* OBSERVED & PROJECTED LINES */}
-                        <Line type="monotone" dataKey="observado" stroke="#38BDF8" strokeWidth={2.5} dot={{ r: 3, fill: '#38BDF8' }} connectNulls />
-                        <Line type="monotone" dataKey="projecao" stroke="#38BDF8" strokeWidth={2} strokeDasharray="4 4" dot={false} connectNulls />
+                        {/* MULTI-STATION RIVERS COMPARISON LINES */}
+                        <Line type="monotone" dataKey="mucum" name="Muçum" stroke="#3B82F6" strokeWidth={2} dot={{ r: 2.5, fill: '#3B82F6' }} />
+                        <Line type="monotone" dataKey="encantado" name="Encantado" stroke="#10B981" strokeWidth={2} dot={{ r: 2.5, fill: '#10B981' }} />
+                        <Line type="monotone" dataKey="lajeado" name="Lajeado" stroke="#06B6D4" strokeWidth={2} dot={{ r: 2.5, fill: '#06B6D4' }} />
+                        <Line type="monotone" dataKey="estrela" name="Estrela" stroke="#A855F7" strokeWidth={2} dot={{ r: 2.5, fill: '#A855F7' }} />
+                        <Line type="monotone" dataKey="bomRetiro" name="Bom Retiro do Sul" stroke="#F97316" strokeWidth={2} dot={{ r: 2.5, fill: '#F97316' }} />
+                        
+                        <ReferenceLine x="22/05 09:00" stroke="#475569" strokeDasharray="3 3" />
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300 font-medium pt-2 border-t border-slate-300 dark:border-slate-800/80">
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-3 h-0.5 bg-sky-400 inline-block" /> Observado
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-3 h-0.5 bg-sky-400 inline-block border-t border-dashed" /> Proj. (melhor cenário)
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 bg-blue-700/80 rounded-sm inline-block" /> Incerteza
-                    </span>
+                  {/* STATIONS COLOR LEGEND */}
+                  <div className="flex items-center justify-center gap-3 sm:gap-5 pt-1.5 border-t border-slate-800/80 text-[11px] font-semibold text-slate-300 flex-wrap">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-0.5 bg-[#3B82F6] rounded-full" />
+                      <span>Muçum</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-0.5 bg-[#10B981] rounded-full" />
+                      <span>Encantado</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-0.5 bg-[#06B6D4] rounded-full" />
+                      <span>Lajeado</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-0.5 bg-[#A855F7] rounded-full" />
+                      <span>Estrela</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-0.5 bg-[#F97316] rounded-full" />
+                      <span>Bom Retiro do Sul</span>
+                    </div>
+                  </div>
+
+                </div>
+              </EditableComponent>
+            </div>
+
+            {/* PARTE 5: CORRESPONDÊNCIA HISTÓRICA (lg:col-span-4) */}
+            <div id="correspondencia-historica-panel" className="lg:col-span-4 flex flex-col">
+              <EditableComponent id="centro_hidro_correspondencia" name="Correspondência Histórica" type="card" className="h-full flex flex-col">
+                <div className="bg-[#081023] border border-slate-800/90 rounded-2xl p-3.5 sm:p-4 shadow-2xl h-full flex flex-col justify-between">
+                  
+                  <div className="flex flex-col h-full justify-between">
+                    <div className="flex flex-col flex-1 justify-between">
+                      {/* TITLE */}
+                      <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-800/80">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <h3 className="text-xs sm:text-sm font-bold text-white tracking-wider uppercase flex items-center gap-1.5 truncate">
+                            CORRESPONDÊNCIA HISTÓRICA
+                          </h3>
+                          <button className="text-slate-400 hover:text-white cursor-pointer shrink-0" title="Informações">
+                            <Info className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <button className="text-slate-400 hover:text-white cursor-pointer p-1 rounded-lg hover:bg-slate-800/50 transition-colors shrink-0">
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* FEATURED MATCH CARD */}
+                      {(() => {
+                        const matchVal = 96.8;
+                        const mainStyle = getRiskStyle(matchVal);
+                        return (
+                          <div className={`${mainStyle.bgCard} border rounded-2xl p-3 sm:p-3.5 mb-2.5 flex items-center justify-between gap-3 text-white shadow-md transition-all`}>
+                            <div className="min-w-0 flex-1">
+                              <span className={`text-[9px] font-bold uppercase tracking-widest ${mainStyle.labelColor} block mb-0.5 truncate`}>
+                                EVENTO MAIS SEMELHANTE
+                              </span>
+                              <span className="text-xl sm:text-2xl font-bold text-white block tracking-tight truncate">
+                                Maio / 2024
+                              </span>
+                            </div>
+
+                            {/* CIRCULAR GAUGE RING WITH RISK PULSE */}
+                            <div className="relative w-14 h-14 sm:w-16 sm:h-16 shrink-0 flex items-center justify-center">
+                              {/* Soundwave/Radar wave effect when risk is high (60-100) */}
+                              {mainStyle.isHighRisk && (
+                                <div className="absolute inset-0 rounded-full pointer-events-none flex items-center justify-center overflow-visible">
+                                  <span className="absolute inset-0 rounded-full bg-red-500/25 animate-ping [animation-duration:2.2s]" />
+                                  <span className="absolute -inset-2 rounded-full border border-red-500/40 animate-ping [animation-duration:3.2s] [animation-delay:0.6s]" />
+                                  <span className="absolute -inset-3 rounded-full border border-red-500/20 animate-pulse" />
+                                </div>
+                              )}
+
+                              <svg className="w-full h-full -rotate-90 relative z-10" viewBox="0 0 36 36">
+                                <path
+                                  className={mainStyle.strokeTrack}
+                                  strokeWidth="3"
+                                  stroke="currentColor"
+                                  fill="none"
+                                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                />
+                                <path
+                                  className={mainStyle.strokeRing}
+                                  strokeDasharray={`${matchVal}, 100`}
+                                  strokeWidth="3.5"
+                                  strokeLinecap="round"
+                                  stroke="currentColor"
+                                  fill="none"
+                                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                />
+                              </svg>
+                              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center">
+                                <span className="text-xs font-bold text-white leading-none">{matchVal.toString().replace('.', ',')}%</span>
+                                <span className={`text-[8px] font-medium ${mainStyle.labelColor} block mt-0.5`}>Similaridade</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* RUNNER-UP EVENTS LIST */}
+                      <div className="space-y-2.5 py-1 mt-1">
+                        {[
+                          { rank: '2º', date: 'Setembro / 2020', val: 87.3 },
+                          { rank: '3º', date: 'Junho / 2017', val: 58.4 },
+                          { rank: '4º', date: 'Maio / 2015', val: 35.2 },
+                          { rank: '5º', date: 'Abril / 2011', val: 18.5 },
+                        ].map((item) => {
+                          const itemStyle = getRiskStyle(item.val);
+                          return (
+                            <div key={item.rank} className="flex items-center justify-between px-0.5 text-xs py-0.5">
+                              <span className="text-slate-400 font-bold w-5 shrink-0">{item.rank}</span>
+                              <span className="font-bold text-slate-200 flex-1 truncate pr-1">{item.date}</span>
+                              <span className={`font-mono font-bold text-right pr-2.5 shrink-0 ${itemStyle.textColor}`}>
+                                {item.val.toString().replace('.', ',')}%
+                              </span>
+                              <div className="relative w-4.5 h-4.5 shrink-0 flex items-center justify-center">
+                                {itemStyle.isHighRisk && (
+                                  <span className="absolute inset-0 rounded-full bg-red-500/30 animate-ping [animation-duration:2.5s]" />
+                                )}
+                                <svg className="w-full h-full -rotate-90 relative z-10" viewBox="0 0 36 36">
+                                  <path className={itemStyle.strokeTrack} strokeWidth="4" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                  <path className={itemStyle.strokeRing} strokeDasharray={`${item.val}, 100`} strokeWidth="4" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                </svg>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* BOTTOM ACTION BUTTON */}
+                    <button
+                      onClick={() => setIsCotasModalOpen(true)}
+                      className="w-full mt-2 py-2 bg-[#040814]/80 hover:bg-slate-800/80 border border-slate-800/90 text-cyan-400 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                    >
+                      <span>Ver análise completa</span>
+                    </button>
+                  </div>
+
+                </div>
+              </EditableComponent>
+            </div>
+
+          </div>
+
+          {/* ---------------------------------------------------- */}
+          {/* LOWER MIDDLE ROW: PARTE 6 (CHUVA ACUMULADA + ÍNDICES) + PARTE 7 (HISTÓRICO ENCHENTES) */}
+          {/* ---------------------------------------------------- */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 items-stretch">
+            
+            {/* PARTE 6 - COL 1: CHUVA ACUMULADA NA BACIA (lg:col-span-5) */}
+            <div className="lg:col-span-5 flex flex-col">
+              <EditableComponent id="centro_meteo_chuva_acumulada" name="Chuva Acumulada na Bacia" type="map" className="h-full flex flex-col">
+                <ChuvaAcumuladaBacia />
+              </EditableComponent>
+            </div>
+
+            {/* PARTE 6 - COL 2: ÍNDICES DA BACIA (lg:col-span-3) */}
+            <div id="indices-bacia-panel" className="lg:col-span-3 flex flex-col">
+              <EditableComponent id="centro_hidro_indices" name="Índices da Bacia" type="card" className="h-full flex flex-col">
+                <div className="bg-[#081023] border border-slate-800/90 rounded-2xl p-3 sm:p-4 shadow-2xl h-full flex flex-col justify-between">
+                  
+                  <div>
+                    {/* TITLE BAR */}
+                    <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-800/80">
+                      <h3 className="text-xs sm:text-sm font-bold text-white tracking-wider uppercase flex items-center gap-1.5">
+                        <Gauge className="w-4 h-4 text-cyan-400" />
+                        ÍNDICES DA BACIA
+                      </h3>
+                      <button className="text-slate-500 hover:text-slate-300">
+                        <Info className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    {/* METRICS LIST */}
+                    <div className="space-y-2 text-xs">
+                      
+                      <div className="flex items-center justify-between bg-[#040814] border border-slate-800 rounded-xl p-2 sm:p-2.5">
+                        <div className="flex items-center gap-1.5 min-w-0 pr-1">
+                          <Droplets className="w-4 h-4 text-cyan-400 shrink-0" />
+                          <span className="font-bold text-slate-300 text-[11px] sm:text-xs truncate">Índice de Saturação</span>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="font-bold text-white block text-xs">92%</span>
+                          <span className="text-[10px] font-bold text-blue-400">Muito Alto</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between bg-[#040814] border border-slate-800 rounded-xl p-2 sm:p-2.5">
+                        <div className="flex items-center gap-1.5 min-w-0 pr-1">
+                          <Layers className="w-4 h-4 text-amber-400 shrink-0" />
+                          <span className="font-bold text-slate-300 text-[11px] sm:text-xs truncate">Capacidade de Infiltração</span>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="font-bold text-white block text-xs">18%</span>
+                          <span className="text-[10px] font-bold text-amber-400">Muito Baixa</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between bg-[#040814] border border-slate-800 rounded-xl p-2 sm:p-2.5">
+                        <div className="flex items-center gap-1.5 min-w-0 pr-1">
+                          <Waves className="w-4 h-4 text-cyan-400 shrink-0" />
+                          <span className="font-bold text-slate-300 text-[11px] sm:text-xs truncate">Escoamento Superficial</span>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="font-bold text-white block text-xs">Alto</span>
+                          <span className="text-[10px] font-bold text-cyan-400">↑ Elevado</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between bg-[#040814] border border-slate-800 rounded-xl p-2 sm:p-2.5">
+                        <div className="flex items-center gap-1.5 min-w-0 pr-1">
+                          <Clock className="w-4 h-4 text-emerald-400 shrink-0" />
+                          <span className="font-bold text-slate-300 text-[11px] sm:text-xs truncate">Tempo de Resposta</span>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="font-bold text-white block text-xs">Curto</span>
+                          <span className="text-[10px] font-bold text-emerald-400">↑ &lt; 6h</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between bg-[#040814] border border-slate-800 rounded-xl p-2 sm:p-2.5">
+                        <div className="flex items-center gap-1.5 min-w-0 pr-1">
+                          <Database className="w-4 h-4 text-blue-400 shrink-0" />
+                          <span className="font-bold text-slate-300 text-[11px] sm:text-xs truncate">Volume Armazenado</span>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="font-bold text-white block text-xs">78%</span>
+                          <span className="text-[10px] font-bold text-blue-400">Elevado</span>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+
+                </div>
+              </EditableComponent>
+            </div>
+
+            {/* PARTE 7 - COL 3: HISTÓRICO DE ENCHENTES NÍVEL MÁXIMO (lg:col-span-4) */}
+            <div id="historico-enchentes-panel" className="lg:col-span-4 flex flex-col">
+              <EditableComponent id="centro_hidro_historico_enchentes" name="Histórico de Enchentes" type="chart" className="h-full flex flex-col">
+                <div className="bg-[#081023] border border-slate-800/90 rounded-2xl p-4 shadow-2xl h-full flex flex-col justify-between">
+                  
+                  {/* TITLE BAR */}
+                  <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-800/80 shrink-0">
+                    <h3 className="text-xs sm:text-sm font-bold text-white tracking-wider uppercase flex items-center gap-1.5">
+                      <History className="w-4 h-4 text-cyan-400" />
+                      HISTÓRICO DE ENCHENTES
+                    </h3>
+                    <button 
+                      onClick={() => setIsCotasModalOpen(true)}
+                      className="text-xs font-bold text-cyan-400 hover:text-cyan-300 cursor-pointer"
+                    >
+                      Ver todas
+                    </button>
+                  </div>
+
+                  {/* HORIZONTAL BAR CHART TOP EVENTS */}
+                  <div className="flex-1 flex flex-col justify-between py-1.5 my-0.5">
+                    {[
+                      { rank: 1, date: 'Maio / 2024', level: '27,30 m', width: '92%', color: 'bg-red-500' },
+                      { rank: 2, date: 'Setembro / 2023', level: '24,80 m', width: '83%', color: 'bg-orange-500' },
+                      { rank: 3, date: 'Setembro / 2020', level: '23,90 m', width: '80%', color: 'bg-amber-500' },
+                      { rank: 4, date: 'Junho / 2017', level: '22,70 m', width: '76%', color: 'bg-yellow-500' },
+                      { rank: 5, date: 'Setembro / 2015', level: '21,80 m', width: '73%', color: 'bg-emerald-500' },
+                      { rank: 6, date: 'Novembro / 2011', level: '20,60 m', width: '69%', color: 'bg-cyan-500' },
+                      { rank: 7, date: 'Janeiro / 2009', level: '19,40 m', width: '65%', color: 'bg-blue-500' },
+                      { rank: 8, date: 'Outubro / 2001', level: '18,20 m', width: '61%', color: 'bg-indigo-500' },
+                      { rank: 9, date: 'Dezembro / 1995', level: '17,50 m', width: '58%', color: 'bg-indigo-600' },
+                      { rank: 10, date: 'Maio / 1941', level: '16,80 m', width: '56%', color: 'bg-purple-600' },
+                    ].map((item) => (
+                      <div key={item.rank} className="flex items-center gap-2">
+                        <span className="w-4 text-xs font-bold text-slate-500 text-center shrink-0">{item.rank}</span>
+                        <span className="w-24 text-xs font-bold text-slate-300 shrink-0">{item.date}</span>
+                        <div className="flex-1 bg-[#040814] rounded-full h-3.5 overflow-hidden border border-slate-800 relative">
+                          <div className={`h-full ${item.color} rounded-full transition-all`} style={{ width: item.width }} />
+                        </div>
+                        <span className="w-14 text-right font-mono text-xs font-bold text-white shrink-0">{item.level}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* X-AXIS TICKS SCALE */}
+                  <div className="pt-2 border-t border-slate-800/80 flex justify-between text-[10px] font-bold text-slate-500 font-mono px-6 shrink-0">
+                    <span>0</span>
+                    <span>5</span>
+                    <span>10</span>
+                    <span>15</span>
+                    <span>20</span>
+                    <span>25</span>
+                    <span>30 m</span>
+                  </div>
+
+                </div>
+              </EditableComponent>
+            </div>
+
+          </div>
+
+          {/* ---------------------------------------------------- */}
+          {/* PARTE 8: SITUAÇÃO ATUAL DAS PRINCIPAIS ESTAÇÕES (TABLE) */}
+          {/* ---------------------------------------------------- */}
+          <div id="estacoes-tabela-panel" className="w-full">
+            <EditableComponent id="centro_tabela_estacoes" name="Tabela de Estações Monitoradas" type="table">
+              <div className="bg-[#081023] border border-slate-800/90 rounded-2xl p-4 shadow-2xl space-y-3">
+                
+                {/* TABLE HEADER BAR */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800/80">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs sm:text-sm font-bold text-white tracking-wider uppercase flex items-center gap-1.5">
+                      <Activity className="w-4 h-4 text-cyan-400" />
+                      SITUAÇÃO ATUAL DAS PRINCIPAIS ESTAÇÕES
+                    </h3>
+                    <button className="text-slate-500 hover:text-slate-300">
+                      <Info className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-3 text-xs font-bold">
+                    <span className="text-slate-400">Total de estações: <strong className="text-white">{STATIONS_DATA.length}</strong></span>
+                    <button 
+                      onClick={() => setIsCotasModalOpen(true)}
+                      className="text-cyan-400 hover:text-cyan-300 cursor-pointer flex items-center gap-1"
+                    >
+                      <span>Ver todas as estações</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
-                </EditableComponent>
+
+                {/* RESPONSIVE DATA TABLE */}
+                <div className="overflow-x-auto custom-scrollbar">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-800 text-[10px] font-bold uppercase tracking-widest text-slate-400 bg-[#040814]/80">
+                        <th className="py-2.5 px-3">Estação / Cidade</th>
+                        <th className="py-2.5 px-3">Rio</th>
+                        <th className="py-2.5 px-3 text-right">Nível Atual</th>
+                        <th className="py-2.5 px-3 text-right">Var. 1h</th>
+                        <th className="py-2.5 px-3 text-right">Var. 6h</th>
+                        <th className="py-2.5 px-3 text-right">Var. 24h</th>
+                        <th className="py-2.5 px-3 text-right">Vazão Integrada</th>
+                        <th className="py-2.5 px-3 text-center">Tendência</th>
+                        <th className="py-2.5 px-3 text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60 font-medium text-slate-200">
+                      {STATIONS_DATA.map((st) => {
+                        const isSelected = st.id === selectedStationId;
+                        const var1h = (st.rate_of_change * 100).toFixed(0);
+                        const var6h = (st.rate_of_change * 100 * 6).toFixed(0);
+                        const var24h = (st.rate_of_change * 100 * 24).toFixed(0);
+
+                        return (
+                          <tr 
+                            key={st.id} 
+                            onClick={() => setSelectedStationId(st.id)}
+                            className={`transition-colors cursor-pointer hover:bg-slate-800/50 ${
+                              isSelected ? 'bg-blue-950/40 border-l-2 border-l-blue-500' : ''
+                            }`}
+                          >
+                            <td className="py-2.5 px-3 font-bold text-white flex items-center gap-2">
+                              <MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                              <span>{st.name}</span>
+                            </td>
+                            <td className="py-2.5 px-3 text-slate-400">{st.river}</td>
+                            <td className="py-2.5 px-3 text-right font-bold font-mono text-cyan-300">
+                              {st.current_level.toFixed(2).replace('.', ',')} m
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-mono text-emerald-400">
+                              +{var1h} cm
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-mono text-cyan-400">
+                              +{var6h} cm
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-mono text-amber-400">
+                              +{var24h} cm
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-mono text-slate-300">
+                              {Math.round(st.current_level * 230)} m³/s
+                            </td>
+                            <td className="py-2.5 px-3 text-center">
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-cyan-400">
+                                <ArrowUp className="w-3 h-3 text-cyan-400" />
+                                <span>Subindo</span>
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 text-center">
+                              <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                                st.status_level === 'inundacao' ? 'bg-red-500/20 text-red-400 border border-red-500/40' :
+                                st.status_level === 'alerta' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40' :
+                                st.status_level === 'atencao' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' :
+                                'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                              }`}>
+                                {st.status_level === 'inundacao' ? 'Inundação' : st.status_level === 'alerta' ? 'Alerta' : st.status_level === 'atencao' ? 'Atenção' : 'Normal'}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
 
               </div>
+            </EditableComponent>
+          </div>
 
-              {/* FOOTER INFO BAR BELOW THE 3 CARDS */}
-              <EditableComponent id="centro_hidro_fontes_rodape" name="Rodapé de Fontes Hidrológicas" type="banner">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 text-xs text-slate-500 dark:text-slate-400">
-                <div className="flex items-start gap-2">
-                  <Info className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-                  <span className="flex flex-col">
-                    <span>Dados provenientes de diversas fontes oficiais e atualizados automaticamente.</span>
-                    <span>Registros auditados e armazenados no banco de dados históricos do Nível Rio Taquari.</span>
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-slate-500 dark:text-slate-400 font-medium">Fontes:</span>
-                  <span className="bg-cyan-50 dark:bg-[#0f2847] text-cyan-300 border border-cyan-700/60 px-2.5 py-1 rounded-md text-xs font-bold">SGB/SACE</span>
-                  <span className="bg-emerald-50 dark:bg-[#0a271d] text-emerald-300 border border-emerald-700/60 px-2.5 py-1 rounded-md text-xs font-bold">ANA</span>
-                  <span className="bg-purple-50 dark:bg-[#22103a] text-purple-300 border border-purple-700/60 px-2.5 py-1 rounded-md text-xs font-bold">SIGMA</span>
-                  <span className="bg-amber-50 dark:bg-[#381e09] text-amber-300 border border-amber-700/60 px-2.5 py-1 rounded-md text-xs font-bold">CLIMATEMPO</span>
-                </div>
-              </div>
-              </EditableComponent>
-
-            </div>
-          )}
+        </div>
+        )}
 
           {/* ============================================================ */}
           {/* ABA 2: FLUVIOLÓGICO */}
@@ -2446,7 +2667,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                 <LayoutBehaviorWrapper pageKey="centro_analises" componentKey="river_behavior" className="lg:col-span-7">
                   <EditableComponent id="centro_fluvio_comportamento_rio" name="Comportamento do Rio (IDR e Variação)" type="panel" className="w-full h-full">
                   <div className="bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-3.5 sm:p-4 shadow-xl flex flex-col justify-between h-full min-w-0">
-                  <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white mb-2 truncate">Comportamento do Rio <span className="text-xs text-slate-500 font-normal">(últimas 24h)</span></h4>
+                  <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white mb-2 truncate">Comportamento do Rio <span className="text-xs text-slate-500 font-normal">(últimas 24h)</span></h4>
                   
                   <div className="flex flex-col @[520px]:flex-row gap-3 items-center mb-2 min-w-0">
                     {/* Gauge IDR */}
@@ -2472,10 +2693,10 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
 
                         {/* Status Label & Score below needle pivot */}
                         <div className="text-center mt-0.5">
-                          <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white leading-none">
+                          <div className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white leading-none">
                             {idrStatus.score}
                           </div>
-                          <div className={`text-[10px] font-extrabold uppercase tracking-wider mt-1 px-2 py-0.5 rounded-md border inline-block ${idrStatus.badgeClass}`}>
+                          <div className={`text-[10px] font-bold uppercase tracking-wider mt-1 px-2 py-0.5 rounded-md border inline-block ${idrStatus.badgeClass}`}>
                             {idrStatus.status}
                           </div>
                           {idrStatus.status === 'INUNDAÇÃO' && (
@@ -2491,7 +2712,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                     <div className="flex-1 grid grid-cols-2 @[380px]:grid-cols-4 gap-1.5 @[380px]:gap-2 items-stretch w-full min-w-0">
                       <div className="bg-slate-50 dark:bg-[#050A18]/60 rounded-xl p-2 sm:p-2.5 border border-slate-200 dark:border-slate-800/80 flex flex-col justify-between min-h-[76px] min-w-0">
                         <span className="text-[9.5px] sm:text-[10px] text-slate-500 dark:text-slate-400 block leading-tight font-medium truncate">Velocidade de Subida</span>
-                        <div className="text-sm sm:text-base @[450px]:text-lg font-black text-slate-900 dark:text-white leading-none my-0.5 truncate">
+                        <div className="text-sm sm:text-base @[450px]:text-lg font-bold text-slate-900 dark:text-white leading-none my-0.5 truncate">
                           {currentStation.trend === 'subindo' ? `+${(Math.abs(currentStation.rate_of_change) * 100).toFixed(1).replace('.', ',')}` : '0,0'} <span className="text-[10px] font-normal text-slate-500">cm/h</span>
                         </div>
                         <div className="text-[9.5px] sm:text-[10px] text-cyan-600 dark:text-cyan-400 font-bold flex items-center gap-1 truncate">
@@ -2502,7 +2723,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
 
                       <div className="bg-slate-50 dark:bg-[#050A18]/60 rounded-xl p-2 sm:p-2.5 border border-slate-200 dark:border-slate-800/80 flex flex-col justify-between min-h-[76px] min-w-0">
                         <span className="text-[9.5px] sm:text-[10px] text-slate-500 dark:text-slate-400 block leading-tight font-medium truncate">Velocidade de Descida</span>
-                        <div className="text-sm sm:text-base @[450px]:text-lg font-black text-slate-900 dark:text-white leading-none my-0.5 truncate">
+                        <div className="text-sm sm:text-base @[450px]:text-lg font-bold text-slate-900 dark:text-white leading-none my-0.5 truncate">
                           {currentStation.trend === 'descendo' ? `-${(Math.abs(currentStation.rate_of_change) * 100).toFixed(1).replace('.', ',')}` : '0,0'} <span className="text-[10px] font-normal text-slate-500">cm/h</span>
                         </div>
                         <div className="text-[9.5px] sm:text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 truncate">
@@ -2513,7 +2734,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
 
                       <div className="bg-slate-50 dark:bg-[#050A18]/60 rounded-xl p-2 sm:p-2.5 border border-slate-200 dark:border-slate-800/80 flex flex-col justify-between min-h-[76px] min-w-0">
                         <span className="text-[9.5px] sm:text-[10px] text-slate-500 dark:text-slate-400 block leading-tight font-medium truncate">Oscilação nas Últ. 24h</span>
-                        <div className="text-sm sm:text-base @[450px]:text-lg font-black text-slate-900 dark:text-white leading-none my-0.5 truncate">
+                        <div className="text-sm sm:text-base @[450px]:text-lg font-bold text-slate-900 dark:text-white leading-none my-0.5 truncate">
                           {Math.round(Math.abs(currentStation.rate_of_change) * 100 * 12 + 8)} <span className="text-[10px] font-normal text-slate-500">cm</span>
                         </div>
                         <div className="text-[9.5px] sm:text-[10px] text-emerald-600 dark:text-emerald-400 font-bold truncate">
@@ -2523,7 +2744,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
 
                       <div className="bg-slate-50 dark:bg-[#050A18]/60 rounded-xl p-2 sm:p-2.5 border border-slate-200 dark:border-slate-800/80 flex flex-col justify-between min-h-[76px] min-w-0">
                         <span className="text-[9.5px] sm:text-[10px] text-slate-500 dark:text-slate-400 block leading-tight font-medium truncate">Tempo de Resposta</span>
-                        <div className="text-sm sm:text-base @[450px]:text-lg font-black text-slate-900 dark:text-white leading-none my-0.5 truncate">6h 40m</div>
+                        <div className="text-sm sm:text-base @[450px]:text-lg font-bold text-slate-900 dark:text-white leading-none my-0.5 truncate">6h 40m</div>
                         <div className="text-[9.5px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate" title={`Montante → ${currentStation.name}`}>Montante → {currentStation.name}</div>
                       </div>
                     </div>
@@ -2666,7 +2887,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                 {/* 1. Taxa de Variação */}
                 <EditableComponent id="centro_fluvio_taxa_variacao" name="Taxa de Variação do Nível" type="chart">
                 <div className="bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-4 shadow-xl flex flex-col h-full">
-                  <h4 className="text-sm font-black text-slate-900 dark:text-white mb-1">Taxa de Variação do Nível</h4>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Taxa de Variação do Nível</h4>
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 mb-4">(cm/h)</span>
                   <div className="h-40 w-full mb-4">
                     <ResponsiveContainer width="100%" height="100%">
@@ -2717,7 +2938,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                 {/* 2. Curva Chave */}
                 <EditableComponent id="centro_fluvio_curva_chave" name="Curva Chave (Nível x Vazão)" type="chart">
                 <div className="bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-4 shadow-xl flex flex-col h-full">
-                  <h4 className="text-sm font-black text-slate-900 dark:text-white mb-1">Curva Chave <span className="text-slate-500 font-normal">(Nível x Vazão)</span></h4>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Curva Chave <span className="text-slate-500 font-normal">(Nível x Vazão)</span></h4>
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 mb-4">Vazão (m³/s)</span>
                   <div className="h-40 w-full mb-4 relative">
                     <ResponsiveContainer width="100%" height="100%">
@@ -2753,7 +2974,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                 {/* 3. Oscilação do Rio */}
                 <EditableComponent id="centro_fluvio_oscilacao" name="Oscilação do Rio (Amplitude)" type="chart">
                 <div className="bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-4 shadow-xl flex flex-col h-full">
-                  <h4 className="text-sm font-black text-slate-900 dark:text-white mb-4">Oscilação do Rio</h4>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-4">Oscilação do Rio</h4>
                   
                   <div className="h-40 w-full mb-4">
                     <ResponsiveContainer width="100%" height="100%">
@@ -2823,7 +3044,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                   <div className="flex-1">
                     <h5 className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">Índice de Estabilidade Fluviológica (IEF)</h5>
                     <div className="flex items-center gap-3">
-                      <span className="text-xl font-black text-slate-900 dark:text-white">78 / 100</span>
+                      <span className="text-xl font-bold text-slate-900 dark:text-white">78 / 100</span>
                       <span className="text-xs font-medium text-emerald-500">Condição estável</span>
                     </div>
                     <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full mt-2 overflow-hidden">
@@ -2836,7 +3057,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                 <div className="lg:col-span-3 bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800/80 rounded-2xl p-4 shadow-xl flex items-center justify-between">
                   <div>
                     <h5 className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">Classificação Fluviológica</h5>
-                    <div className="text-lg font-black text-emerald-500 uppercase">NORMAL</div>
+                    <div className="text-lg font-bold text-emerald-500 uppercase">NORMAL</div>
                     <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Sem risco no momento.</div>
                   </div>
                   <div className="w-12 h-12 rounded-full border-2 border-emerald-500 flex items-center justify-center shrink-0">
@@ -3007,19 +3228,19 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                   <div className="grid grid-cols-4 gap-1.5 pt-3 border-t border-slate-200 dark:border-slate-800/80 text-center">
                     <div className="p-1">
                       <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium leading-tight">Acumulado últimas 1h</span>
-                      <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white block mt-0.5">3,2 mm</span>
+                      <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white block mt-0.5">3,2 mm</span>
                     </div>
                     <div className="p-1">
                       <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium leading-tight">Acumulado últimas 6h</span>
-                      <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white block mt-0.5">12,6 mm</span>
+                      <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white block mt-0.5">12,6 mm</span>
                     </div>
                     <div className="p-1">
                       <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium leading-tight">Acumulado últimas 24h</span>
-                      <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white block mt-0.5">18,4 mm</span>
+                      <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white block mt-0.5">18,4 mm</span>
                     </div>
                     <div className="p-1">
                       <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium leading-tight">Acumulado últimos 7 dias</span>
-                      <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white block mt-0.5">46,8 mm</span>
+                      <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white block mt-0.5">46,8 mm</span>
                     </div>
                   </div>
                 </div>
@@ -3304,7 +3525,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                                   {st.name}
                                 </span>
 
-                                <span className={`text-[9px] font-mono font-black ml-0.5 px-1 py-0.2 rounded ${
+                                <span className={`text-[9px] font-mono font-bold ml-0.5 px-1 py-0.2 rounded ${
                                   rateMmH >= 15
                                     ? 'bg-rose-500/30 text-rose-300'
                                     : rateMmH >= 5
@@ -3654,6 +3875,9 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
             </EditableComponent>
           </div>
 
+            </>
+          )}
+
         </div>
 
       </div>
@@ -3672,7 +3896,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                   <Bot className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                     ASSISTENTE HIDROLÓGICO IA
                   </h3>
                   <span className="text-[10px] font-semibold text-cyan-400 font-mono block">
@@ -3707,7 +3931,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                       : 'bg-white dark:bg-[#0B132B] border border-slate-300 dark:border-slate-800 text-slate-700 dark:text-slate-200 rounded-tl-none shadow-md'
                   }`}>
                     {msg.badge && (
-                      <span className="text-[9px] font-black uppercase tracking-wider text-cyan-400 block mb-1 font-mono">
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-cyan-400 block mb-1 font-mono">
                         {msg.badge}
                       </span>
                     )}
@@ -3766,7 +3990,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
               <button
                 type="submit"
                 disabled={!chatInput.trim() || isThinking}
-                className="px-4 py-2.5 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-black text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-4 py-2.5 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <Send className="w-3.5 h-3.5" />
                 <span>Enviar</span>
@@ -3791,7 +4015,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                   <Database className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                     ORIGEM E QUALIDADE DOS DADOS • CENTRO DE ANÁLISES
                   </h3>
                   <span className="text-[10px] font-semibold text-cyan-400 font-mono block">
@@ -3805,13 +4029,13 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                 <div className="bg-slate-200 dark:bg-slate-900 p-0.5 rounded-xl flex items-center border border-slate-300 dark:border-slate-800 text-[10px] font-bold">
                   <button
                     onClick={() => setAuditViewMode('public')}
-                    className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${auditViewMode === 'public' ? 'bg-cyan-500 text-slate-950 font-black' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
+                    className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${auditViewMode === 'public' ? 'bg-cyan-500 text-slate-950 font-bold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
                   >
                     Visão Pública
                   </button>
                   <button
                     onClick={() => setAuditViewMode('admin')}
-                    className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${auditViewMode === 'admin' ? 'bg-amber-500 text-slate-950 font-black' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
+                    className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${auditViewMode === 'admin' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
                   >
                     Visão Técnica (Admin)
                   </button>
@@ -3836,22 +4060,22 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     <div className="p-3 bg-slate-50 dark:bg-[#050A18] border border-slate-200 dark:border-slate-800 rounded-2xl">
                       <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Fontes Ativas</span>
-                      <span className="text-sm font-black text-cyan-400 block mt-0.5">SGB/CPRM, INMET, ANA, Climatologia</span>
+                      <span className="text-sm font-bold text-cyan-400 block mt-0.5">SGB/CPRM, INMET, ANA, Climatologia</span>
                       <span className="text-[9px] text-slate-400 block mt-1">Sistemas Oficiais de Telemetria</span>
                     </div>
                     <div className="p-3 bg-slate-50 dark:bg-[#050A18] border border-slate-200 dark:border-slate-800 rounded-2xl">
                       <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Frequência de Atualização</span>
-                      <span className="text-sm font-black text-emerald-400 block mt-0.5">A cada 5 minutos</span>
+                      <span className="text-sm font-bold text-emerald-400 block mt-0.5">A cada 5 minutos</span>
                       <span className="text-[9px] text-slate-400 block mt-1">Atualização Automática Contínua</span>
                     </div>
                     <div className="p-3 bg-slate-50 dark:bg-[#050A18] border border-slate-200 dark:border-slate-800 rounded-2xl">
                       <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Abrangência Territorial</span>
-                      <span className="text-sm font-black text-white block mt-0.5">11 Municípios</span>
+                      <span className="text-sm font-bold text-white block mt-0.5">11 Municípios</span>
                       <span className="text-[9px] text-slate-400 block mt-1">Bacia Hidrográfica Taquari-Antas</span>
                     </div>
                     <div className="p-3 bg-slate-50 dark:bg-[#050A18] border border-slate-200 dark:border-slate-800 rounded-2xl">
                       <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Status da Qualidade</span>
-                      <span className="text-sm font-black text-emerald-400 block mt-0.5 flex items-center gap-1">
+                      <span className="text-sm font-bold text-emerald-400 block mt-0.5 flex items-center gap-1">
                         <CheckCircle2 className="w-4 h-4" /> 0 Divergências
                       </span>
                       <span className="text-[9px] text-slate-400 block mt-1">Medições Validadas com Sucesso</span>
@@ -3966,17 +4190,17 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="p-3 bg-slate-50 dark:bg-[#050A18] border border-slate-200 dark:border-slate-800 rounded-2xl">
                       <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Engine de Armazenamento</span>
-                      <span className="text-sm font-black text-cyan-400 block mt-0.5 font-mono">Supabase PostgreSQL</span>
+                      <span className="text-sm font-bold text-cyan-400 block mt-0.5 font-mono">Supabase PostgreSQL</span>
                       <span className="text-[9px] text-slate-400 block mt-1">Instância em Cloud com SSL/TLS</span>
                     </div>
                     <div className="p-3 bg-slate-50 dark:bg-[#050A18] border border-slate-200 dark:border-slate-800 rounded-2xl">
                       <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Tabelas Principais</span>
-                      <span className="text-sm font-black text-amber-400 block mt-0.5 font-mono">public.cities / river_measurements</span>
+                      <span className="text-sm font-bold text-amber-400 block mt-0.5 font-mono">public.cities / river_measurements</span>
                       <span className="text-[9px] text-slate-400 block mt-1">Eschema com índices temporais</span>
                     </div>
                     <div className="p-3 bg-slate-50 dark:bg-[#050A18] border border-slate-200 dark:border-slate-800 rounded-2xl">
                       <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Worker de Coleta</span>
-                      <span className="text-sm font-black text-emerald-400 block mt-0.5 font-mono">Node.js / Express Async Cron</span>
+                      <span className="text-sm font-bold text-emerald-400 block mt-0.5 font-mono">Node.js / Express Async Cron</span>
                       <span className="text-[9px] text-slate-400 block mt-1">Execução agendada a cada 300s</span>
                     </div>
                   </div>
@@ -4034,7 +4258,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
               <span>Transparência e conformidade com diretrizes técnicas e institucionais.</span>
               <button
                 onClick={() => setIsAuditModalOpen(false)}
-                className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs rounded-xl transition-colors cursor-pointer"
+                className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded-xl transition-colors cursor-pointer"
               >
                 Fechar
               </button>
@@ -4058,7 +4282,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                     DIAGNÓSTICO AUTOMÁTICO DE INTEGRIDADE E CONSISTÊNCIA
                   </h3>
                   <span className="text-[10px] font-semibold text-emerald-400 font-mono block">
@@ -4099,7 +4323,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
                     }, 600);
                   }}
                   disabled={isAuditingActive}
-                  className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[10px] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+                  className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-[10px] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isAuditingActive ? 'animate-spin' : ''}`} />
                   <span>{isAuditingActive ? 'Auditando...' : 'Re-auditar Agora'}</span>
@@ -4157,7 +4381,7 @@ export const CentroAnalisesView: React.FC<{ theme?: 'light' | 'dark' }> = ({ the
               <span>Auditoria automática concluída. Todos os dados validados em tempo real.</span>
               <button
                 onClick={() => setIsIntegrityModalOpen(false)}
-                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl transition-colors cursor-pointer"
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl transition-colors cursor-pointer"
               >
                 Fechar Auditoria
               </button>

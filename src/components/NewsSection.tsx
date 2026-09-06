@@ -118,7 +118,7 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ news, onViewAllNews, i
           </div>
 
           {/* HEADLINE */}
-          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 mb-4 leading-snug tracking-tight">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-4 leading-snug tracking-tight">
             {selectedArticle.title}
           </h2>
 
@@ -297,7 +297,7 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ news, onViewAllNews, i
       <div className="dark:bg-[#0F172A] bg-white border dark:border-slate-800 border-slate-200 rounded-3xl p-6 shadow-xl">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl sm:text-2xl font-extrabold dark:text-white text-slate-900 tracking-tight flex items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-bold dark:text-white text-slate-900 tracking-tight flex items-center gap-2.5">
               <Newspaper className="w-6 h-6 text-cyan-500" />
               <span>Notícias e Comunicados Oficiais</span>
             </h1>

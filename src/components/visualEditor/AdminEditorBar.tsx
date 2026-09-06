@@ -73,12 +73,12 @@ export const AdminEditorBar: React.FC = () => {
           
           {/* LEFT BADGE */}
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 to-sky-600 flex items-center justify-center text-black font-black animate-pulse">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 to-sky-600 flex items-center justify-center text-black font-bold animate-pulse">
               <Pencil className="w-4 h-4" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-extrabold text-xs text-white tracking-wide uppercase">
+                <span className="font-bold text-xs text-white tracking-wide uppercase">
                   Editor Visual Universal
                 </span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-950 border border-cyan-800 text-cyan-400">

@@ -16,7 +16,7 @@ export const AboutView: React.FC = () => {
             <span>{settings.about_badge || 'CENTRO DE OPERAÇÕES HIDROLÓGICAS'}</span>
           </div>
 
-          <h2 className="text-2xl lg:text-3xl font-extrabold dark:text-white text-slate-900 tracking-tight">
+          <h2 className="text-2xl lg:text-3xl font-bold dark:text-white text-slate-900 tracking-tight">
             {settings.about_title || `Portal Profissional de ${settings.site_name || 'Monitoramento Hidrológico'}`}
           </h2>
 

@@ -60,7 +60,7 @@ export const Footer: React.FC = () => {
           {/* TITLE WITH HORIZONTAL LINES */}
           <div className="flex items-center gap-4 mb-6">
             <div className="h-px dark:bg-[#182C54] bg-slate-300 flex-1" />
-            <h3 className="text-xs sm:text-sm font-black dark:text-slate-300 text-slate-700 tracking-wider uppercase whitespace-nowrap">
+            <h3 className="text-xs sm:text-sm font-bold dark:text-slate-300 text-slate-700 tracking-wider uppercase whitespace-nowrap">
               EMPRESAS PARCEIRAS DO PROJETO
             </h3>
             <div className="h-px dark:bg-[#182C54] bg-slate-300 flex-1" />
@@ -110,7 +110,7 @@ export const Footer: React.FC = () => {
                   key={key}
                   className="w-full h-16 sm:h-20 rounded-xl dark:bg-[#09132A]/80 bg-slate-200/60 border dark:border-[#13254A]/50 border-slate-300/80 p-2 flex items-center justify-center text-center select-none"
                 >
-                  <span className="text-[11px] sm:text-xs font-black dark:text-slate-600/70 text-slate-400 tracking-widest uppercase">
+                  <span className="text-[11px] sm:text-xs font-bold dark:text-slate-600/70 text-slate-400 tracking-widest uppercase">
                     {sponsor?.name ? sponsor.name.substring(0, 10) : 'LOGO'}
                   </span>
                 </div>
@@ -129,7 +129,7 @@ export const Footer: React.FC = () => {
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="dark:text-white text-slate-900 font-black text-xs sm:text-sm uppercase tracking-wider mb-1">
+                <h4 className="dark:text-white text-slate-900 font-bold text-xs sm:text-sm uppercase tracking-wider mb-1">
                   {settings.site_name || 'SITE OFICIAL DE MONITORAMENTO'}
                 </h4>
                 <p className="text-xs dark:text-slate-300 text-slate-700 font-medium leading-tight">
@@ -147,7 +147,7 @@ export const Footer: React.FC = () => {
                 <Building2 className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="dark:text-white text-slate-900 font-black text-xs sm:text-sm uppercase tracking-wider mb-1">
+                <h4 className="dark:text-white text-slate-900 font-bold text-xs sm:text-sm uppercase tracking-wider mb-1">
                   FONTES OFICIAIS
                 </h4>
                 <p className="text-xs dark:text-slate-300 text-slate-700 font-medium leading-relaxed">
@@ -162,7 +162,7 @@ export const Footer: React.FC = () => {
                 <PhoneCall className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="dark:text-white text-slate-900 font-black text-xs sm:text-sm uppercase tracking-wider mb-1">
+                <h4 className="dark:text-white text-slate-900 font-bold text-xs sm:text-sm uppercase tracking-wider mb-1">
                   EM CASO DE EMERGÊNCIA LIGUE
                 </h4>
                 <p className="text-xs sm:text-sm font-bold text-amber-600 dark:text-amber-400 mt-1 flex flex-wrap items-center gap-1.5">
@@ -179,7 +179,7 @@ export const Footer: React.FC = () => {
                 <Clock className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="dark:text-white text-slate-900 font-black text-xs sm:text-sm uppercase tracking-wider mb-1">
+                <h4 className="dark:text-white text-slate-900 font-bold text-xs sm:text-sm uppercase tracking-wider mb-1">
                   ÚLTIMA ATUALIZAÇÃO
                 </h4>
                 <p className="text-xs dark:text-slate-200 text-slate-800 font-mono font-bold">

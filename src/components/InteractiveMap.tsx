@@ -123,7 +123,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <div class="ml-2 flex items-center gap-1.5 bg-slate-950/95 border ${
               isSelected ? 'border-cyan-400 ring-2 ring-cyan-400/40 bg-cyan-950/90' : 'border-slate-700'
             } px-2 py-0.5 rounded-xl shadow-2xl backdrop-blur-md text-nowrap pointer-events-auto">
-              <span class="text-[11px] font-black ${isSelected ? 'text-cyan-300' : 'text-slate-100'}">${city.name}</span>
+              <span class="text-[11px] font-bold ${isSelected ? 'text-cyan-300' : 'text-slate-100'}">${city.name}</span>
               <span class="text-[10px] font-mono font-bold text-cyan-400 bg-cyan-950/80 border border-cyan-800/80 px-1 py-0.2 rounded">${levelFormatted}</span>
             </div>
           </div>
@@ -195,7 +195,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <MapPin className="w-5 h-5 shrink-0" />
           </div>
           <div>
-            <h3 className="text-sm font-extrabold dark:text-slate-100 text-slate-800 tracking-wider uppercase flex items-center gap-2">
+            <h3 className="text-sm font-bold dark:text-slate-100 text-slate-800 tracking-wider uppercase flex items-center gap-2">
               <span>
                 MAPA HIDROLÓGICO REGIONAL — {selectedBasin === 'taquari' ? 'BACIA DO RIO TAQUARI' : selectedBasin === 'guaiba' ? 'BACIA DE PORTO ALEGRE' : 'TODAS AS BACIAS'}
               </span>

@@ -270,7 +270,7 @@ Estou pronto para analisar dados hidrológicos, cotas históricas, precipitaçã
                     className={`space-y-3 ${msg.sender === 'user' ? 'bg-sky-50 p-4 rounded-2xl border border-sky-100 text-sky-950 ml-auto max-w-2xl' : ''}`}
                   >
                   {msg.sender === 'user' && (
-                    <div className="font-extrabold text-xs uppercase tracking-wider text-sky-700 mb-1">
+                    <div className="font-bold text-xs uppercase tracking-wider text-sky-700 mb-1">
                       Você
                     </div>
                   )}

@@ -139,7 +139,7 @@ export const CentroAnalisesConstrucao: React.FC<CentroAnalisesConstrucaoProps> =
           
           {/* Explorer Header */}
           <div className="p-3 border-b border-slate-800/60 flex items-center justify-between">
-            <span className="text-[10px] font-extrabold tracking-widest text-slate-400 uppercase">
+            <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
               EXPLORADOR
             </span>
             <span className="text-slate-500 text-[10px]">•••</span>

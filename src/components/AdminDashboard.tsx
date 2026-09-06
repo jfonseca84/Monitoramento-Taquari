@@ -1772,7 +1772,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <Waves className="w-3.5 h-3.5" />
                             <span>{aboutBadge || 'CENTRO DE OPERAÇÕES HIDROLÓGICAS'}</span>
                           </div>
-                          <h3 className="text-xl font-extrabold text-white">
+                          <h3 className="text-xl font-bold text-white">
                             {aboutTitle || 'Portal Profissional de Monitoramento Hidrológico'}
                           </h3>
                           <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-line">
@@ -1802,7 +1802,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <button
                         type="submit"
                         disabled={isSavingAbout}
-                        className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg hover:shadow-cyan-500/20 flex items-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
+                        className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg hover:shadow-cyan-500/20 flex items-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
                       >
                         {isSavingAbout ? (
                           <>
@@ -1954,25 +1954,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               <span className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
                                 <MessageSquare className="w-3.5 h-3.5 text-emerald-400" /> WhatsApp
                               </span>
-                              <p className="text-xl font-black text-white mt-1">{waCount} <span className="text-xs text-slate-500 font-normal">mensagens</span></p>
+                              <p className="text-xl font-bold text-white mt-1">{waCount} <span className="text-xs text-slate-500 font-normal">mensagens</span></p>
                             </div>
                             <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl">
                               <span className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
                                 <Mail className="w-3.5 h-3.5 text-blue-400" /> E-mail
                               </span>
-                              <p className="text-xl font-black text-white mt-1">{emailCount} <span className="text-xs text-slate-500 font-normal">mensagens</span></p>
+                              <p className="text-xl font-bold text-white mt-1">{emailCount} <span className="text-xs text-slate-500 font-normal">mensagens</span></p>
                             </div>
                             <div className="p-3 bg-slate-900/80 border border-amber-900/40 rounded-xl">
                               <span className="text-[10px] text-amber-400 uppercase font-bold flex items-center gap-1">
                                 <Clock className="w-3.5 h-3.5" /> Aguardando envio
                               </span>
-                              <p className="text-xl font-black text-amber-300 mt-1">{pendingDispatches.length}</p>
+                              <p className="text-xl font-bold text-amber-300 mt-1">{pendingDispatches.length}</p>
                             </div>
                             <div className="p-3 bg-slate-900/80 border border-emerald-900/40 rounded-xl">
                               <span className="text-[10px] text-emerald-400 uppercase font-bold flex items-center gap-1">
                                 <CheckCircle2 className="w-3.5 h-3.5" /> Enviados com sucesso
                               </span>
-                              <p className="text-xl font-black text-emerald-300 mt-1">{sentDispatches.length}</p>
+                              <p className="text-xl font-bold text-emerald-300 mt-1">{sentDispatches.length}</p>
                             </div>
                           </div>
                         );
@@ -2026,7 +2026,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </div>
                               <div className="flex items-baseline justify-between">
                                 <div>
-                                  <span className="text-2xl font-black text-cyan-400">{level.toFixed(2)}</span>
+                                  <span className="text-2xl font-bold text-cyan-400">{level.toFixed(2)}</span>
                                   <span className="text-xs text-slate-400 ml-1">m</span>
                                 </div>
                                 <div className="text-right">
@@ -3080,7 +3080,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <div className="bg-[#0F172A] border border-cyan-500/30 p-5 rounded-2xl space-y-4 shadow-lg shadow-cyan-950/10">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
                       <div>
-                        <h4 className="text-xs font-black text-cyan-400 uppercase tracking-wider flex items-center gap-2">
+                        <h4 className="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2">
                           <Award className="w-4 h-4 text-cyan-400" />
                           <span>Layout do Painel de Câmeras — Apoio / Parceiros</span>
                         </h4>

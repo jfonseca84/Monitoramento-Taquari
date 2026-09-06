@@ -139,7 +139,7 @@ export const SituationDetailModal: React.FC<SituationDetailModalProps> = ({
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="text-sm sm:text-lg font-black text-white tracking-wide truncate">
+                <h2 className="text-sm sm:text-lg font-bold text-white tracking-wide truncate">
                   Painel de Situação do Vale do Taquari
                 </h2>
                 <span className="hidden md:inline-block px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-400 text-[10px] font-mono border border-cyan-500/20 shrink-0">
@@ -217,7 +217,7 @@ export const SituationDetailModal: React.FC<SituationDetailModalProps> = ({
             {/* BIG LEVEL DISPLAY */}
             <div className="flex items-baseline gap-2 bg-slate-950/80 px-5 py-3 rounded-2xl border border-slate-800/80 w-full md:w-auto justify-between md:justify-start">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Nível Atual</span>
-              <span className="text-3xl sm:text-4xl font-black font-mono text-cyan-400">
+              <span className="text-3xl sm:text-4xl font-bold font-mono text-cyan-400">
                 {currentLevel.toFixed(2).replace('.', ',')} <span className="text-lg text-slate-300">m</span>
               </span>
             </div>

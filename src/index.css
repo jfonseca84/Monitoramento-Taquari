@@ -26,8 +26,8 @@ body {
 
 /* Custom Scrollbar Styling */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -36,20 +36,27 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(51, 65, 85, 0.7);
+  background: rgba(51, 65, 85, 0.8);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.9);
+  background: #0ea5e9;
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #334155 rgba(15, 23, 42, 0.6);
+  overscroll-behavior: contain;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 5px;
+  width: 7px;
+  height: 7px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.4);
+  background: rgba(15, 23, 42, 0.6);
   border-radius: 9999px;
 }
 
@@ -149,8 +156,20 @@ body {
   border-radius: 9999px;
 }
 
-.thin-h-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #38bdf8;
+/* Custom Leaflet Tooltip Styling for Real Map Floating HUD */
+.leaflet-tooltip-custom {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
 }
+.leaflet-tooltip-custom::before {
+  display: none !important;
+}
+.leaflet-container {
+  background-color: #030816 !important;
+  font-family: inherit !important;
+}
+
 
 

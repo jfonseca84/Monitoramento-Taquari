@@ -1,5 +1,5 @@
 {
-  "name": "react-example",
+  "name": "rio-taquari-monitoramento",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -7,7 +7,6 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "start": "tsx river-updater/src/index.ts",
     "dev": "vite --host 0.0.0.0 --port 3000",
     "build": "vite build",
     "preview": "vite preview",

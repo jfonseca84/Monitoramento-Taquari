@@ -119,8 +119,8 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
           </div>
         )}
 
-        {/* CITY / STATION BUTTONS */}
-        <div className="flex flex-col gap-1.5 p-0.5">
+        {/* CITY / STATION BUTTONS - DISPLAYING ~12 CITIES WITH SCROLLBAR */}
+        <div className="flex flex-col gap-1.5 p-0.5 max-h-[500px] overflow-y-auto custom-scrollbar pr-1">
           {displayedCities.length === 0 ? (
             <p className="text-xs text-slate-500 dark:text-slate-400 text-center py-4">Nenhuma cidade encontrada</p>
           ) : (

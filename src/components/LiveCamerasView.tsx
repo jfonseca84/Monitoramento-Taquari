@@ -244,7 +244,7 @@ export const LiveCamerasView: React.FC<LiveCamerasViewProps> = ({
             
             {/* SIDEBAR TITLE */}
             <div className="px-1 pt-1 pb-0.5">
-              <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white uppercase leading-tight">
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white uppercase leading-tight">
                 CÂMERAS
               </h1>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight mt-0.5">
@@ -266,7 +266,7 @@ export const LiveCamerasView: React.FC<LiveCamerasViewProps> = ({
 
             {/* CITIES LIST WITH INDEPENDENT SCROLL */}
             <div className="flex-1 flex flex-col">
-              <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1 mb-1.5 block">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1 mb-1.5 block">
                 CIDADES MONITORADAS
               </span>
 
@@ -437,7 +437,7 @@ export const LiveCamerasView: React.FC<LiveCamerasViewProps> = ({
                   
                   {/* CÂMERAS HEADER */}
                   <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800/80 pb-3 px-0.5">
-                    <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                       <Video className="w-4 h-4 text-cyan-500" />
                       <span>SELECIONAR CÂMERA</span>
                     </h3>
@@ -476,7 +476,7 @@ export const LiveCamerasView: React.FC<LiveCamerasViewProps> = ({
                             </div>
 
                             <div className="min-w-0 flex-1">
-                              <span className="text-xs font-black text-slate-900 dark:text-white block tracking-wide leading-tight">
+                              <span className="text-xs font-bold text-slate-900 dark:text-white block tracking-wide leading-tight">
                                 {camLabel}
                               </span>
                               <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block truncate leading-tight mt-0.5">

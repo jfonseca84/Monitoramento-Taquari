@@ -297,7 +297,7 @@ export const PrefeiturasView: React.FC<PrefeiturasViewProps> = ({ cities = [] })
         <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-sky-950/70 border border-slate-700/80 rounded-2xl p-4 text-white flex items-center justify-between shadow-xl">
           <div>
             <p className="text-[10px] text-sky-400 font-bold uppercase tracking-wider">PREFEITURAS</p>
-            <p className="text-2xl md:text-3xl font-extrabold font-mono mt-0.5">{DEFAULT_PREFEITURAS_LIST.length}</p>
+            <p className="text-2xl md:text-3xl font-bold font-mono mt-0.5">{DEFAULT_PREFEITURAS_LIST.length}</p>
           </div>
           <Landmark className="w-7 h-7 text-sky-400 opacity-80" />
         </div>
@@ -305,7 +305,7 @@ export const PrefeiturasView: React.FC<PrefeiturasViewProps> = ({ cities = [] })
         <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/70 border border-slate-700/80 rounded-2xl p-4 text-white flex items-center justify-between shadow-xl">
           <div>
             <p className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider">VALE DO TAQUARI</p>
-            <p className="text-2xl md:text-3xl font-extrabold font-mono mt-0.5">{taquariCount}</p>
+            <p className="text-2xl md:text-3xl font-bold font-mono mt-0.5">{taquariCount}</p>
           </div>
           <Compass className="w-7 h-7 text-cyan-400 opacity-80" />
         </div>
@@ -313,7 +313,7 @@ export const PrefeiturasView: React.FC<PrefeiturasViewProps> = ({ cities = [] })
         <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950/70 border border-slate-700/80 rounded-2xl p-4 text-white flex items-center justify-between shadow-xl">
           <div>
             <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider">BACIA DO GUAÍBA</p>
-            <p className="text-2xl md:text-3xl font-extrabold font-mono mt-0.5">{guaibaCount}</p>
+            <p className="text-2xl md:text-3xl font-bold font-mono mt-0.5">{guaibaCount}</p>
           </div>
           <Users className="w-7 h-7 text-indigo-400 opacity-80" />
         </div>

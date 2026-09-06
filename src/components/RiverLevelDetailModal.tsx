@@ -137,12 +137,12 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
         <div className="flex items-start justify-between gap-2 sm:gap-4 border-b border-slate-800 pb-3 sm:pb-4 mb-4 sm:mb-5">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-              <div className={`px-2.5 sm:px-3 py-0.5 rounded-full border text-[10px] sm:text-[11px] font-extrabold tracking-wider flex items-center gap-1.5 ${statusInfo.pill}`}>
+              <div className={`px-2.5 sm:px-3 py-0.5 rounded-full border text-[10px] sm:text-[11px] font-bold tracking-wider flex items-center gap-1.5 ${statusInfo.pill}`}>
                 <StatusDot status={selectedCity.status_level} size="sm" />
                 <span>{statusInfo.label}</span>
               </div>
             </div>
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight truncate">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white tracking-tight truncate">
               {selectedCity.name}
             </h2>
             <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-slate-400 mt-1 flex-wrap">
@@ -172,7 +172,7 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
           {/* LEFT: BIG LEVEL & TREND */}
           <div className="flex flex-col">
             <div className="flex items-baseline gap-2">
-              <span className="text-4xl md:text-5xl font-black text-white tracking-tight font-sans">
+              <span className="text-4xl md:text-5xl font-bold text-white tracking-tight font-sans">
                 {currentLevelStr}
               </span>
               <span className="text-2xl font-bold text-slate-300">m</span>
@@ -193,7 +193,7 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
           <div className="flex-1 max-w-md bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
             <div className="flex items-center justify-between text-xs mb-2">
               <span className="text-slate-400 font-medium">Ocupação da cota</span>
-              <span className="text-red-400 font-extrabold text-sm">{occupationPercent}%</span>
+              <span className="text-red-400 font-bold text-sm">{occupationPercent}%</span>
             </div>
 
             {/* PROGRESS TRACK */}
@@ -317,7 +317,7 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
           <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl flex flex-col justify-between">
             <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">NÍVEL ATUAL</span>
             <div className="mt-2">
-              <span className="text-xl md:text-2xl font-extrabold text-red-400 font-mono">{currentLevelStr} m</span>
+              <span className="text-xl md:text-2xl font-bold text-red-400 font-mono">{currentLevelStr} m</span>
             </div>
           </div>
 
@@ -325,7 +325,7 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
           <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl flex flex-col justify-between">
             <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">COTA DE INUNDAÇÃO</span>
             <div className="mt-2">
-              <span className="text-xl md:text-2xl font-extrabold text-white font-mono">{floodLevelStr} m</span>
+              <span className="text-xl md:text-2xl font-bold text-white font-mono">{floodLevelStr} m</span>
             </div>
           </div>
 
@@ -333,7 +333,7 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
           <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl flex flex-col justify-between">
             <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">MARGEM P/ TRANSBORDO</span>
             <div className="mt-2">
-              <span className={`text-xl md:text-2xl font-extrabold font-mono ${isAboveFlood ? 'text-red-400' : 'text-emerald-400'}`}>
+              <span className={`text-xl md:text-2xl font-bold font-mono ${isAboveFlood ? 'text-red-400' : 'text-emerald-400'}`}>
                 {marginDiffStr}
               </span>
               <p className="text-[10px] text-slate-400">{isAboveFlood ? 'acima da cota' : 'abaixo da cota'}</p>
@@ -344,7 +344,7 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
           <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl flex flex-col justify-between">
             <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">TENDÊNCIA</span>
             <div className="mt-2">
-              <span className="text-xl md:text-2xl font-extrabold text-cyan-400 font-mono">{trendFormatted}</span>
+              <span className="text-xl md:text-2xl font-bold text-cyan-400 font-mono">{trendFormatted}</span>
             </div>
           </div>
 
@@ -352,7 +352,7 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
           <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl flex flex-col justify-between">
             <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">VARIAÇÃO NO PERÍODO</span>
             <div className="mt-2">
-              <span className="text-xl md:text-2xl font-extrabold text-slate-100 font-mono">{variationStr}</span>
+              <span className="text-xl md:text-2xl font-bold text-slate-100 font-mono">{variationStr}</span>
               <p className="text-[10px] text-slate-400">{chartData.length} leituras</p>
             </div>
           </div>
@@ -361,7 +361,7 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
           <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl flex flex-col justify-between">
             <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">MÍN / MÁX (SÉRIE)</span>
             <div className="mt-2">
-              <span className="text-lg md:text-xl font-extrabold text-white font-mono">{minSeriesStr} / {maxSeriesStr} m</span>
+              <span className="text-lg md:text-xl font-bold text-white font-mono">{minSeriesStr} / {maxSeriesStr} m</span>
             </div>
           </div>
 
@@ -369,7 +369,7 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
           <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl flex flex-col justify-between">
             <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">RECORDE HISTÓRICO</span>
             <div className="mt-2">
-              <span className="text-xl md:text-2xl font-extrabold text-slate-100 font-mono">33,66 m</span>
+              <span className="text-xl md:text-2xl font-bold text-slate-100 font-mono">33,66 m</span>
               <p className="text-[10px] text-slate-400">01/05/2024</p>
             </div>
           </div>
@@ -378,7 +378,7 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
           <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl flex flex-col justify-between">
             <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">OCUPAÇÃO DA COTA</span>
             <div className="mt-2">
-              <span className="text-xl md:text-2xl font-extrabold text-red-400 font-mono">{occupationPercent} %</span>
+              <span className="text-xl md:text-2xl font-bold text-red-400 font-mono">{occupationPercent} %</span>
             </div>
           </div>
 
@@ -386,7 +386,7 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
           <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl flex flex-col justify-between">
             <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">CHUVA HOJE</span>
             <div className="mt-2">
-              <span className="text-xl md:text-2xl font-extrabold text-slate-100 font-mono">0.0 mm</span>
+              <span className="text-xl md:text-2xl font-bold text-slate-100 font-mono">0.0 mm</span>
               <p className="text-[10px] text-slate-400">prev. 0.0 mm</p>
             </div>
           </div>
@@ -395,7 +395,7 @@ export const RiverLevelDetailModal: React.FC<RiverLevelDetailModalProps> = ({
           <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl flex flex-col justify-between">
             <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">SITUAÇÃO</span>
             <div className="mt-2">
-              <span className="text-lg font-extrabold text-red-400 font-sans">{statusInfo.label}</span>
+              <span className="text-lg font-bold text-red-400 font-sans">{statusInfo.label}</span>
               <p className="text-[10px] text-slate-400">{selectedCity.last_updated || 'ao vivo'}</p>
             </div>
           </div>
