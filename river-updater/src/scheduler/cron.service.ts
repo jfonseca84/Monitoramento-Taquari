@@ -1,14 +1,20 @@
 import cron, { ScheduledTask } from 'node-cron';
 import { LoggerService } from '../logs/logger.service.js';
 import { RiverCollector } from '../collectors/river.collector.js';
+import { WeatherCollector } from '../collectors/weather.collector.js';
 import { HealthService } from '../services/health.service.js';
 import { CacheService } from '../services/cache.service.js';
 import { NewsCollector } from '../collectors/news.collector.js';
+import { SupabaseService } from '../services/supabase.service.js';
+
+const WEATHER_CRON_EXPRESSION = '*/30 * * * *';
 
 export class CronService {
   private static PREFIX = 'CronService';
   private static cronTask: ScheduledTask | null = null;
+  private static weatherCronTask: ScheduledTask | null = null;
   private static isExecuting = false;
+  private static isWeatherExecuting = false;
 
   public static getCronExpression(): string {
     return process.env.CRON_INTERVAL || '*/5 * * * *';
@@ -95,6 +101,51 @@ export class CronService {
         errors: [errMsg],
         status: 'erro'
       };
+    }
+  }
+
+  /**
+   * Executa um ciclo de coleta de dados meteorológicos (chuva, umidade do solo, previsão).
+   * Roda em intervalo próprio, mais espaçado que a coleta de nível dos rios.
+   */
+  public static async runWeatherOnce(): Promise<void> {
+    if (this.isWeatherExecuting) {
+      LoggerService.warn(this.PREFIX, 'Coleta de clima anterior ainda em andamento. Ciclo ignorado.');
+      return;
+    }
+
+    this.isWeatherExecuting = true;
+    LoggerService.info('WEATHER', 'Buscando dados meteorológicos (chuva, umidade do solo, previsão)');
+
+    try {
+      const cities = await SupabaseService.fetchExistingCities();
+      const result = await WeatherCollector.executeCollection(cities);
+
+      if (result.errorsCount > 0) {
+        LoggerService.warn('WEATHER', `Coleta concluída com avisos: ${result.errors.join('; ')}`);
+      }
+      LoggerService.info(
+        'WEATHER',
+        `Clima atualizado para ${result.citiesProcessed}/${cities.length} cidades, ${result.forecastsInserted} pontos de previsão (${result.durationMs}ms)`
+      );
+    } catch (err: any) {
+      LoggerService.error('WEATHER', `Falha na coleta meteorológica: ${err.message || err}`);
+    } finally {
+      this.isWeatherExecuting = false;
+    }
+  }
+
+  public static startWeatherScheduler(): void {
+    LoggerService.info('WEATHER', `Agendador de clima iniciado com intervalo: ${WEATHER_CRON_EXPRESSION}`);
+    this.weatherCronTask = cron.schedule(WEATHER_CRON_EXPRESSION, async () => {
+      await this.runWeatherOnce();
+    });
+  }
+
+  public static stopWeatherScheduler(): void {
+    if (this.weatherCronTask) {
+      this.weatherCronTask.stop();
+      LoggerService.info('WEATHER', 'Agendador de clima interrompido.');
     }
   }
 

@@ -243,6 +243,33 @@ export class SupabaseService {
     return true;
   }
 
+  public static async batchUpsertWeatherReadings(readings: any[]): Promise<boolean> {
+    if (readings.length === 0) return true;
+    const client = this.getClient();
+    const { error } = await client.from('weather_readings').upsert(readings, {
+      onConflict: 'city_id, recorded_at',
+      ignoreDuplicates: true,
+    });
+    if (error) {
+      LoggerService.error(this.PREFIX, `Erro na inserção em lote de weather_readings: ${error.message}`);
+      return false;
+    }
+    return true;
+  }
+
+  public static async batchUpsertWeatherForecasts(forecasts: any[]): Promise<boolean> {
+    if (forecasts.length === 0) return true;
+    const client = this.getClient();
+    const { error } = await client.from('weather_forecasts').upsert(forecasts, {
+      onConflict: 'city_id, forecast_for',
+    });
+    if (error) {
+      LoggerService.error(this.PREFIX, `Erro na inserção em lote de weather_forecasts: ${error.message}`);
+      return false;
+    }
+    return true;
+  }
+
   public static async insertSyncLog(syncData: {
     sync_time: string;
     duration_ms: number;

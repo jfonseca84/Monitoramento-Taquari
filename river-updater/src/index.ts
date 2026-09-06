@@ -345,6 +345,14 @@ async function bootstrapWorker() {
 
   // 4. Ativar Agendador Interno (node-cron)
   CronService.startScheduler();
+  CronService.startWeatherScheduler();
+
+  // Coleta meteorológica inicial (não bloqueia o boot em caso de falha)
+  if (connTest.ok) {
+    CronService.runWeatherOnce().catch((err) => {
+      LoggerService.warn('WORKER', `Falha na coleta meteorológica inicial: ${err?.message || err}`);
+    });
+  }
 
   // 5. Manter o processo continuamente ativo (Heartbeat a cada 5 minutos)
   setInterval(() => {
@@ -355,6 +363,7 @@ async function bootstrapWorker() {
   const gracefulShutdown = (signal: string) => {
     LoggerService.info('WORKER', `Sinal ${signal} recebido. Encerrando river-monitor-worker graciosamente...`);
     CronService.stopScheduler();
+    CronService.stopWeatherScheduler();
     httpServer.close(() => {
       LoggerService.info('HTTP', 'Servidor HTTP encerrado com sucesso.');
       process.exit(0);
