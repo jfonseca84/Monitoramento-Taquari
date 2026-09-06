@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Folder,
   ChevronDown,
@@ -19,8 +19,8 @@ interface CentroAnalisesConstrucaoProps {
 }
 
 export const CentroAnalisesConstrucao: React.FC<CentroAnalisesConstrucaoProps> = ({
-  title = "Coletando dados para exibição... Volte depois.",
-  subtitle = "Estamos configurando o Centro de Análises para disponibilizar informações mais completas, consistentes e confiáveis. Volte em breve."
+  title = "Centro de Análises em construção",
+  subtitle = "Estamos preparando dashboards mais completos, consistentes e confiáveis para a Bacia do Taquari. Volte em breve."
 }) => {
   // Folder tree open state
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({
@@ -38,6 +38,38 @@ export const CentroAnalisesConstrucao: React.FC<CentroAnalisesConstrucaoProps> =
   const toggleFolder = (key: string) => {
     setOpenFolders(prev => ({ ...prev, [key]: !prev[key] }));
   };
+
+  // Measure the real remaining viewport space below the card's top offset,
+  // instead of guessing a fixed header/banner height, so the cup and message
+  // always fit on screen without scrolling regardless of header size.
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [cardHeight, setCardHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    const BOTTOM_GAP = 16;
+    const MIN_HEIGHT = 420;
+
+    const measure = () => {
+      if (!containerRef.current) return;
+      const top = containerRef.current.getBoundingClientRect().top;
+      const available = window.innerHeight - top - BOTTOM_GAP;
+      setCardHeight(Math.max(available, MIN_HEIGHT));
+    };
+
+    measure();
+    // Re-measure after fonts/tickers finish their initial layout pass
+    const raf = requestAnimationFrame(measure);
+    const timeout = setTimeout(measure, 400);
+
+    window.addEventListener('resize', measure);
+    window.addEventListener('orientationchange', measure);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timeout);
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('orientationchange', measure);
+    };
+  }, []);
 
   const codeSnippet: { line: number; text: string; isComment?: boolean }[] = [
     { line: 1, text: "import React from 'react';" },
@@ -96,7 +128,11 @@ export const CentroAnalisesConstrucao: React.FC<CentroAnalisesConstrucaoProps> =
   }, [fullSnippet.length]);
 
   return (
-    <div className="w-full max-w-7xl mx-auto bg-[#030712] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden font-sans text-slate-300 relative flex flex-col h-[calc(100vh-9.5rem)] min-h-[420px] transition-all">
+    <div
+      ref={containerRef}
+      className="w-full max-w-7xl mx-auto bg-[#030712] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden font-sans text-slate-300 relative flex flex-col min-h-[420px] transition-all"
+      style={{ height: cardHeight ? `${cardHeight}px` : 'calc(100vh - 9.5rem)' }}
+    >
       
       {/* CSS STYLES FOR STEAM ANIMATION & GLOW */}
       <style>{`
