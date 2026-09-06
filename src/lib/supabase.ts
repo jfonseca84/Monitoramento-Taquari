@@ -920,6 +920,32 @@ export async function fetchLatestWeatherReading(cityId: string): Promise<Weather
   }
 }
 
+export interface WeatherForecastRow {
+  city_id: string;
+  forecast_for: string;
+  issued_at: string;
+  precipitation_mm: number | null;
+  precipitation_probability: number | null;
+  temperature_2m: number | null;
+}
+
+export async function fetchWeatherForecast(cityId: string, limit: number = 120): Promise<WeatherForecastRow[]> {
+  if (!cityId || !isSupabaseConfigured || !supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('weather_forecasts')
+      .select('*')
+      .eq('city_id', cityId)
+      .order('forecast_for', { ascending: true })
+      .limit(limit);
+    if (error || !data) return [];
+    return data as WeatherForecastRow[];
+  } catch (e) {
+    console.warn('fetchWeatherForecast failed:', e);
+    return [];
+  }
+}
+
 export async function fetchWeatherHistory(cityId: string, limit: number = 24): Promise<WeatherReadingRow[]> {
   if (!cityId || !isSupabaseConfigured || !supabase) return [];
   try {

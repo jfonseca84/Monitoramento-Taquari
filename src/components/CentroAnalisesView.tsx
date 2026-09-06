@@ -85,7 +85,7 @@ import {
   CartesianGrid,
   Brush
 } from 'recharts';
-import { fetchCitiesDirect, normalizeCitySlug, fetchLatestWeatherReading, fetchWeatherHistory, WeatherReadingRow } from '../lib/supabase';
+import { fetchCitiesDirect, normalizeCitySlug, fetchLatestWeatherReading, fetchWeatherHistory, fetchWeatherForecast, WeatherReadingRow, WeatherForecastRow } from '../lib/supabase';
 import { INITIAL_CITIES } from '../data/initialData';
 import { StatusDot } from './StatusDot';
 import { City } from '../types';
@@ -1297,6 +1297,7 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
   // --- DADOS METEOROLÓGICOS REAIS (Open-Meteo, coletados a cada 30 min) ---
   const [weatherNow, setWeatherNow] = useState<WeatherReadingRow | null>(null);
   const [weatherHistory, setWeatherHistory] = useState<WeatherReadingRow[]>([]);
+  const [weatherForecast, setWeatherForecast] = useState<WeatherForecastRow[]>([]);
   const [isRefreshingData, setIsRefreshingData] = useState(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
 
@@ -1304,16 +1305,19 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
     if (!cityId) {
       setWeatherNow(null);
       setWeatherHistory([]);
+      setWeatherForecast([]);
       return;
     }
     setIsRefreshingData(true);
     try {
-      const [latest, history] = await Promise.all([
+      const [latest, history, forecast] = await Promise.all([
         fetchLatestWeatherReading(cityId),
-        fetchWeatherHistory(cityId, 24)
+        fetchWeatherHistory(cityId, 24),
+        fetchWeatherForecast(cityId, 120)
       ]);
       setWeatherNow(latest);
       setWeatherHistory(history);
+      setWeatherForecast(forecast);
       setLastRefreshedAt(new Date());
     } finally {
       setIsRefreshingData(false);
@@ -1326,21 +1330,84 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
     if (!cityId) {
       setWeatherNow(null);
       setWeatherHistory([]);
+      setWeatherForecast([]);
       return;
     }
     (async () => {
-      const [latest, history] = await Promise.all([
+      const [latest, history, forecast] = await Promise.all([
         fetchLatestWeatherReading(cityId),
-        fetchWeatherHistory(cityId, 24)
+        fetchWeatherHistory(cityId, 24),
+        fetchWeatherForecast(cityId, 120)
       ]);
       if (!cancelled) {
         setWeatherNow(latest);
         setWeatherHistory(history);
+        setWeatherForecast(forecast);
         setLastRefreshedAt(new Date());
       }
     })();
     return () => { cancelled = true; };
   }, [currentStation.db_id]);
+
+  const realVariableChartsData = useMemo(() => {
+    const toSeries = (key: keyof WeatherReadingRow) => weatherHistory.map((row) => ({
+      time: new Date(row.recorded_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }),
+      val: typeof row[key] === 'number' ? (row[key] as number) : null
+    }));
+    return {
+      temp: toSeries('temperature'),
+      humidity: toSeries('humidity'),
+      pressure: toSeries('pressure_msl'),
+      wind: toSeries('wind_speed'),
+      gusts: toSeries('wind_gusts'),
+      radiation: toSeries('solar_radiation')
+    };
+  }, [weatherHistory]);
+
+  const weatherHistoryTimeTicks = useMemo(() => {
+    if (weatherHistory.length === 0) return ['--', '--', '--', '--', '--'];
+    const fmt = (row: WeatherReadingRow) => new Date(row.recorded_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
+    const n = weatherHistory.length;
+    const idxs = [0, Math.floor(n * 0.25), Math.floor(n * 0.5), Math.floor(n * 0.75), n - 1];
+    return idxs.map((i) => fmt(weatherHistory[Math.max(0, Math.min(n - 1, i))]));
+  }, [weatherHistory]);
+
+  const realFiveDayForecast = useMemo(() => {
+    const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const buckets = new Map<string, { dateObj: Date; temps: number[]; precip: number; pop: number }>();
+    for (const row of weatherForecast) {
+      const d = new Date(row.forecast_for);
+      const dayKey = d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+      if (!buckets.has(dayKey)) {
+        buckets.set(dayKey, { dateObj: d, temps: [], precip: 0, pop: 0 });
+      }
+      const bucket = buckets.get(dayKey)!;
+      if (typeof row.temperature_2m === 'number') bucket.temps.push(row.temperature_2m);
+      if (typeof row.precipitation_mm === 'number') bucket.precip += row.precipitation_mm;
+      if (typeof row.precipitation_probability === 'number') bucket.pop = Math.max(bucket.pop, row.precipitation_probability);
+    }
+    const todayKey = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    return Array.from(buckets.entries())
+      .slice(0, 5)
+      .map(([dayKey, b], idx) => ({
+        dayName: dayKey === todayKey ? 'Hoje' : dayNames[b.dateObj.getDay()],
+        date: b.dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' }),
+        max: b.temps.length ? Math.round(Math.max(...b.temps)) : null,
+        min: b.temps.length ? Math.round(Math.min(...b.temps)) : null,
+        pop: Math.round(b.pop),
+        precip: `${b.precip.toFixed(0)} mm`
+      }));
+  }, [weatherForecast]);
+
+  const fiveDayPrecipTotal = useMemo(() => realFiveDayForecast.reduce((sum, d) => sum + (parseFloat(d.precip) || 0), 0), [realFiveDayForecast]);
+  const fiveDayWettestDay = useMemo(() => {
+    if (realFiveDayForecast.length === 0) return null;
+    return realFiveDayForecast.reduce((max, d) => (parseFloat(d.precip) || 0) > (parseFloat(max.precip) || 0) ? d : max, realFiveDayForecast[0]);
+  }, [realFiveDayForecast]);
+  const fiveDayDriestDay = useMemo(() => {
+    if (realFiveDayForecast.length === 0) return null;
+    return realFiveDayForecast.reduce((min, d) => (parseFloat(d.precip) || 0) < (parseFloat(min.precip) || 0) ? d : min, realFiveDayForecast[0]);
+  }, [realFiveDayForecast]);
 
   const realPrecipitationChartData = useMemo(() => {
     let running = 0;
@@ -3397,12 +3464,14 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
                       <h4 className="text-base font-bold text-slate-900 dark:text-white">
                         Previsão para {currentStation.name}
                       </h4>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium shrink-0">Fonte: CLIMATEMPO</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium shrink-0">Fonte: Open-Meteo</span>
                     </div>
 
                     {/* 5 DAYS CARDS GRID */}
                     <div className="grid grid-cols-5 gap-1.5 text-center">
-                      {fiveDayForecast.map((day, idx) => (
+                      {realFiveDayForecast.length === 0 ? (
+                        <div className="col-span-5 text-center text-xs text-slate-400 py-4">Carregando previsão...</div>
+                      ) : realFiveDayForecast.map((day, idx) => (
                         <div key={idx} className="bg-slate-50 dark:bg-[#050A18] border border-slate-200 dark:border-slate-800/80 rounded-xl p-2 flex flex-col items-center justify-between gap-1">
                           <div>
                             <span className="text-xs font-bold text-slate-900 dark:text-white block leading-tight">{day.dayName}</span>
@@ -3410,9 +3479,9 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
                           </div>
 
                           <div className="my-0.5">
-                            {day.icon === 'rain' ? (
+                            {day.pop >= 50 ? (
                               <CloudRain className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-400 mx-auto" />
-                            ) : day.icon === 'sun' ? (
+                            ) : day.pop <= 15 ? (
                               <Sun className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400 mx-auto" />
                             ) : (
                               <CloudSun className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300 mx-auto" />
@@ -3421,8 +3490,8 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
 
                           <div className="space-y-0.5">
                             <div className="text-[11px] font-bold">
-                              <span className="text-slate-900 dark:text-white">{day.max}°</span>{' '}
-                              <span className="text-slate-400 font-normal">{day.min}°</span>
+                              <span className="text-slate-900 dark:text-white">{day.max ?? '--'}°</span>{' '}
+                              <span className="text-slate-400 font-normal">{day.min ?? '--'}°</span>
                             </div>
                             <span className="text-[9px] text-cyan-400 block font-semibold">
                               {day.pop > 10 ? `💧 ${day.pop}%` : `↓ ${day.pop}%`}
@@ -3434,17 +3503,19 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
                     </div>
 
                     {/* CAIXA DE TEXTO COM INDICATIVOS DE PRECIPITAÇÃO */}
-                    <div className="mt-3 p-2.5 sm:p-3 bg-slate-50 dark:bg-[#050A18] border border-cyan-500/30 dark:border-cyan-500/30 rounded-xl">
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <CloudRain className="w-4 h-4 text-cyan-400 shrink-0" />
-                        <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wide">
-                          Indicativos de precipitação
-                        </span>
+                    {realFiveDayForecast.length > 0 && fiveDayWettestDay && fiveDayDriestDay && (
+                      <div className="mt-3 p-2.5 sm:p-3 bg-slate-50 dark:bg-[#050A18] border border-cyan-500/30 dark:border-cyan-500/30 rounded-xl">
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <CloudRain className="w-4 h-4 text-cyan-400 shrink-0" />
+                          <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wide">
+                            Indicativos de precipitação
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                          Projeção acumulada de <strong className="text-cyan-600 dark:text-cyan-400 font-semibold">{fiveDayPrecipTotal.toFixed(0)} mm</strong> para os próximos {realFiveDayForecast.length} dias. Maior volume concentrado em <strong className="text-slate-800 dark:text-slate-100 font-semibold">{fiveDayWettestDay.dayName} ({fiveDayWettestDay.precip})</strong>, com o dia mais seco previsto para <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">{fiveDayDriestDay.dayName} ({fiveDayDriestDay.precip})</strong>.
+                        </p>
                       </div>
-                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                        Projeção acumulada de <strong className="text-cyan-600 dark:text-cyan-400 font-semibold">38 mm</strong> para os próximos 5 dias. Maior volume concentrado entre <strong className="text-slate-800 dark:text-slate-100 font-semibold">Hoje (15 mm)</strong> e <strong className="text-slate-800 dark:text-slate-100 font-semibold">Segunda-feira (10 mm)</strong>, com trégua total prevista para <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">Domingo (0 mm)</strong>.
-                      </p>
-                    </div>
+                    )}
                   </div>
                 </div>
                 </EditableComponent>
@@ -3805,15 +3876,15 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
                         <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 block mb-0.5">Temperatura (°C)</span>
                         <div className="h-12 w-full">
                           <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={variableChartsData.temp}>
-                              <YAxis domain={[16, 28]} hide />
+                            <LineChart data={realVariableChartsData.temp}>
+                              <YAxis domain={['dataMin - 1', 'dataMax + 1']} hide />
                               <XAxis dataKey="time" hide />
-                              <Line type="monotone" dataKey="val" stroke="#f59e0b" strokeWidth={1.5} dot={false} />
+                              <Line type="monotone" dataKey="val" stroke="#f59e0b" strokeWidth={1.5} dot={false} connectNulls />
                             </LineChart>
                           </ResponsiveContainer>
                         </div>
                         <div className="flex justify-between text-[7.5px] text-slate-500 mt-0.5">
-                          <span>09:00</span><span>15:00</span><span>21:00</span><span>03:00</span><span>09:00</span>
+                          {weatherHistoryTimeTicks.map((t, i) => <span key={i}>{t}</span>)}
                         </div>
                       </div>
 
@@ -3822,15 +3893,15 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
                         <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 block mb-0.5">Umidade (%)</span>
                         <div className="h-12 w-full">
                           <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={variableChartsData.humidity}>
+                            <LineChart data={realVariableChartsData.humidity}>
                               <YAxis domain={[0, 100]} hide />
                               <XAxis dataKey="time" hide />
-                              <Line type="monotone" dataKey="val" stroke="#0284c7" strokeWidth={1.5} dot={false} />
+                              <Line type="monotone" dataKey="val" stroke="#0284c7" strokeWidth={1.5} dot={false} connectNulls />
                             </LineChart>
                           </ResponsiveContainer>
                         </div>
                         <div className="flex justify-between text-[7.5px] text-slate-500 mt-0.5">
-                          <span>09:00</span><span>15:00</span><span>21:00</span><span>03:00</span><span>09:00</span>
+                          {weatherHistoryTimeTicks.map((t, i) => <span key={i}>{t}</span>)}
                         </div>
                       </div>
 
@@ -3839,15 +3910,15 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
                         <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 block mb-0.5">Pressão (hPa)</span>
                         <div className="h-12 w-full">
                           <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={variableChartsData.pressure}>
-                              <YAxis domain={[1005, 1020]} hide />
+                            <LineChart data={realVariableChartsData.pressure}>
+                              <YAxis domain={['dataMin - 2', 'dataMax + 2']} hide />
                               <XAxis dataKey="time" hide />
-                              <Line type="monotone" dataKey="val" stroke="#8b5cf6" strokeWidth={1.5} dot={false} />
+                              <Line type="monotone" dataKey="val" stroke="#8b5cf6" strokeWidth={1.5} dot={false} connectNulls />
                             </LineChart>
                           </ResponsiveContainer>
                         </div>
                         <div className="flex justify-between text-[7.5px] text-slate-500 mt-0.5">
-                          <span>09:00</span><span>15:00</span><span>21:00</span><span>03:00</span><span>09:00</span>
+                          {weatherHistoryTimeTicks.map((t, i) => <span key={i}>{t}</span>)}
                         </div>
                       </div>
 
@@ -3856,15 +3927,15 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
                         <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 block mb-0.5">Vento (km/h)</span>
                         <div className="h-12 w-full">
                           <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={variableChartsData.wind}>
-                              <YAxis domain={[0, 30]} hide />
+                            <LineChart data={realVariableChartsData.wind}>
+                              <YAxis domain={[0, 'dataMax + 5']} hide />
                               <XAxis dataKey="time" hide />
-                              <Line type="monotone" dataKey="val" stroke="#10b981" strokeWidth={1.5} dot={false} />
+                              <Line type="monotone" dataKey="val" stroke="#10b981" strokeWidth={1.5} dot={false} connectNulls />
                             </LineChart>
                           </ResponsiveContainer>
                         </div>
                         <div className="flex justify-between text-[7.5px] text-slate-500 mt-0.5">
-                          <span>09:00</span><span>15:00</span><span>21:00</span><span>03:00</span><span>09:00</span>
+                          {weatherHistoryTimeTicks.map((t, i) => <span key={i}>{t}</span>)}
                         </div>
                       </div>
 
@@ -3873,15 +3944,15 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
                         <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 block mb-0.5">Rajadas (km/h)</span>
                         <div className="h-12 w-full">
                           <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={variableChartsData.gusts}>
-                              <YAxis domain={[0, 40]} hide />
+                            <LineChart data={realVariableChartsData.gusts}>
+                              <YAxis domain={[0, 'dataMax + 5']} hide />
                               <XAxis dataKey="time" hide />
-                              <Line type="monotone" dataKey="val" stroke="#eab308" strokeWidth={1.5} dot={false} />
+                              <Line type="monotone" dataKey="val" stroke="#eab308" strokeWidth={1.5} dot={false} connectNulls />
                             </LineChart>
                           </ResponsiveContainer>
                         </div>
                         <div className="flex justify-between text-[7.5px] text-slate-500 mt-0.5">
-                          <span>09:00</span><span>15:00</span><span>21:00</span><span>03:00</span><span>09:00</span>
+                          {weatherHistoryTimeTicks.map((t, i) => <span key={i}>{t}</span>)}
                         </div>
                       </div>
 
@@ -3890,15 +3961,15 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
                         <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 block mb-0.5">Radiação (W/m²)</span>
                         <div className="h-12 w-full">
                           <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={variableChartsData.radiation}>
-                              <YAxis domain={[0, 600]} hide />
+                            <LineChart data={realVariableChartsData.radiation}>
+                              <YAxis domain={[0, 'dataMax + 20']} hide />
                               <XAxis dataKey="time" hide />
-                              <Line type="monotone" dataKey="val" stroke="#eab308" strokeWidth={1.5} dot={false} />
+                              <Line type="monotone" dataKey="val" stroke="#eab308" strokeWidth={1.5} dot={false} connectNulls />
                             </LineChart>
                           </ResponsiveContainer>
                         </div>
                         <div className="flex justify-between text-[7.5px] text-slate-500 mt-0.5">
-                          <span>09:00</span><span>15:00</span><span>21:00</span><span>03:00</span><span>09:00</span>
+                          {weatherHistoryTimeTicks.map((t, i) => <span key={i}>{t}</span>)}
                         </div>
                       </div>
 
@@ -3923,10 +3994,10 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
                         <CloudRain className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
                         <div>
                           <p className="font-bold text-slate-900 dark:text-white leading-tight">
-                            Foram registrados {currentStation.rain24h ? `${currentStation.rain24h.toFixed(1).replace('.', ',')} mm` : '18,4 mm'} de chuva em {currentStation.name} nas últimas 24h
+                            Foram registrados {fmtNum(weatherNow?.rain_24h_mm)} mm de chuva em {currentStation.name} nas últimas 24h
                           </p>
                           <span className="text-[10px] text-slate-400 block mt-0.5">
-                            Acumulado telemetrado pelo pluviômetro local automático
+                            Acumulado calculado a partir da série horária Open-Meteo
                           </span>
                         </div>
                       </div>
@@ -3936,10 +4007,10 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
                         <Wind className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
                         <div>
                           <p className="font-bold text-slate-900 dark:text-white leading-tight">
-                            Ventos predominantemente de {currentStation.wind || '14 km/h NE'} em {currentStation.name}
+                            Ventos de {fmtNum(weatherNow?.wind_speed, 0)} km/h {degToCompass(weatherNow?.wind_direction)} em {currentStation.name}
                           </p>
                           <span className="text-[10px] text-slate-400 block mt-0.5">
-                            Condição aerodinâmica dentro da normalidade
+                            Rajadas de até {fmtNum(weatherNow?.wind_gusts, 0)} km/h
                           </span>
                         </div>
                       </div>
@@ -3949,10 +4020,10 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
                         <Droplets className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
                         <div>
                           <p className="font-bold text-slate-900 dark:text-white leading-tight">
-                            Umidade relativa do ar em {currentStation.humidity || 86}%
+                            Umidade relativa do ar em {fmtNum(weatherNow?.humidity, 0)}%
                           </p>
                           <span className="text-[10px] text-slate-400 block mt-0.5">
-                            Pressão atmosférica: {currentStation.pressure || 1012} hPa
+                            Pressão atmosférica: {fmtNum(weatherNow?.pressure_msl, 0)} hPa
                           </span>
                         </div>
                       </div>
@@ -3962,10 +4033,10 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
                         <Thermometer className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
                         <div>
                           <p className="font-bold text-slate-900 dark:text-white leading-tight">
-                            Temperatura atual registrada em {currentStation.temp ? `${currentStation.temp.toFixed(1).replace('.', ',')} °C` : '22,6 °C'}
+                            Temperatura atual registrada em {fmtNum(weatherNow?.temperature)} °C
                           </p>
                           <span className="text-[10px] text-slate-400 block mt-0.5">
-                            Monitoramento térmico constante
+                            Sensação térmica de {fmtNum(weatherNow?.apparent_temperature)} °C
                           </span>
                         </div>
                       </div>
@@ -3975,10 +4046,10 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
                         <CloudSun className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
                         <div>
                           <p className="font-bold text-slate-900 dark:text-white leading-tight">
-                            {currentStation.rain24h > 10 ? 'Atenção para acúmulo continuado na bacia' : 'Tendência de tempo firme e estabilidade hidrológica'}
+                            {(weatherNow?.rain_24h_mm ?? 0) > 10 ? 'Atenção para acúmulo continuado na bacia' : 'Tendência de tempo firme e estabilidade hidrológica'}
                           </p>
                           <span className="text-[10px] text-slate-400 block mt-0.5">
-                            Atualização a cada 5 minutos sincronizada com Supabase
+                            {minutesAgoLabel(weatherNow?.created_at)} · coleta a cada 30 minutos
                           </span>
                         </div>
                       </div>
@@ -3993,14 +4064,11 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
               <EditableComponent id="centro_meteo_fontes_rodape" name="Rodapé de Fontes Meteorológicas" type="banner">
               <div className="pt-2 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 gap-2 border-t border-slate-200 dark:border-slate-800/80 mt-2">
                 <div>
-                  Dados meteorológicos provenientes de fontes oficiais e estações confiáveis.
+                  Dados meteorológicos reais, coletados automaticamente a cada 30 minutos.
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-slate-400">Fontes:</span>
-                  <span className="px-2 py-0.5 rounded bg-blue-900/60 border border-blue-700/60 text-blue-300 font-bold text-[9px] uppercase">CLIMATEMPO</span>
-                  <span className="px-2 py-0.5 rounded bg-blue-900/60 border border-blue-700/60 text-blue-300 font-bold text-[9px] uppercase">SIGMA</span>
-                  <span className="px-2 py-0.5 rounded bg-blue-900/60 border border-blue-700/60 text-blue-300 font-bold text-[9px] uppercase">INMET</span>
-                  <span className="px-2 py-0.5 rounded bg-amber-950/60 border border-amber-700/60 text-amber-300 font-bold text-[9px] uppercase">REDE PRÓPRIA</span>
+                  <span className="font-semibold text-slate-400">Fonte:</span>
+                  <span className="px-2 py-0.5 rounded bg-blue-900/60 border border-blue-700/60 text-blue-300 font-bold text-[9px] uppercase">OPEN-METEO</span>
                 </div>
               </div>
               </EditableComponent>

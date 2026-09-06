@@ -87,7 +87,7 @@ export class WeatherCollector {
           longitude: String(city.longitude),
           hourly: HOURLY_VARS,
           past_days: '7',
-          forecast_days: '3',
+          forecast_days: '6',
           timezone: 'America/Sao_Paulo',
         });
         const url = `${OPEN_METEO_BASE_URL}?${params.toString()}`;
@@ -144,7 +144,7 @@ export class WeatherCollector {
           });
 
           // Próximas 48h de previsão de chuva
-          const forecastEndIndex = Math.min(hourly.time.length - 1, nowIndex + 48);
+          const forecastEndIndex = Math.min(hourly.time.length - 1, nowIndex + 120);
           for (let i = nowIndex + 1; i <= forecastEndIndex; i++) {
             forecastsToUpsert.push({
               city_id: city.id,
@@ -152,6 +152,7 @@ export class WeatherCollector {
               issued_at: new Date().toISOString(),
               precipitation_mm: hourly.precipitation?.[i] ?? null,
               precipitation_probability: hourly.precipitation_probability?.[i] ?? null,
+              temperature_2m: hourly.temperature_2m?.[i] ?? null,
               source: 'open-meteo',
             });
           }
