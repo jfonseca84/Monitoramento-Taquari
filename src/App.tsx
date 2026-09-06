@@ -272,11 +272,11 @@ export default function App() {
           <div className="space-y-6">
             
             {/* TOP ROW: CITIES SIDEBAR & OPERATIONAL PANEL */}
-            <div className="flex flex-col lg:flex-row gap-6 items-start">
+            <div className="flex flex-col lg:flex-row gap-6 items-stretch">
               
               {/* LEFT COLUMN: CITIES SIDEBAR & LEGEND */}
-              <LayoutBehaviorWrapper pageKey="inicio" componentKey="sidebar" className="w-full lg:w-72 shrink-0">
-                <EditableComponent id="inicio_sidebar_cidades" name="Sidebar de Cidades" type="panel" className="w-full">
+              <LayoutBehaviorWrapper pageKey="inicio" componentKey="sidebar" className="w-full lg:w-72 shrink-0 flex flex-col h-full">
+                <EditableComponent id="inicio_sidebar_cidades" name="Sidebar de Cidades" type="panel" className="w-full h-full flex flex-col flex-1">
                   <CitySidebar
                     cities={cities}
                     selectedCity={selectedCity}

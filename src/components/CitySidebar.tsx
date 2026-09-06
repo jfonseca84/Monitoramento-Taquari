@@ -64,10 +64,10 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
   }
 
   return (
-    <aside className="w-full lg:w-72 flex flex-col gap-5 shrink-0">
+    <aside className="w-full lg:w-72 flex flex-col shrink-0 h-full">
       
       {/* CITIES / STATIONS LIST */}
-      <div className="dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-2xl p-4 shadow-xl transition-colors">
+      <div className="dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-2xl p-4 shadow-xl transition-colors h-full flex flex-col">
         <div className="flex items-center justify-between mb-3 px-1">
           <div className="flex items-center gap-1.5">
             <Waves className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
@@ -101,7 +101,7 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
               className={`flex-1 py-1.5 px-2 rounded-lg transition-all text-center cursor-pointer ${
                 activeBasin === 'taquari'
                   ? 'dark:bg-cyan-950 bg-cyan-100 text-cyan-800 dark:text-cyan-300 dark:border-cyan-800 border-cyan-300 border shadow-sm font-bold'
-                  : 'dark:text-slate-400 text-slate-600 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800/50'
+                : 'dark:text-slate-400 text-slate-600 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800/50'
               }`}
             >
               Vale do Taquari
@@ -119,8 +119,8 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
           </div>
         )}
 
-        {/* CITY / STATION BUTTONS - DISPLAYING ~12 CITIES WITH SCROLLBAR */}
-        <div className="flex flex-col gap-1.5 p-0.5 max-h-[500px] overflow-y-auto custom-scrollbar pr-1">
+        {/* CITY / STATION BUTTONS - EXPANDED TO ALIGN WITH HISTÓRICO DE LEITURAS */}
+        <div className="flex flex-col gap-1.5 p-0.5 flex-1 min-h-[480px] lg:min-h-0 overflow-y-auto custom-scrollbar pr-1">
           {displayedCities.length === 0 ? (
             <p className="text-xs text-slate-500 dark:text-slate-400 text-center py-4">Nenhuma cidade encontrada</p>
           ) : (
