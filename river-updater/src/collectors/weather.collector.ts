@@ -93,7 +93,7 @@ export class WeatherCollector {
         const url = `${OPEN_METEO_BASE_URL}?${params.toString()}`;
 
         try {
-          const response = await fetchWithRetry(url, { headers: { Accept: 'application/json' } }, 2, 800, 10000);
+          const response = await fetchWithRetry(url, { headers: { Accept: 'application/json' } }, 3, 1000, 20000);
           const payload = (await response.json()) as OpenMeteoResponse;
           const hourly = payload.hourly;
           if (!hourly || !Array.isArray(hourly.time) || hourly.time.length === 0) {

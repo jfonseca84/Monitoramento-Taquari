@@ -248,7 +248,6 @@ export class SupabaseService {
     const client = this.getClient();
     const { error } = await client.from('weather_readings').upsert(readings, {
       onConflict: 'city_id, recorded_at',
-      ignoreDuplicates: true,
     });
     if (error) {
       LoggerService.error(this.PREFIX, `Erro na inserção em lote de weather_readings: ${error.message}`);
