@@ -108,6 +108,16 @@ export default function App() {
     }
     return false;
   });
+  // Aviso exibido ao abrir o site: fase de desenvolvimento / não substitui órgãos oficiais
+  const [isDevNoticeOpen, setIsDevNoticeOpen] = useState<boolean>(true);
+  useEffect(() => {
+    if (!isDevNoticeOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsDevNoticeOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isDevNoticeOpen]);
   const [isCameraModalOpen, setIsCameraModalOpen] = useState<boolean>(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState<boolean>(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState<boolean>(false);
@@ -432,6 +442,53 @@ export default function App() {
         cities={cities}
         onRefreshData={loadData}
       />
+
+      {/* AVISO DE SITE EM DESENVOLVIMENTO */}
+      {isDevNoticeOpen && (
+        <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="dev-notice-title"
+            className="dark:bg-[#0F172A] bg-white dark:border-slate-700 border-slate-200 border rounded-3xl max-w-md w-full p-6 shadow-2xl relative animate-fade-in"
+          >
+            <button
+              onClick={() => setIsDevNoticeOpen(false)}
+              aria-label="Fechar aviso"
+              className="absolute top-4 right-4 p-2 dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900 dark:bg-slate-800 bg-slate-100 rounded-full cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-2.5 mb-3 pr-10">
+              <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+              <h3 id="dev-notice-title" className="text-base font-bold dark:text-white text-slate-900">
+                Site em fase de desenvolvimento
+              </h3>
+            </div>
+
+            <div className="space-y-3 text-sm dark:text-slate-300 text-slate-700">
+              <p>
+                Este site ainda está em desenvolvimento e algumas funcionalidades e informações
+                podem estar incompletas ou sujeitas a ajustes.
+              </p>
+              <p className="p-3 rounded-xl dark:bg-amber-950/50 bg-amber-50 dark:border-amber-800 border-amber-300 border font-semibold dark:text-amber-200 text-amber-900">
+                As informações exibidas aqui não substituem as informações e os alertas emitidos
+                pelos órgãos oficiais, como a Defesa Civil e o Serviço Geológico do Brasil (SGB).
+                Em caso de risco, siga sempre as orientações oficiais.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setIsDevNoticeOpen(false)}
+              autoFocus
+              className="mt-5 w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold transition-colors cursor-pointer"
+            >
+              Entendi
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* LIVE CAMERA STREAM MODAL */}
       {isCameraModalOpen && (
