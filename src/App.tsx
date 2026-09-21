@@ -43,7 +43,11 @@ export default function App() {
     return 'inicio';
   });
 
+  // Abas temporariamente desativadas (em desenvolvimento): qualquer caminho até elas não faz nada
+  const DISABLED_TABS = ['cameras', 'alertas', 'receber-alertas'];
+
   const handleTabChange = (tab: string) => {
+    if (DISABLED_TABS.includes(tab)) return;
     setActiveTab(tab);
     if (typeof window !== 'undefined') {
       if (tab === 'defesa-civil') {
@@ -326,7 +330,7 @@ export default function App() {
                           <StatsPanel
                             selectedCity={selectedCity}
                             onOpenDetailModal={() => setIsDetailModalOpen(true)}
-                            onOpenAlertSignup={() => setActiveTab('receber-alertas')}
+                            onOpenAlertSignup={() => handleTabChange('receber-alertas')}
                           />
                         </EditableComponent>
                       </LayoutBehaviorWrapper>
