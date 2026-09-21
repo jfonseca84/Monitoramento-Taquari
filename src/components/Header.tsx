@@ -52,6 +52,13 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'noticias', label: 'NOTÍCIAS' },
   ];
 
+  // Abas temporariamente desativadas (em desenvolvimento): o clique não faz nada
+  const disabledNavItems = ['cameras', 'alertas'];
+  const handleNavClick = (id: string) => {
+    if (disabledNavItems.includes(id)) return;
+    setActiveTab(id);
+  };
+
   const secondaryNavItems = [
     { id: 'sobre', label: 'SOBRE' },
     { id: 'contato', label: 'CONTATO' },
@@ -108,7 +115,8 @@ export const Header: React.FC<HeaderProps> = ({
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => handleNavClick(item.id)}
+                  aria-disabled={disabledNavItems.includes(item.id) || undefined}
                   className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold tracking-wider transition-all duration-200 cursor-pointer whitespace-nowrap ${
                     isActive
                       ? 'dark:text-cyan-400 text-cyan-700 dark:bg-cyan-950/60 bg-cyan-50 dark:border-cyan-800/60 border-cyan-300 shadow-sm border'
@@ -250,7 +258,8 @@ export const Header: React.FC<HeaderProps> = ({
         {primaryNavItems.map((item) => (
           <button
             key={item.id}
-            onClick={() => setActiveTab(item.id)}
+            onClick={() => handleNavClick(item.id)}
+            aria-disabled={disabledNavItems.includes(item.id) || undefined}
             className={`whitespace-nowrap px-3 py-1 rounded-md text-[11px] font-semibold ${
               activeTab === item.id
                 ? 'dark:text-cyan-400 text-cyan-700 dark:bg-cyan-950/80 bg-cyan-50 dark:border-cyan-800 border-cyan-300 border'
