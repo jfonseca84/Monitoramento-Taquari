@@ -12,6 +12,7 @@ export const CITY_THRESHOLDS: Record<string, { normal: number; attention: number
   'Roca Sales': { normal: 12.0, attention: 14.0, alert: 16.0, flood: 18.0 },
   'Lajeado': { normal: 13.0, attention: 15.0, alert: 17.0, flood: 19.0 },
   'Estrela': { normal: 13.0, attention: 15.0, alert: 17.0, flood: 19.0 },
+  'Cruzeiro do Sul': { normal: 13.0, attention: 15.0, alert: 17.0, flood: 19.0 },
   'Bom Retiro do Sul': { normal: 8.0, attention: 9.0, alert: 12.0, flood: 16.5 },
   'Porto Alegre': { normal: 1.5, attention: 2.0, alert: 2.5, flood: 3.0 },
   'São Leopoldo': { normal: 2.5, attention: 3.5, alert: 3.8, flood: 4.5 },
@@ -38,6 +39,7 @@ export const OFFICIAL_CATALOG_CITIES: Omit<DBCity, 'id'>[] = [
   { name: 'Roca Sales', slug: 'rocasales', river: 'Rio Taquari', basin: 'taquari', latitude: -29.2811, longitude: -51.8672, active: true, ordem: 3 },
   { name: 'Lajeado', slug: 'lajeado', river: 'Rio Taquari', basin: 'taquari', latitude: -29.4678, longitude: -51.9614, active: true, ordem: 4 },
   { name: 'Estrela', slug: 'estrela', river: 'Rio Taquari', basin: 'taquari', latitude: -29.5011, longitude: -51.9614, active: true, ordem: 5 },
+  { name: 'Cruzeiro do Sul', slug: 'cruzeirodosul', river: 'Rio Taquari', basin: 'taquari', latitude: -29.5147, longitude: -51.9861, active: true, ordem: 11 },
   { name: 'Bom Retiro do Sul', slug: 'bomretirodosul', river: 'Rio Taquari', basin: 'taquari', latitude: -29.6019, longitude: -51.9482, active: true, ordem: 6 },
   // BACIA DO GUAÍBA
   { name: 'Porto Alegre', slug: 'portoalegre', river: 'Rio Guaíba', basin: 'guaiba', latitude: -30.0346, longitude: -51.2177, active: true, ordem: 7 },
@@ -96,6 +98,7 @@ export const CITY_ALIASES: Record<string, string> = {
   'estacaolajeado': 'lajeado',
   'estrela': 'estrela',
   'estrelataquari': 'estrela',
+  'cruzeirodosul': 'cruzeirodosul',
   'bomretirodosul': 'bomretirodosul',
   'bomretiro': 'bomretirodosul',
   'barragembomretiro': 'bomretirodosul',
@@ -200,7 +203,8 @@ export async function fetchFromNivelGuaiba(baseUrl: string = 'https://nivelguaib
   const cleanBaseUrl = baseUrl.replace(/\/$/, '');
 
   const fetchPromises = catalogCities.map(async (city) => {
-    const fetchSlug = city.slug === 'estrela' ? 'lajeado' : city.slug;
+    // Estrela e Cruzeiro do Sul usam a régua da estação Estrela (Lajeado), conforme o SGB
+    const fetchSlug = (city.slug === 'estrela' || city.slug === 'cruzeirodosul') ? 'lajeado' : city.slug;
     const jsonUrl = `${cleanBaseUrl}/${fetchSlug}.json`;
     const publicPageUrl = `${cleanBaseUrl}/${city.slug === 'portoalegre' ? '' : city.slug}`;
     try {
@@ -416,6 +420,10 @@ export class RiverCollector {
 
           const matchResult = findOfficialCityMatch(rawKey, activeCities);
           if (!matchResult) continue;
+
+          // Roca Sales não tem estação própria na fonte niveldosrios: ela devolve a régua de Encantado como
+          // se fosse Roca Sales. Só a nivelguaiba mede Roca Sales de fato (Ponte de Roca Sales).
+          if (matchResult.city.slug === 'rocasales' && !sourceOrigin.includes('nivelguaiba')) continue;
 
           const targetCity = citiesBySlugMap.get(matchResult.city.slug) || matchResult.city;
           const cityId = targetCity.id;

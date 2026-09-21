@@ -398,10 +398,10 @@ export const INITIAL_CITIES: City[] = [
     rate_of_change: -0.02,
     status_level: 'normal',
     last_updated: getBrasiliaLastUpdatedString(),
-    normal_level: 11.00,
-    attention_level: 13.00,
-    alert_level: 15.00,
-    flood_level: 17.50
+    normal_level: 13.00,
+    attention_level: 15.00,
+    alert_level: 17.00,
+    flood_level: 19.00
   },
   {
     id: '10000000-0000-4000-8000-000000000007',
