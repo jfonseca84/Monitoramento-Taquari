@@ -13,6 +13,12 @@ const CITY_THRESHOLDS: Record<string, { normal: number; attention: number; alert
   'Roca Sales': { normal: 12.0, attention: 14.0, alert: 16.0, flood: 18.0 },
   'Lajeado': { normal: 13.0, attention: 15.0, alert: 17.0, flood: 19.0 },
   'Estrela': { normal: 13.0, attention: 15.0, alert: 17.0, flood: 19.0 },
+  'Linha José Júlio': { normal: 4.0, attention: 6.5, alert: 10.0, flood: 24.5 },
+  'Passo Carreiro': { normal: 3.0, attention: 4.5, alert: 5.5, flood: 6.5 },
+  'Linha Colombo': { normal: 3.0, attention: 4.5, alert: 5.5, flood: 6.5 },
+  'Passo Tainhas': { normal: 2.5, attention: 4.0, alert: 5.5, flood: 10.5 },
+  'Barra do Fão': { normal: 3.5, attention: 5.0, alert: 7.0, flood: 10.0 },
+  'Porto Mariante': { normal: 6.0, attention: 7.0, alert: 11.0, flood: 14.0 },
   'Cruzeiro do Sul': { normal: 13.0, attention: 15.0, alert: 17.0, flood: 19.0 },
   'Bom Retiro do Sul': { normal: 8.0, attention: 9.0, alert: 12.0, flood: 16.5 },
   'Porto Alegre': { normal: 1.5, attention: 2.0, alert: 2.5, flood: 3.0 },
@@ -92,6 +98,12 @@ interface StationPayload {
 const OFFICIAL_CATALOG_CITIES: Omit<DBCity, 'id'>[] = [
   // VALE DO TAQUARI
   { name: 'Santa Tereza', slug: 'santatereza', river: 'Rio Taquari', basin: 'taquari', latitude: -29.1678, longitude: -51.7331, active: true, ordem: 0 },
+  { name: 'Linha José Júlio', slug: 'linhajosejulio', river: 'Rio das Antas', basin: 'taquari', latitude: -29.0645, longitude: -51.6852, active: true, ordem: 1 },
+  { name: 'Passo Carreiro', slug: 'passocarreiro', river: 'Rio Carreiro', basin: 'taquari', latitude: -28.7183, longitude: -51.9344, active: true, ordem: 2 },
+  { name: 'Linha Colombo', slug: 'linhacolombo', river: 'Rio Guaporé', basin: 'taquari', latitude: -28.8458, longitude: -51.8906, active: true, ordem: 3 },
+  { name: 'Passo Tainhas', slug: 'passotainhas', river: 'Rio Tainhas', basin: 'taquari', latitude: -28.9812, longitude: -50.5233, active: true, ordem: 4 },
+  { name: 'Barra do Fão', slug: 'barradofao', river: 'Rio Forqueta', basin: 'taquari', latitude: -29.2783, longitude: -52.0514, active: true, ordem: 5 },
+  { name: 'Porto Mariante', slug: 'portomariante', river: 'Rio Taquari', basin: 'taquari', latitude: -29.6842, longitude: -52.0833, active: true, ordem: 13 },
   { name: 'Muçum', slug: 'mucum', river: 'Rio Taquari', basin: 'taquari', latitude: -29.1672, longitude: -51.8661, active: true, ordem: 1 },
   { name: 'Encantado', slug: 'encantado', river: 'Rio Taquari', basin: 'taquari', latitude: -29.2372, longitude: -51.8708, active: true, ordem: 2 },
   { name: 'Roca Sales', slug: 'rocasales', river: 'Rio Taquari', basin: 'taquari', latitude: -29.2811, longitude: -51.8672, active: true, ordem: 3 },
@@ -255,6 +267,81 @@ function parseKeyToTimeMs(key: string): number {
   return isNaN(t) ? 0 : t;
 }
 
+// Estações sem página nas fontes agregadoras: leitura direta da telemetria pública da ANA (mesma base do SGB/SACE)
+const ANA_STATION_CODES: Record<string, string> = {
+  barradofao: '86780000',
+  passotainhas: '86160000',
+  passocarreiro: '86500000',
+  linhacolombo: '86560000',
+  linhajosejulio: '86472000',
+  portomariante: '86895000'
+};
+
+async function fetchFromANA(catalogCities: DBCity[] = []): Promise<StationPayload[]> {
+  const brDate = (d: Date) => d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  const dataFim = brDate(new Date());
+  const dataInicio = brDate(new Date(Date.now() - 24 * 60 * 60 * 1000));
+
+  const fetchPromises = catalogCities
+    .filter((city) => ANA_STATION_CODES[city.slug])
+    .map(async (city) => {
+      const code = ANA_STATION_CODES[city.slug];
+      const apiUrl = `https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos?CodEstacao=${code}&DataInicio=${encodeURIComponent(dataInicio)}&DataFim=${encodeURIComponent(dataFim)}`;
+      try {
+        const response = await fetchWithRetry(apiUrl, { headers: { 'Accept': 'application/xml' } }, 2, 800, 15000);
+        const xml = await response.text();
+
+        // Leituras: <DataHora>2026-09-21 19:45:00</DataHora> ... <Nivel>558.10</Nivel> (nível em cm)
+        const readings: { ms: number; level: number }[] = [];
+        for (const block of xml.matchAll(/<DadosHidrometereologicos[^>]*>([\s\S]*?)<\/DadosHidrometereologicos>/g)) {
+          const dt = /<DataHora>\s*([^<]*?)\s*<\/DataHora>/.exec(block[1])?.[1];
+          const nivel = /<Nivel>\s*([^<]*?)\s*<\/Nivel>/.exec(block[1])?.[1];
+          if (!dt || !nivel) continue;
+          const levelCm = Number(nivel);
+          const ms = new Date(dt.replace(' ', 'T') + '-03:00').getTime();
+          if (isNaN(levelCm) || isNaN(ms)) continue;
+          readings.push({ ms, level: Number((levelCm / 100).toFixed(2)) });
+        }
+        if (readings.length === 0) return null;
+        readings.sort((a, b) => a.ms - b.ms);
+
+        const last = readings[readings.length - 1];
+        // Descarta estação sem leitura recente (mais de 12 h) para não exibir dado velho como atual
+        if (Date.now() - last.ms > 12 * 60 * 60 * 1000) return null;
+
+        // Variação da última hora (m/h), pela leitura mais próxima de 60 min antes
+        const target = last.ms - 60 * 60 * 1000;
+        let prev = last;
+        let minDiff = Infinity;
+        for (const r of readings) {
+          const diff = Math.abs(r.ms - target);
+          if (diff < minDiff) { minDiff = diff; prev = r; }
+        }
+        const hours = (last.ms - prev.ms) / (1000 * 60 * 60);
+        const rate = hours > 0 ? Number(((last.level - prev.level) / hours).toFixed(4)) : 0;
+        const trend: 'subindo' | 'descendo' | 'estavel' = rate > 0.005 ? 'subindo' : rate < -0.005 ? 'descendo' : 'estavel';
+
+        return {
+          city: city.name,
+          slug: city.slug,
+          source_slug: city.slug,
+          source_url: 'https://www.sgb.gov.br/sace/',
+          api_endpoint: apiUrl,
+          level: last.level,
+          rate,
+          trend,
+          ts: new Date(last.ms).toISOString(),
+          source_origin: 'telemetria.ana.gov.br'
+        } as StationPayload;
+      } catch {
+        return null;
+      }
+    });
+
+  const results = await Promise.all(fetchPromises);
+  return results.filter((r): r is StationPayload => r !== null);
+}
+
 async function fetchFromNivelGuaiba(baseUrl: string = 'https://nivelguaiba.com.br', catalogCities: DBCity[] = []): Promise<StationPayload[]> {
   const cleanBaseUrl = baseUrl.replace(/\/$/, '');
 
@@ -386,6 +473,10 @@ Deno.serve(async (req) => {
     {
       name: 'nivelguaiba.com.br',
       url: (Deno.env.get('GUAIBASOURCE_URL') || 'https://nivelguaiba.com.br/').replace(/\/$/, '')
+    },
+    {
+      name: 'telemetria.ana.gov.br',
+      url: 'https://telemetriaws1.ana.gov.br'
     }
   ];
 
@@ -474,6 +565,8 @@ Deno.serve(async (req) => {
         let items: StationPayload[] = [];
         if (source.name.includes('nivelguaiba') || source.url.includes('nivelguaiba')) {
           items = await fetchFromNivelGuaiba(source.url, activeCities);
+        } else if (source.name.includes('ana.gov.br')) {
+          items = await fetchFromANA(activeCities);
         } else {
           const endpoint = `${source.url}/api/stations`;
           const response = await fetchWithRetry(endpoint, {
