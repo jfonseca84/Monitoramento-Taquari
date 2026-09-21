@@ -59,8 +59,8 @@ export const INITIAL_CITIES: City[] = [
     last_updated: getBrasiliaLastUpdatedString(),
     normal_level: 4.00,
     attention_level: 6.00,
-    alert_level: 8.00,
-    flood_level: 10.00
+    alert_level: 9.00,
+    flood_level: 15.00
   },
   {
     id: '10000000-0000-4000-8000-000000000020',
@@ -89,9 +89,9 @@ export const INITIAL_CITIES: City[] = [
     status_level: 'normal',
     last_updated: getBrasiliaLastUpdatedString(),
     normal_level: 4.00,
-    attention_level: 6.00,
-    alert_level: 8.00,
-    flood_level: 10.50
+    attention_level: 6.50,
+    alert_level: 10.00,
+    flood_level: 24.50
   },
   {
     id: '10000000-0000-4000-8000-000000000021',
@@ -121,8 +121,8 @@ export const INITIAL_CITIES: City[] = [
     last_updated: getBrasiliaLastUpdatedString(),
     normal_level: 3.00,
     attention_level: 4.50,
-    alert_level: 6.50,
-    flood_level: 8.50
+    alert_level: 5.50,
+    flood_level: 6.50
   },
   {
     id: '10000000-0000-4000-8000-000000000022',
@@ -152,8 +152,8 @@ export const INITIAL_CITIES: City[] = [
     last_updated: getBrasiliaLastUpdatedString(),
     normal_level: 3.00,
     attention_level: 4.50,
-    alert_level: 6.50,
-    flood_level: 8.50
+    alert_level: 5.50,
+    flood_level: 6.50
   },
   {
     id: '10000000-0000-4000-8000-000000000023',
@@ -184,7 +184,7 @@ export const INITIAL_CITIES: City[] = [
     normal_level: 2.50,
     attention_level: 4.00,
     alert_level: 5.50,
-    flood_level: 7.50
+    flood_level: 10.50
   },
   {
     id: '10000000-0000-4000-8000-000000000024',
@@ -215,7 +215,7 @@ export const INITIAL_CITIES: City[] = [
     normal_level: 3.50,
     attention_level: 5.00,
     alert_level: 7.00,
-    flood_level: 9.00
+    flood_level: 10.00
   },
   {
     id: '10000000-0000-4000-8000-000000000001',
@@ -243,9 +243,9 @@ export const INITIAL_CITIES: City[] = [
     rate_of_change: -0.08,
     status_level: 'normal',
     last_updated: getBrasiliaLastUpdatedString(),
-    normal_level: 12.00,
-    attention_level: 14.00,
-    alert_level: 16.00,
+    normal_level: 4.00,
+    attention_level: 5.00,
+    alert_level: 9.00,
     flood_level: 18.00
   },
   {
@@ -274,9 +274,9 @@ export const INITIAL_CITIES: City[] = [
     rate_of_change: -0.06,
     status_level: 'normal',
     last_updated: getBrasiliaLastUpdatedString(),
-    normal_level: 6.00,
-    attention_level: 8.00,
-    alert_level: 10.00,
+    normal_level: 4.00,
+    attention_level: 5.00,
+    alert_level: 9.00,
     flood_level: 12.00
   },
   {
@@ -429,10 +429,10 @@ export const INITIAL_CITIES: City[] = [
     rate_of_change: -0.22,
     status_level: 'normal',
     last_updated: getBrasiliaLastUpdatedString(),
-    normal_level: 13.00,
-    attention_level: 15.00,
-    alert_level: 17.00,
-    flood_level: 19.00
+    normal_level: 8.00,
+    attention_level: 9.00,
+    alert_level: 12.00,
+    flood_level: 16.50
   },
   {
     id: '10000000-0000-4000-8000-000000000026',
@@ -460,10 +460,10 @@ export const INITIAL_CITIES: City[] = [
     rate_of_change: -0.04,
     status_level: 'normal',
     last_updated: getBrasiliaLastUpdatedString(),
-    normal_level: 7.00,
-    attention_level: 9.00,
+    normal_level: 6.00,
+    attention_level: 7.00,
     alert_level: 11.00,
-    flood_level: 13.00
+    flood_level: 14.00
   },
   {
     id: '10000000-0000-4000-8000-000000000018',
@@ -491,10 +491,10 @@ export const INITIAL_CITIES: City[] = [
     rate_of_change: -0.08,
     status_level: 'normal',
     last_updated: getBrasiliaLastUpdatedString(),
-    normal_level: 5.00,
-    attention_level: 7.00,
-    alert_level: 9.00,
-    flood_level: 11.00
+    normal_level: 3.00,
+    attention_level: 4.00,
+    alert_level: 6.50,
+    flood_level: 8.50
   },
 
   // --- BACIA DO GUAÍBA (10 CIDADES) ---
@@ -519,7 +519,7 @@ export const INITIAL_CITIES: City[] = [
     status_level: 'normal',
     last_updated: 'Atualizando...',
     normal_level: 1.50,
-    attention_level: 2.10,
+    attention_level: 2.00,
     alert_level: 2.50,
     flood_level: 3.00
   },
@@ -544,7 +544,7 @@ export const INITIAL_CITIES: City[] = [
     status_level: 'normal',
     last_updated: 'Atualizando...',
     normal_level: 2.50,
-    attention_level: 3.20,
+    attention_level: 3.50,
     alert_level: 3.80,
     flood_level: 4.50
   },
@@ -593,10 +593,10 @@ export const INITIAL_CITIES: City[] = [
     rate_of_change: -0.05,
     status_level: 'normal',
     last_updated: 'Atualizando...',
-    normal_level: 4.50,
-    attention_level: 6.00,
-    alert_level: 7.00,
-    flood_level: 8.00
+    normal_level: 2.00,
+    attention_level: 3.00,
+    alert_level: 4.00,
+    flood_level: 6.00
   },
   {
     id: '10000000-0000-4000-8000-000000000012',
@@ -618,10 +618,10 @@ export const INITIAL_CITIES: City[] = [
     rate_of_change: -0.06,
     status_level: 'normal',
     last_updated: 'Atualizando...',
-    normal_level: 5.50,
-    attention_level: 7.00,
-    alert_level: 8.50,
-    flood_level: 10.00
+    normal_level: 4.00,
+    attention_level: 5.00,
+    alert_level: 7.00,
+    flood_level: 10.50
   },
   {
     id: '10000000-0000-4000-8000-000000000010',
