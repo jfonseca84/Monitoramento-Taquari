@@ -298,7 +298,7 @@ export default function App() {
                         <EditableComponent id="inicio_camera_hero" name="Câmera ao Vivo Hero" type="card">
                           <LiveCameraHero
                             selectedCity={selectedCity}
-                            onOpenCameraModal={() => setIsCameraModalOpen(true)}
+                            onOpenCameraModal={() => { /* desativado temporariamente (em desenvolvimento) */ }}
                             onOpenInfoModal={() => setIsInfoModalOpen(true)}
                             onOpenDetailModal={() => setIsDetailModalOpen(true)}
                           />
