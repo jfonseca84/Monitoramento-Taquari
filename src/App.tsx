@@ -78,11 +78,8 @@ export default function App() {
     timeframeRef.current = timeframe;
   }, [timeframe]);
 
-  // Theme State with localStorage persistence
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    const saved = localStorage.getItem('theme');
-    return (saved === 'light' || saved === 'dark') ? saved : 'dark';
-  });
+  // Theme State: sempre abre no modo claro; o usuário ainda pode alternar durante a sessão
+  const [theme, setTheme] = useState<'dark' | 'light'>('light');
 
   useEffect(() => {
     const root = document.documentElement;
