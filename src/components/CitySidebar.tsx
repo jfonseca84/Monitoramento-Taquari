@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { City } from '../types';
-import { Waves, Search } from 'lucide-react';
+import { Waves, Search, ChevronDown } from 'lucide-react';
 import { StatusDot } from './StatusDot';
 import { ConnectionStatusType } from '../lib/supabase';
 
@@ -23,6 +23,8 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
 }) => {
   const [activeBasin, setActiveBasin] = useState<'taquari' | 'guaiba'>('taquari');
   const [searchTerm, setSearchTerm] = useState('');
+  // Somente celular/tablet: a lista de cidades fica recolhida dentro de um menu
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Strict list of allowed Vale do Taquari cities / SGB stations
   const TAQUARI_SLUGS = [
@@ -63,11 +65,40 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
     );
   }
 
+  const currentCity = cities.find((c) => c.id === selectedCity.id || c.slug === selectedCity.slug) || selectedCity;
+  const currentLevelFormatted = typeof currentCity.current_level === 'number' && !isNaN(currentCity.current_level)
+    ? `${currentCity.current_level.toFixed(2).replace('.', ',')} m`
+    : '-- m';
+
   return (
     <aside className="w-full lg:w-72 flex flex-col shrink-0 h-full">
-      
-      {/* CITIES / STATIONS LIST */}
-      <div className="dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-2xl p-4 shadow-xl transition-colors h-full flex flex-col">
+
+      {/* MOBILE MENU TRIGGER (oculto no computador) */}
+      <button
+        type="button"
+        onClick={() => setMobileMenuOpen((open) => !open)}
+        aria-expanded={mobileMenuOpen}
+        aria-controls="city-menu-panel"
+        className="lg:hidden w-full flex items-center justify-between gap-3 px-4 py-3 mb-2 rounded-2xl dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 border shadow-md cursor-pointer"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <StatusDot status={currentCity.status_level} size="md" />
+          <div className="flex flex-col items-start min-w-0">
+            <span className="text-[10px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">Cidade</span>
+            <span className="text-sm font-bold dark:text-white text-slate-900 truncate notranslate" translate="no">{currentCity.name}</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="font-mono text-xs font-bold text-cyan-600 dark:text-cyan-400">{currentLevelFormatted}</span>
+          <ChevronDown className={`w-4 h-4 text-slate-500 dark:text-slate-400 transition-transform ${mobileMenuOpen ? 'rotate-180' : ''}`} />
+        </div>
+      </button>
+
+      {/* CITIES / STATIONS LIST (no celular só aparece com o menu aberto) */}
+      <div
+        id="city-menu-panel"
+        className={`${mobileMenuOpen ? 'flex' : 'hidden'} lg:flex dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-2xl p-4 shadow-xl transition-colors h-full flex-col`}
+      >
         <div className="flex items-center justify-between mb-3 px-1">
           <div className="flex items-center gap-1.5">
             <Waves className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
@@ -120,7 +151,7 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
         )}
 
         {/* CITY / STATION BUTTONS - EXPANDED TO ALIGN WITH HISTÓRICO DE LEITURAS */}
-        <div className="flex flex-col gap-1.5 p-0.5 flex-1 min-h-[480px] lg:min-h-0 overflow-y-auto custom-scrollbar pr-1">
+        <div className="flex flex-col gap-1.5 p-0.5 flex-1 max-h-[55vh] lg:max-h-none lg:min-h-0 overflow-y-auto custom-scrollbar pr-1">
           {displayedCities.length === 0 ? (
             <p className="text-xs text-slate-500 dark:text-slate-400 text-center py-4">Nenhuma cidade encontrada</p>
           ) : (
@@ -133,7 +164,10 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
               return (
                 <button
                   key={city.id}
-                  onClick={() => onSelectCity(city)}
+                  onClick={() => {
+                    onSelectCity(city);
+                    setMobileMenuOpen(false);
+                  }}
                   className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
                     isSelected
                       ? 'dark:bg-[#1E293B] bg-cyan-50/90 dark:border-cyan-700/60 border-cyan-400 dark:text-white text-slate-900 shadow-md ring-1 ring-cyan-500/30'
