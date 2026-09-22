@@ -902,6 +902,92 @@ export interface WeatherReadingRow {
   created_at: string;
 }
 
+export interface RiverLevelPoint {
+  level: number;
+  recorded_at: string;
+}
+
+// Leituras cruas e recentes (alta resolução, sem agregação por hora) para cálculos locais,
+// como extrapolação de tendência. Diferente de fetchCityHistory, que agrega para exibir no gráfico.
+export async function fetchRecentRiverLevels(cityId: string, hours: number = 4): Promise<RiverLevelPoint[]> {
+  if (!cityId || !isSupabaseConfigured || !supabase) return [];
+  try {
+    const sinceIso = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+    const { data, error } = await supabase
+      .from('river_levels')
+      .select('level, recorded_at')
+      .eq('city_id', cityId)
+      .gte('recorded_at', sinceIso)
+      .order('recorded_at', { ascending: true })
+      .limit(200);
+    if (error || !data) return [];
+    return data as RiverLevelPoint[];
+  } catch (e) {
+    console.warn('fetchRecentRiverLevels failed:', e);
+    return [];
+  }
+}
+
+// ==========================================
+// BARRAGENS / RESERVATÓRIOS (vazão) — schema pronto (migration 027), sem coletor automático
+// ainda: não há fonte pública em tempo real localizada para a bacia. Uso previsto: Centro de
+// Análises, quando os dados forem alimentados (manualmente pelo admin ou por um coletor futuro).
+// ==========================================
+export interface DamRow {
+  id: string;
+  name: string;
+  river: string;
+  operator: string | null;
+  dam_type: 'fio_dagua' | 'acumulacao' | string;
+  installed_capacity_mw: number | null;
+  nearest_downstream_city_id: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  active: boolean;
+  notes: string | null;
+}
+
+export interface DamReadingRow {
+  id: string;
+  dam_id: string;
+  recorded_at: string;
+  inflow_m3s: number | null;
+  outflow_m3s: number | null;
+  reservoir_level_m: number | null;
+  spillway_open: boolean | null;
+  source: string | null;
+}
+
+export async function fetchDams(): Promise<DamRow[]> {
+  if (!isSupabaseConfigured || !supabase) return [];
+  try {
+    const { data, error } = await supabase.from('dams').select('*').eq('active', true);
+    if (error || !data) return [];
+    return data as DamRow[];
+  } catch (e) {
+    console.warn('fetchDams failed:', e);
+    return [];
+  }
+}
+
+export async function fetchLatestDamReading(damId: string): Promise<DamReadingRow | null> {
+  if (!damId || !isSupabaseConfigured || !supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('dam_readings')
+      .select('*')
+      .eq('dam_id', damId)
+      .order('recorded_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error || !data) return null;
+    return data as DamReadingRow;
+  } catch (e) {
+    console.warn('fetchLatestDamReading failed:', e);
+    return null;
+  }
+}
+
 export async function fetchLatestWeatherReading(cityId: string): Promise<WeatherReadingRow | null> {
   if (!cityId || !isSupabaseConfigured || !supabase) return null;
   try {
@@ -3038,7 +3124,10 @@ export const DEFAULT_LAYOUT_CONFIGS: PageLayoutConfig[] = [
     page_key: 'inicio',
     component_key: 'operational_panel',
     component_name: 'Painel Operacional Superior',
-    position_mode: 'sticky',
+    // Estava 'sticky': com câmera + gráfico + previsão + dados técnicos + estatísticas juntos,
+    // esse bloco ficou mais alto que a tela, e position:sticky passou a sobrepor o conteúdo
+    // seguinte (Cenário Hidrológico, mapa) em vez de "grudar" de forma útil.
+    position_mode: 'flow',
     sticky_offset: 76,
     enabled: true
   },

@@ -23,6 +23,7 @@ import { SituationDetailModal } from './components/SituationDetailModal';
 import { AssistantChatWidget } from './components/AssistantChatWidget';
 import { TechnicalData } from './components/TechnicalData';
 import { CityWeatherForecast } from './components/CityWeatherForecast';
+import { FloodPeakProjection } from './components/FloodPeakProjection';
 
 import { EditableComponent } from './components/visualEditor/EditableComponent';
 import { AdminEditorBar } from './components/visualEditor/AdminEditorBar';
@@ -324,6 +325,12 @@ export default function App() {
                             timeframe={timeframe}
                             setTimeframe={setTimeframe}
                           />
+                        </EditableComponent>
+                      </LayoutBehaviorWrapper>
+
+                      <LayoutBehaviorWrapper pageKey="inicio" componentKey="flood_peak_projection">
+                        <EditableComponent id="inicio_projecao_pico" name="Projeção de Pico da Cheia" type="widget">
+                          <FloodPeakProjection selectedCity={selectedCity} cities={cities} />
                         </EditableComponent>
                       </LayoutBehaviorWrapper>
                     </div>
