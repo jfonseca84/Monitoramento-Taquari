@@ -16,7 +16,7 @@ export const CITY_THRESHOLDS: Record<string, HydrologicalThresholds> = {
   "Roca Sales": { normal: 12.0, attention: 14.0, alert: 16.0, flood: 18.0, normal_level: 12.0, attention_level: 14.0, alert_level: 16.0, flood_level: 18.0 },
   "Lajeado": { normal: 13.0, attention: 15.0, alert: 17.0, flood: 19.0, normal_level: 13.0, attention_level: 15.0, alert_level: 17.0, flood_level: 19.0 },
   "Estrela": { normal: 13.0, attention: 15.0, alert: 17.0, flood: 19.0, normal_level: 13.0, attention_level: 15.0, alert_level: 17.0, flood_level: 19.0 },
-  "Bom Retiro do Sul": { normal: 8.0, attention: 9.0, alert: 12.0, flood: 16.5, normal_level: 8.0, attention_level: 9.0, alert_level: 12.0, flood_level: 16.5 },
+  "Bom Retiro do Sul": { normal: 13.0, attention: 15.0, alert: 17.0, flood: 19.0, normal_level: 13.0, attention_level: 15.0, alert_level: 17.0, flood_level: 19.0 },
   "Porto Alegre": { normal: 1.5, attention: 2.0, alert: 2.5, flood: 3.0, normal_level: 1.5, attention_level: 2.0, alert_level: 2.5, flood_level: 3.0 },
   "São Leopoldo": { normal: 2.5, attention: 3.5, alert: 3.8, flood: 4.5, normal_level: 2.5, attention_level: 3.5, alert_level: 3.8, flood_level: 4.5 },
   "Gravataí": { normal: 2.5, attention: 3.25, alert: 4.0, flood: 4.75, normal_level: 2.5, attention_level: 3.25, alert_level: 4.0, flood_level: 4.75 },
@@ -31,7 +31,7 @@ export const CITY_THRESHOLDS: Record<string, HydrologicalThresholds> = {
   "Passo Tainhas": { normal: 2.5, attention: 4.0, alert: 5.5, flood: 10.5, normal_level: 2.5, attention_level: 4.0, alert_level: 5.5, flood_level: 10.5 },
   "Taquari": { normal: 3.0, attention: 4.0, alert: 6.5, flood: 8.5, normal_level: 3.0, attention_level: 4.0, alert_level: 6.5, flood_level: 8.5 },
   "Taquara": { normal: 3.0, attention: 4.0, alert: 5.0, flood: 6.0, normal_level: 3.0, attention_level: 4.0, alert_level: 5.0, flood_level: 6.0 },
-  "Cachoeira do Sul": { normal: 12.0, attention: 14.0, alert: 16.0, flood: 18.0, normal_level: 12.0, attention_level: 14.0, alert_level: 16.0, flood_level: 18.0 },
+  "Cachoeira do Sul": { normal: 12.0, attention: 14.0, alert: 16.0, flood: 21.5, normal_level: 12.0, attention_level: 14.0, alert_level: 16.0, flood_level: 21.5 },
   "Dona Francisca": { normal: 4.0, attention: 5.5, alert: 6.5, flood: 7.5, normal_level: 4.0, attention_level: 5.5, alert_level: 6.5, flood_level: 7.5 },
   "Feliz": { normal: 4.5, attention: 6.0, alert: 7.5, flood: 9.0, normal_level: 4.5, attention_level: 6.0, alert_level: 7.5, flood_level: 9.0 }
 };
@@ -72,7 +72,15 @@ export function getCityThresholds(slugOrIdOrCity: any): HydrologicalThresholds {
       Number(city.alert_level) === 6 &&
       Number(city.flood_level) === 8.5;
 
-    if (hasCustomDbThresholds && !isDbColumnDefault) {
+    // Conjunto que a migration 024 gravou para Bom Retiro do Sul: era a cota da estação Eclusa (SGB),
+    // mas o site lê a estação Montante (ANA 86881000), cuja inundação é 19,00 m. Não é cota válida aqui.
+    const isRetiredBomRetiroSet =
+      Number(city.normal_level) === 8 &&
+      Number(city.attention_level) === 9 &&
+      Number(city.alert_level) === 12 &&
+      Number(city.flood_level) === 16.5;
+
+    if (hasCustomDbThresholds && !isDbColumnDefault && !isRetiredBomRetiroSet) {
       const n = Number(city.normal_level);
       const at = Number(city.attention_level);
       const al = Number(city.alert_level);

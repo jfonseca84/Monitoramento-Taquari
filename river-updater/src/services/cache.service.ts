@@ -119,14 +119,15 @@ export class CacheService {
     else if (timeframe === '30d') limit = 500;
     else limit = 1000;
 
-    const { data } = await client
-      .from('river_levels')
-      .select('*')
-      .eq('city_id', cityId)
-      .order('recorded_at', { ascending: true })
-      .limit(limit);
+    // Leituras mais RECENTES da janela pedida (ordem decrescente + limit), devolvidas em ordem cronológica
+    const windowMs: Record<string, number> = { '6h': 6, '12h': 12, '24h': 24, '7d': 168, '30d': 720 };
+    let query = client.from('river_levels').select('*').eq('city_id', cityId);
+    if (windowMs[timeframe]) {
+      query = query.gte('recorded_at', new Date(now - windowMs[timeframe] * 60 * 60 * 1000).toISOString());
+    }
+    const { data } = await query.order('recorded_at', { ascending: false }).limit(limit);
 
-    const result = data || [];
+    const result = (data || []).slice().reverse();
     this.historyCache.set(key, { data: result, cachedAt: now });
     return result;
   }

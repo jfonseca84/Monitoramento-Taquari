@@ -20,7 +20,7 @@ const CITY_THRESHOLDS: Record<string, { normal: number; attention: number; alert
   'Barra do Fão': { normal: 3.5, attention: 5.0, alert: 7.0, flood: 10.0 },
   'Porto Mariante': { normal: 6.0, attention: 7.0, alert: 11.0, flood: 14.0 },
   'Cruzeiro do Sul': { normal: 13.0, attention: 15.0, alert: 17.0, flood: 19.0 },
-  'Bom Retiro do Sul': { normal: 8.0, attention: 9.0, alert: 12.0, flood: 16.5 },
+  'Bom Retiro do Sul': { normal: 13.0, attention: 15.0, alert: 17.0, flood: 19.0 },
   'Porto Alegre': { normal: 1.5, attention: 2.0, alert: 2.5, flood: 3.0 },
   'São Leopoldo': { normal: 2.5, attention: 3.5, alert: 3.8, flood: 4.5 },
   'Gravataí': { normal: 2.5, attention: 3.25, alert: 4.0, flood: 4.75 },
@@ -28,7 +28,7 @@ const CITY_THRESHOLDS: Record<string, { normal: number; attention: number; alert
   'São Sebastião do Caí': { normal: 4.0, attention: 5.0, alert: 7.0, flood: 10.5 },
   'Taquari': { normal: 3.0, attention: 4.0, alert: 6.5, flood: 8.5 },
   'Taquara': { normal: 3.0, attention: 4.0, alert: 5.0, flood: 6.0 },
-  'Cachoeira do Sul': { normal: 12.0, attention: 14.0, alert: 16.0, flood: 18.0 },
+  'Cachoeira do Sul': { normal: 12.0, attention: 14.0, alert: 16.0, flood: 21.5 },
   'Dona Francisca': { normal: 4.0, attention: 5.5, alert: 6.5, flood: 7.5 },
   'Feliz': { normal: 4.5, attention: 6.0, alert: 7.5, flood: 9.0 },
 };
@@ -248,6 +248,12 @@ async function fetchWithRetry(
   throw new Error(`Max retries ou timeout excedido para ${url}`);
 }
 
+// As chaves de data das fontes ("2026-09-21 20:45") estão em horário de Brasília (UTC-3).
+// Sem o offset, o runtime (UTC) gravaria a leitura 3 horas antes do horário real.
+function withBrasiliaOffset(iso: string): string {
+  return /:\d{2}/.test(iso) && !/(Z|[+-]\d{2}:?\d{2})$/.test(iso) ? iso + '-03:00' : iso;
+}
+
 function parseKeyToTimeMs(key: string): number {
   if (!key) return 0;
   if (key.includes('/')) {
@@ -259,11 +265,11 @@ function parseKeyToTimeMs(key: string): number {
       const year = dateParts[2].length === 2 ? `20${dateParts[2]}` : dateParts[2];
       const timePart = parts[1] || '00:00:00';
       const isoStr = `${year}-${month}-${day}T${timePart}`;
-      const t = new Date(isoStr).getTime();
+      const t = new Date(withBrasiliaOffset(isoStr)).getTime();
       if (!isNaN(t)) return t;
     }
   }
-  const t = new Date(key.replace(' ', 'T')).getTime();
+  const t = new Date(withBrasiliaOffset(key.replace(' ', 'T'))).getTime();
   return isNaN(t) ? 0 : t;
 }
 
@@ -630,9 +636,12 @@ Deno.serve(async (req) => {
         const matchResult = findOfficialCityMatch(rawKey, activeCities, stPayload.lat, stPayload.lng);
         if (!matchResult) continue;
 
-        // Roca Sales não tem estação própria na fonte niveldosrios: ela devolve a régua de Encantado como
-        // se fosse Roca Sales. Só a nivelguaiba mede Roca Sales de fato (Ponte de Roca Sales).
-        if (matchResult.city.slug === 'rocasales' && !sourceOrigin.includes('nivelguaiba')) continue;
+        // Cidades cujas fontes usam réguas diferentes: só uma delas é a régua das cotas oficiais.
+        // Roca Sales: a niveldosrios devolve a régua de Encantado. Porto Alegre: a nivelguaiba lê o Gasômetro
+        // (zero 40 cm acima do Cais Mauá, usado nas cotas). Cachoeira do Sul: a nivelguaiba lê Passo São Lourenço.
+        const PREFERRED_SOURCE: Record<string, string> = { rocasales: 'nivelguaiba', portoalegre: 'niveldosrios', cachoeiradosul: 'niveldosrios' };
+        const preferredSource = PREFERRED_SOURCE[matchResult.city.slug];
+        if (preferredSource && !sourceOrigin.includes(preferredSource)) continue;
 
         const canonicalSlug = matchResult.city.slug;
         const targetCity = citiesBySlugMap.get(canonicalSlug) || matchResult.city;
