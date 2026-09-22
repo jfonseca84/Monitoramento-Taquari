@@ -8,30 +8,17 @@ export type { HydrologicalThresholds };
 export function calculateStatusLevel(
   currentLevel: number,
   thresholds: { normal: number; attention: number; alert: number; flood: number },
-  trend?: string,
-  rateOfChange?: number
+  // Mantidos por compatibilidade com quem ainda chama passando tendência/taxa; não são mais
+  // usados no cálculo (ver nota abaixo).
+  _trend?: string,
+  _rateOfChange?: number
 ): LevelStatus {
   const level = Number(currentLevel) || 0;
 
-  // Regra de segurança de confirmação dupla para alerta vermelho (inundação), só perto da cota:
-  // 1. Nível atual atingiu ou ultrapassou a cota de inundação, mas ainda por uma margem pequena
-  //    (até 0,50 m acima) — nessa faixa uma leitura oscilando por ruído pode indicar que o pico
-  //    já passou;
-  // 2. Nessa faixa, exige tendência de subida ('subindo') ou estabilidade/persistência
-  //    (rateOfChange >= 0); se estiver caindo ('descendo'), fica em cota de alerta (amarelo).
-  // Bem acima da cota (mais de 0,50 m), o nível já está em inundação de forma inequívoca — uma
-  // leve queda instantânea não muda isso, então não há confirmação dupla a fazer.
-  const FLOOD_CONFIRMATION_MARGIN = 0.5;
-  if (level >= thresholds.flood) {
-    if (level >= thresholds.flood + FLOOD_CONFIRMATION_MARGIN) {
-      return 'inundacao';
-    }
-    if (!trend || trend === 'subindo' || (trend === 'estavel' && (rateOfChange ?? 0) >= 0)) {
-      return 'inundacao';
-    }
-    return 'alerta';
-  }
-
+  // Status reflete só a faixa em que o nível está agora, sem exceção por tendência: acima da
+  // cota de inundação é sempre inundação; "alerta" só quando o nível está de fato na faixa de
+  // alerta (entre a cota de alerta e a de inundação).
+  if (level >= thresholds.flood) return 'inundacao';
   if (level >= thresholds.alert) return 'alerta';
   if (level >= thresholds.attention) return 'atencao';
   return 'normal';
