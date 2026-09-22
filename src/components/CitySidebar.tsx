@@ -151,7 +151,7 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
         )}
 
         {/* CITY / STATION BUTTONS - EXPANDED TO ALIGN WITH HISTÓRICO DE LEITURAS */}
-        <div className="flex flex-col gap-1.5 p-0.5 flex-1 max-h-[55vh] lg:max-h-none lg:min-h-0 overflow-y-auto custom-scrollbar pr-1">
+        <div className="flex flex-col gap-1.5 p-0.5 flex-1 max-h-[55vh] lg:max-h-[770px] lg:min-h-0 overflow-y-auto custom-scrollbar pr-1">
           {displayedCities.length === 0 ? (
             <p className="text-xs text-slate-500 dark:text-slate-400 text-center py-4">Nenhuma cidade encontrada</p>
           ) : (

@@ -932,10 +932,14 @@ export interface WeatherForecastRow {
 export async function fetchWeatherForecast(cityId: string, limit: number = 120): Promise<WeatherForecastRow[]> {
   if (!cityId || !isSupabaseConfigured || !supabase) return [];
   try {
+    // A tabela acumula toda previsão já coletada (semanas de histórico horário). Sem o filtro
+    // por data, "ascending + limit" pega as linhas mais antigas em vez das próximas ao momento atual.
+    const sixHoursAgoIso = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
     const { data, error } = await supabase
       .from('weather_forecasts')
       .select('*')
       .eq('city_id', cityId)
+      .gte('forecast_for', sixHoursAgoIso)
       .order('forecast_for', { ascending: true })
       .limit(limit);
     if (error || !data) return [];

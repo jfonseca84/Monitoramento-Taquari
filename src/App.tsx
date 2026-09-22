@@ -22,6 +22,7 @@ import { SituationBanner } from './components/SituationBanner';
 import { SituationDetailModal } from './components/SituationDetailModal';
 import { AssistantChatWidget } from './components/AssistantChatWidget';
 import { TechnicalData } from './components/TechnicalData';
+import { CityWeatherForecast } from './components/CityWeatherForecast';
 
 import { EditableComponent } from './components/visualEditor/EditableComponent';
 import { AdminEditorBar } from './components/visualEditor/AdminEditorBar';
@@ -329,6 +330,12 @@ export default function App() {
 
                     {/* RIGHT COLUMN: TECHNICAL DATA & STATS */}
                     <div className="w-full xl:w-80 flex flex-col gap-6 shrink-0">
+                      <LayoutBehaviorWrapper pageKey="inicio" componentKey="weather_forecast">
+                        <EditableComponent id="inicio_previsao_tempo" name="Previsão do Tempo" type="widget">
+                          <CityWeatherForecast selectedCity={selectedCity} />
+                        </EditableComponent>
+                      </LayoutBehaviorWrapper>
+
                       <LayoutBehaviorWrapper pageKey="inicio" componentKey="technical_data">
                         <EditableComponent id="inicio_dados_tecnicos" name="Dados Técnicos e Estações" type="widget">
                           <TechnicalData selectedCity={selectedCity} />
