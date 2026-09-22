@@ -13,11 +13,19 @@ export function calculateStatusLevel(
 ): LevelStatus {
   const level = Number(currentLevel) || 0;
 
-  // Regra de segurança de confirmação dupla para alerta vermelho (inundação):
-  // 1. Nível atual atingiu ou ultrapassou a cota de inundação;
-  // 2. Tendência de subida ('subindo') ou estabilidade/persistência (rateOfChange >= 0).
-  // Se o nível estiver caindo ('descendo'), fica em cota de alerta (amarelo).
+  // Regra de segurança de confirmação dupla para alerta vermelho (inundação), só perto da cota:
+  // 1. Nível atual atingiu ou ultrapassou a cota de inundação, mas ainda por uma margem pequena
+  //    (até 0,50 m acima) — nessa faixa uma leitura oscilando por ruído pode indicar que o pico
+  //    já passou;
+  // 2. Nessa faixa, exige tendência de subida ('subindo') ou estabilidade/persistência
+  //    (rateOfChange >= 0); se estiver caindo ('descendo'), fica em cota de alerta (amarelo).
+  // Bem acima da cota (mais de 0,50 m), o nível já está em inundação de forma inequívoca — uma
+  // leve queda instantânea não muda isso, então não há confirmação dupla a fazer.
+  const FLOOD_CONFIRMATION_MARGIN = 0.5;
   if (level >= thresholds.flood) {
+    if (level >= thresholds.flood + FLOOD_CONFIRMATION_MARGIN) {
+      return 'inundacao';
+    }
     if (!trend || trend === 'subindo' || (trend === 'estavel' && (rateOfChange ?? 0) >= 0)) {
       return 'inundacao';
     }
