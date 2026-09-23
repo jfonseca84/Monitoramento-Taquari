@@ -89,18 +89,17 @@ export const LevelChart: React.FC<LevelChartProps> = ({ selectedCity, chartData 
     return { key: `${r.recorded_at}-${i}`, label, level: r.level, delta };
   });
 
-  // Escala das barras: de pouco abaixo da cota normal (ou do menor nível) até pouco acima da cota
-  // de inundação (ou do maior nível). O comprimento é proporcional ao nível real dentro dessa faixa,
-  // e as marcas mostram onde ficam as cotas de alerta e de inundação.
-  const levels = rows.map((r) => r.level);
-  const scaleMin = Math.max(0, Math.floor(Math.min(thresholds.normal, ...levels) - 1));
-  const scaleTop = Math.max(thresholds.flood, ...levels);
-  const scaleMax = scaleTop + Math.max(0.5, (scaleTop - scaleMin) * 0.05);
-  const toPct = (v: number) => Math.max(0, Math.min(100, ((v - scaleMin) / (scaleMax - scaleMin)) * 100));
-  const markers = [
-    { label: 'Cota de alerta', value: thresholds.alert, color: STATUS_COLORS.alerta },
-    { label: 'Cota de inundação', value: thresholds.flood, color: STATUS_COLORS.inundacao }
-  ];
+  // Barra = nível ÷ cota de inundação (cheia a partir da cota de inundação),
+  // na cor da faixa da leitura: inundação, alerta, atenção ou normal
+  const toPct = (v: number) => (thresholds.flood > 0 ? Math.max(0, Math.min(100, (v / thresholds.flood) * 100)) : 0);
+  const bandColor = (v: number) =>
+    v >= thresholds.flood
+      ? STATUS_COLORS.inundacao
+      : v >= thresholds.alert
+        ? STATUS_COLORS.alerta
+        : v >= thresholds.attention
+          ? STATUS_COLORS.atencao
+          : STATUS_COLORS.normal;
 
   return (
     <section className={`${SURFACE_A} ${SECTION_PAD} pt-14 pb-14 flex flex-col gap-[30px]`}>
@@ -125,16 +124,8 @@ export const LevelChart: React.FC<LevelChartProps> = ({ selectedCity, chartData 
                 className="grid grid-cols-[76px_minmax(0,1fr)_64px_92px] sm:grid-cols-[104px_minmax(0,1fr)_76px_112px] gap-3 sm:gap-4 items-center py-3.5 border-b border-[#333C47]"
               >
                 <span className="text-sm sm:text-base font-extrabold tracking-[-0.02em] whitespace-nowrap">{r.label}</span>
-                <div className="relative h-1.5 bg-[#38414C] rounded-[3px]">
-                  <div className="absolute inset-y-0 left-0 bg-[#3E9BD6] rounded-[3px]" style={{ width: `${pct}%` }} />
-                  {markers.map((m) => (
-                    <span
-                      key={m.label}
-                      aria-hidden="true"
-                      className="absolute -top-[5px] w-0.5 h-4 rounded-full"
-                      style={{ left: `calc(${toPct(m.value)}% - 1px)`, backgroundColor: m.color }}
-                    />
-                  ))}
+                <div className="h-1.5 bg-[#38414C] rounded-[3px] overflow-hidden">
+                  <div className="h-full rounded-[3px]" style={{ width: `${pct}%`, backgroundColor: bandColor(r.level) }} />
                 </div>
                 <span className="text-[13px] font-semibold whitespace-nowrap text-right" style={{ color: up ? '#F2A65A' : '#7DCB9A' }}>
                   {r.delta === null ? '' : `${up ? '▲ +' : down ? '▼ ' : '■ '}${formatLevel(r.delta)}`}
@@ -145,15 +136,6 @@ export const LevelChart: React.FC<LevelChartProps> = ({ selectedCity, chartData 
               </div>
             );
           })}
-          <div className={`flex flex-wrap gap-x-5 gap-y-1 pt-3 text-xs ${MUTED}`}>
-            {markers.map((m) => (
-              <span key={m.label} className="flex items-center gap-1.5">
-                <span className="w-0.5 h-3 rounded-full" style={{ backgroundColor: m.color }} />
-                {m.label} ({formatLevel(m.value)} m)
-              </span>
-            ))}
-            <span>Escala das barras: {formatLevel(scaleMin, 0)} a {formatLevel(scaleMax, 1)} m</span>
-          </div>
         </div>
       )}
     </section>
