@@ -1,5 +1,5 @@
 import React from 'react';
-import { Lock, Pencil } from 'lucide-react';
+import { Lock, Moon, Pencil } from 'lucide-react';
 import { ConnectionStatusType } from '../lib/supabase';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { useVisualEditor } from '../context/VisualEditorContext';
@@ -51,13 +51,13 @@ export const Header: React.FC<HeaderProps> = ({
       : 'Dados em tempo real conectados';
 
   return (
-    <header className="sticky top-0 z-40 h-14 box-border bg-white border-b border-[#E6E9ED] flex items-center gap-6 px-[clamp(16px,3.5vw,64px)] font-[family-name:Figtree,system-ui,sans-serif]">
+    <header className="sticky top-0 z-40 h-14 box-border bg-white border-b border-[#E6E9ED] flex items-center gap-4 md:gap-6 px-[clamp(16px,3.5vw,64px)] font-[family-name:Figtree,system-ui,sans-serif]">
 
       {/* LOGO */}
       <button
         type="button"
         onClick={() => setActiveTab('inicio')}
-        className="flex flex-col leading-[1.05] shrink-0 text-left cursor-pointer"
+        className="flex flex-col leading-[1.05] min-w-0 md:shrink-0 text-left cursor-pointer"
       >
         {settings.logo_url ? (
           <img
@@ -67,10 +67,10 @@ export const Header: React.FC<HeaderProps> = ({
           />
         ) : (
           <>
-            <span className="text-[17px] font-extrabold tracking-[-0.01em] text-[#1B222B] uppercase">
+            <span className="text-[17px] font-extrabold tracking-[-0.01em] text-[#1B222B] uppercase truncate max-w-full">
               {settings.site_name || 'Nível Taquari'}
             </span>
-            <span className="text-[8px] font-extrabold tracking-[0.14em] text-[#1F8FB8] uppercase">
+            <span className="text-[8px] font-extrabold tracking-[0.14em] text-[#1F8FB8] uppercase truncate max-w-full">
               {settings.site_subtitle || 'Monitoramento em tempo real'}
             </span>
           </>
@@ -78,7 +78,7 @@ export const Header: React.FC<HeaderProps> = ({
       </button>
 
       {/* MENU */}
-      <nav className="flex-1 min-w-0 flex justify-center-safe items-center gap-1 overflow-x-auto no-scrollbar" aria-label="Menu principal">
+      <nav className="hidden md:flex flex-1 min-w-0 justify-center-safe items-center gap-1 overflow-x-auto no-scrollbar" aria-label="Menu principal">
         {NAV_ITEMS.map((item) => {
           const enabled = ENABLED_NAV_ITEMS.includes(item.id);
           const active = activeTab === item.id;
@@ -106,7 +106,7 @@ export const Header: React.FC<HeaderProps> = ({
       </nav>
 
       {/* AÇÕES */}
-      <div className="flex items-center gap-3.5 shrink-0">
+      <div className="flex items-center gap-3.5 shrink-0 ml-auto md:ml-0">
         <span
           className={`w-2 h-2 rounded-full ${isSyncing ? 'animate-pulse' : ''}`}
           style={{ backgroundColor: syncColor }}
@@ -127,6 +127,11 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="hidden sm:inline">{isEditMode ? 'Sair da Edição' : 'Editar'}</span>
           </button>
         )}
+
+        {/* Tema: o layout novo é somente escuro (ícone mantido como no modelo) */}
+        <span className="w-8 h-8 flex items-center justify-center text-[#1B222B]" title="Tema escuro" aria-hidden="true">
+          <Moon className="w-4 h-4 fill-current" />
+        </span>
 
         <button
           onClick={onOpenAdmin}

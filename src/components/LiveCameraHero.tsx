@@ -65,7 +65,7 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity }) 
   const isUp = selectedCity.trend === 'subindo';
   const isDown = selectedCity.trend === 'descendo';
   const trendArrow = isUp ? '▲' : isDown ? '▼' : '■';
-  const trendColor = isUp ? '#F2B872' : isDown ? '#8FD4A8' : '#FFFFFF';
+  const trendColor = isUp ? '#F2A65A' : isDown ? '#7DCB9A' : '#FFFFFF';
   const rateStr = isValidNumber(rate) ? `${rate > 0 ? '+' : ''}${formatLevel(rate)} m/h` : '-- m/h';
 
   // Horário da leitura em Brasília; sem data válida mostra "--"
@@ -74,16 +74,20 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity }) 
     (d) => !!d && !isNaN(new Date(d).getTime())
   );
   const hasValidDate = !!rawDate;
+  // Leitura de hoje mostra só a hora (como no modelo); de outro dia, inclui a data
+  const isToday = hasValidDate && getBrasiliaDateString(rawDate) === getBrasiliaDateString();
   const readingLabel = hasValidDate
-    ? `${getBrasiliaDateString(rawDate)} às ${getBrasiliaTimeString(rawDate)}`
+    ? isToday
+      ? `das ${getBrasiliaTimeString(rawDate)}`
+      : `de ${getBrasiliaDateString(rawDate)} às ${getBrasiliaTimeString(rawDate)}`
     : '--';
 
   const quotas = [
-    { label: 'Cota normal', value: thresholds.normal, color: STATUS_COLORS.normal },
-    { label: 'Cota de Atenção', value: thresholds.attention, color: STATUS_COLORS.atencao },
-    { label: 'Cota de Alerta', value: thresholds.alert, color: STATUS_COLORS.alerta },
-    { label: 'Cota de Inundação', value: thresholds.flood, color: STATUS_COLORS.inundacao },
-    { label: 'Máxima no dia', value: maxToday, color: 'currentColor' }
+    { label: 'Cota normal', value: thresholds.attention, prefix: 'até ', color: STATUS_COLORS.normal },
+    { label: 'Cota de Atenção', value: thresholds.attention, prefix: '', color: STATUS_COLORS.atencao },
+    { label: 'Cota de Alerta', value: thresholds.alert, prefix: '', color: STATUS_COLORS.alerta },
+    { label: 'Cota de Inundação', value: thresholds.flood, prefix: '', color: STATUS_COLORS.inundacao },
+    { label: 'Máxima no dia', value: maxToday, prefix: '', color: '#FFFFFF' }
   ];
 
   return (
@@ -124,7 +128,7 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity }) 
             {status ? STATUS_LABELS[status] : '--'}
           </div>
           <div
-            className="flex-1 px-5 py-4 text-sm font-extrabold tracking-[0.03em] rounded-r-[4px] bg-[#3F4955] whitespace-nowrap"
+            className="flex-1 px-5 py-4 text-sm font-extrabold uppercase tracking-[0.03em] rounded-r-[4px] bg-[#3F4955] whitespace-nowrap"
             style={{ color: trendColor }}
           >
             {trendArrow} {rateStr}
@@ -132,7 +136,7 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity }) 
         </div>
 
         <div className={`text-[13px] ${MUTED}`}>
-          Fonte: {selectedCity.source_origin || '--'} — leitura de {readingLabel}
+          Fonte: {selectedCity.source_origin || '--'} — leitura {readingLabel}
         </div>
       </section>
 
@@ -146,7 +150,7 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity }) 
             <div key={q.label} className="flex flex-col gap-0.5 border-l-[3px] pl-3" style={{ borderLeftColor: q.color }}>
               <span className="text-xs font-semibold text-[#C4C8CD] whitespace-nowrap">{q.label}</span>
               <span className="text-xl font-extrabold tracking-[-0.02em] whitespace-nowrap">
-                {isValidNumber(q.value) ? `${formatLevel(q.value)} m` : '--'}
+                {isValidNumber(q.value) ? `${q.prefix}${formatLevel(q.value)} m` : '--'}
               </span>
             </div>
           ))}

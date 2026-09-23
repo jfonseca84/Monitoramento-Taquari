@@ -6,6 +6,7 @@ import { getBrasiliaDateString, getBrasiliaTimeString } from '../lib/dateUtils';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 
 const LOGOS_PER_VIEW = 5;
+const LOGO_SLOTS = 20;
 const LOGO_INTERVAL_MS = 3000;
 
 interface FooterProps {
@@ -46,10 +47,9 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
   // Somente patrocinadores ativos reais (com logo ou nome)
   const activeSponsors = sponsors.filter(s => s.active && (s.logo_url || s.name));
 
-  // Carrossel: 5 por vez; com menos de 5 os espaços restantes mostram "LOGO"
-  const slots: (Sponsor | null)[] = activeSponsors.length >= LOGOS_PER_VIEW
-    ? activeSponsors
-    : Array.from({ length: LOGOS_PER_VIEW }, (_, i) => activeSponsors[i] || null);
+  // Carrossel: 20 espaços (5 por vez); os que não têm parceiro ativo mostram "LOGO"
+  const slotCount = Math.max(LOGO_SLOTS, activeSponsors.length);
+  const slots: (Sponsor | null)[] = Array.from({ length: slotCount }, (_, i) => activeSponsors[i] || null);
   const canRotate = slots.length > LOGOS_PER_VIEW;
   const loopSlots = canRotate ? [...slots, ...slots] : slots;
   const pageCount = Math.ceil(slots.length / LOGOS_PER_VIEW);
@@ -132,8 +132,8 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
           A plataforma Nível Rio Taquari realiza o acompanhamento dos níveis dos rios da Bacia Taquari-Antas, com foco no Rio Taquari e seus principais afluentes (como os rios das Antas, Guaporé, Forqueta, Fão, Carreiro e Prata), oferecendo informações em tempo real e prevenção para o Vale do Taquari. Este projeto existe graças às empresas que acreditam na informação de qualidade e na proteção da população regional.
         </p>
 
-        {/* 2. EMPRESAS PARCEIRAS (CARROSSEL) — oculto quando não há patrocinadores ativos */}
-        {activeSponsors.length > 0 && (
+        {/* 2. EMPRESAS PARCEIRAS (CARROSSEL) */}
+        {slots.length > 0 && (
           <div className="flex flex-col gap-[18px] min-w-0">
             <div className="flex items-center gap-4">
               <span className="flex-1 h-px bg-[#3A434E]" />
