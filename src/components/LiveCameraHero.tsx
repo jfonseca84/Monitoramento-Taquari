@@ -116,12 +116,10 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity }) 
       ? latestReading
       : null;
   const readingDate = reading && !isNaN(new Date(reading.recorded_at).getTime()) ? reading.recorded_at : null;
-  // Leitura de hoje mostra só a hora; de outro dia, inclui a data (a fonte fica no rodapé)
+  // Formato: "23/09/2026 • Última atualização às 06h40" (a fonte fica no rodapé)
   const readingLabel = readingDate
-    ? getBrasiliaDateString(readingDate) === getBrasiliaDateString()
-      ? `às ${getBrasiliaTimeString(readingDate)}`
-      : `em ${getBrasiliaDateString(readingDate)} às ${getBrasiliaTimeString(readingDate)}`
-    : '--';
+    ? `${getBrasiliaDateString(readingDate)} • Última atualização às ${getBrasiliaTimeString(readingDate).replace(':', 'h')}`
+    : 'Última atualização: --';
 
   const quotas = [
     { label: 'Cota normal', value: thresholds.attention, prefix: 'até ', color: STATUS_COLORS.normal },
@@ -177,7 +175,7 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity }) 
         </div>
 
         <div className={`text-[13px] ${MUTED}`}>
-          Última medição {readingLabel}
+          {readingLabel}
         </div>
       </section>
 
