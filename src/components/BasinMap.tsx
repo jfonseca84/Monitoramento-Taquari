@@ -358,29 +358,59 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
           <g>
             {drawOrder.map(({ city, p }) => {
               const on = isSelected(city);
+              const flooding = city.status_level === 'inundacao';
+              const baseR = on ? 6 : 3.8;
               return (
-                <circle
-                  key={city.id}
-                  cx={p[0]}
-                  cy={p[1]}
-                  r={on ? 6 : 3.8}
-                  fill={statusColor(city)}
-                  stroke={on ? C_INK : '#FFFFFF'}
-                  strokeWidth={on ? 2 : 1.2}
-                  className="cursor-pointer"
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`${city.name}: ${formatLevel(city.current_level)} m`}
-                  onClick={() => onSelectCity(city)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      onSelectCity(city);
-                    }
-                  }}
-                >
-                  <title>{`${city.name} · ${formatLevel(city.current_level)} m`}</title>
-                </circle>
+                <React.Fragment key={city.id}>
+                  {/* Onda de alerta: só para estações em inundação, some atrás do marcador */}
+                  {flooding && (
+                    <>
+                      <circle
+                        cx={p[0]}
+                        cy={p[1]}
+                        r={baseR}
+                        fill="none"
+                        stroke={STATUS_COLORS.inundacao}
+                        strokeWidth={1.5}
+                        vectorEffect="non-scaling-stroke"
+                        pointerEvents="none"
+                        className="flood-ping-ring"
+                      />
+                      <circle
+                        cx={p[0]}
+                        cy={p[1]}
+                        r={baseR}
+                        fill="none"
+                        stroke={STATUS_COLORS.inundacao}
+                        strokeWidth={1.5}
+                        vectorEffect="non-scaling-stroke"
+                        pointerEvents="none"
+                        className="flood-ping-ring flood-ping-ring--delayed"
+                      />
+                    </>
+                  )}
+                  <circle
+                    cx={p[0]}
+                    cy={p[1]}
+                    r={baseR}
+                    fill={statusColor(city)}
+                    stroke={on ? C_INK : '#FFFFFF'}
+                    strokeWidth={on ? 2 : 1.2}
+                    className="cursor-pointer"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`${city.name}: ${formatLevel(city.current_level)} m`}
+                    onClick={() => onSelectCity(city)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onSelectCity(city);
+                      }
+                    }}
+                  >
+                    <title>{`${city.name} · ${formatLevel(city.current_level)} m`}</title>
+                  </circle>
+                </React.Fragment>
               );
             })}
             {labels.stations.map((l) => {
