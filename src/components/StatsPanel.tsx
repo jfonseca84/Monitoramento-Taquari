@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { City } from '../types';
 import { getCityThresholds } from '../data/cityThresholds';
 import { Link as LinkIcon, Check, MessageSquare, AlertTriangle, Bell, ShieldAlert } from 'lucide-react';
-import { StatusDot } from './StatusDot';
+import { STATUS_LABELS, formatLevel } from './homeTheme';
 
 interface StatsPanelProps {
   selectedCity: City;
@@ -24,12 +24,13 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
   const alertVal = thresholds.alert;
   const floodVal = thresholds.flood;
 
-  const currentLevelVal = Number(selectedCity?.current_level) || 3.12;
-  const currentLevelStr = currentLevelVal.toFixed(2).replace('.', ',');
+  // Sem fallback numérico: nível ausente aparece como "--"
+  const currentLevelStr = formatLevel(selectedCity?.current_level);
+  const statusStr = selectedCity.status_level ? STATUS_LABELS[selectedCity.status_level].toUpperCase() : '--';
 
   const handleShareWhatsApp = () => {
     const text = encodeURIComponent(
-      `🌊 Rio Taquari em ${selectedCity.name}: Nível Atual ${currentLevelStr} m (${selectedCity.status_level?.toUpperCase()}). Acompanhe no Portal de Monitoramento: ${window.location.href}`
+      `🌊 Rio Taquari em ${selectedCity.name}: Nível Atual ${currentLevelStr} m (${statusStr}). Acompanhe no Portal de Monitoramento: ${window.location.href}`
     );
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };
@@ -60,15 +61,15 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
       <button
         type="button"
         onClick={onOpenAlertSignup}
-        className="w-full bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 border border-cyan-500/40 hover:border-cyan-400 py-2.5 px-3 rounded-full flex items-center justify-center gap-2 transition-all cursor-pointer text-[10px] sm:text-[11px] font-bold uppercase tracking-normal group shadow-sm text-center leading-tight"
+        className="w-full bg-[#35566B] hover:bg-[#42708C] text-white py-2.5 px-3 rounded-md flex items-center justify-center gap-2 transition-all cursor-pointer text-[10px] sm:text-[11px] font-bold uppercase tracking-normal group shadow-sm text-center leading-tight"
       >
-        <ShieldAlert className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform shrink-0" />
+        <ShieldAlert className="w-4 h-4 text-[#7CC3E6] group-hover:scale-110 transition-transform shrink-0" />
         <span>CADASTRO DE ALERTA PARA ÁREAS DE RISCO</span>
       </button>
 
       {/* SHARE CARD */}
-      <div className="dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-2xl p-5 shadow-xl transition-colors">
-        <h3 className="text-xs font-bold dark:text-slate-300 text-slate-700 tracking-wider uppercase mb-3.5">
+      <div className="dark:bg-[#353E49] bg-[#F4F6F8] border dark:border-[#434C57] border-[#D5DAE0] rounded-[10px] p-5 transition-colors">
+        <h3 className="text-xs font-extrabold dark:text-[#C4C8CD] text-[#58616B] tracking-wider uppercase mb-3.5">
           COMPARTILHAR NÍVEL ATUAL
         </h3>
 

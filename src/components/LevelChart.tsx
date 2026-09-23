@@ -1,18 +1,7 @@
-import React, { useState } from 'react';
-import { AlertCircle } from 'lucide-react';
-import {
-  ResponsiveContainer,
-  ComposedChart,
-  Area,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ReferenceLine,
-  CartesianGrid
-} from 'recharts';
+import React from 'react';
 import { Timeframe, ChartDataPoint, City } from '../types';
 import { getCityThresholds } from '../data/cityThresholds';
+import { SURFACE_A, LINE, MUTED, SECTION_PAD, formatLevel, isValidNumber } from './homeTheme';
 
 interface LevelChartProps {
   selectedCity: City;
@@ -21,6 +10,9 @@ interface LevelChartProps {
   setTimeframe: (tf: Timeframe) => void;
 }
 
+const MAX_LIST_ROWS = 12;
+
+// "Nível ao longo do dia": leituras reais do histórico, mais recentes primeiro
 export const LevelChart: React.FC<LevelChartProps> = ({
   selectedCity,
   chartData,
@@ -28,95 +20,46 @@ export const LevelChart: React.FC<LevelChartProps> = ({
   setTimeframe
 }) => {
   const timeframes: { id: Timeframe; label: string }[] = [
-    { id: '6h', label: '6 HORAS' },
-    { id: '12h', label: '12 HORAS' },
-    { id: '24h', label: '24 HORAS' },
-    { id: '7d', label: '7 DIAS' },
-    { id: '30d', label: '30 DIAS' },
-    { id: 'all', label: 'TODO PERÍODO' }
+    { id: '6h', label: '6 h' },
+    { id: '12h', label: '12 h' },
+    { id: '24h', label: '24 h' },
+    { id: '7d', label: '7 dias' },
+    { id: '30d', label: '30 dias' },
+    { id: 'all', label: 'Tudo' }
   ];
 
-  const currentLevel = Number(selectedCity?.current_level) || 3.12;
+  const floodLevel = getCityThresholds(selectedCity).flood;
 
-  const thresholds = getCityThresholds(selectedCity);
-  const floodLevel = thresholds.flood;
-  const alertLevel = thresholds.alert;
-  const attentionLevel = thresholds.attention;
-  const normalLevel = thresholds.normal;
+  const points = (chartData || []).filter((d) => isValidNumber(Number(d?.level)));
 
-  const validLevels = (chartData || [])
-    .map((d) => Number(d?.level))
-    .filter((lvl) => typeof lvl === 'number' && !isNaN(lvl));
-
-  const maxDataLevel = validLevels.length > 0 ? Math.max(...validLevels, currentLevel, floodLevel) : Math.max(currentLevel, floodLevel);
-  const minDataLevel = validLevels.length > 0 ? Math.min(...validLevels, currentLevel, normalLevel) : Math.min(currentLevel, normalLevel);
-
-  const yMin = 12;
-  const yMax = 34;
-  const yTicks = [12, 15, 18, 21, 24, 27, 30, 34];
-
-  // Custom Dark Tooltip
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      const levelVal = data.level;
-
-      let statusLabel = 'Normal';
-      let statusColor = 'text-emerald-400 bg-emerald-950/80 border-emerald-800';
-
-      if (levelVal >= floodLevel) {
-        statusLabel = 'Inundação';
-        statusColor = 'text-red-400 bg-red-950/80 border-red-800';
-      } else if (levelVal >= alertLevel) {
-        statusLabel = 'Alerta';
-        statusColor = 'text-orange-400 bg-orange-950/80 border-orange-800';
-      } else if (levelVal >= attentionLevel) {
-        statusLabel = 'Atenção';
-        statusColor = 'text-amber-300 bg-amber-950/80 border-amber-800';
-      }
-
-      return (
-        <div className="dark:bg-[#0F172A] bg-white dark:border-slate-700 border-slate-300 p-3 rounded-xl shadow-2xl text-xs font-sans">
-          <p className="dark:text-slate-400 text-slate-600 mb-1 font-mono">Horário: <span className="dark:text-white text-slate-900 font-semibold">{label}</span></p>
-          <div className="flex items-center gap-2 my-1">
-            <span className="dark:text-slate-300 text-slate-700">Nível do Rio:</span>
-            <span className="text-cyan-600 dark:text-cyan-400 font-mono font-bold text-sm">
-              {levelVal.toFixed(2).replace('.', ',')} m
-            </span>
-          </div>
-          <span className={`inline-block px-2 py-0.5 mt-1 rounded-md border text-[10px] font-bold ${statusColor}`}>
-            {statusLabel}
-          </span>
-        </div>
-      );
-    }
-    return null;
-  };
+  // Variação de cada leitura em relação à anterior
+  const rows = points
+    .map((p, i) => {
+      const level = Number(p.level);
+      const prev = i > 0 ? Number(points[i - 1].level) : null;
+      return { key: `${p.timestamp}-${i}`, time: p.time, level, delta: prev !== null ? level - prev : null };
+    })
+    .reverse()
+    .slice(0, MAX_LIST_ROWS);
 
   return (
-    <div className="dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-2xl p-4 sm:p-5 shadow-2xl flex flex-col justify-between transition-colors">
-      
-      {/* HEADER & PERIOD SELECTOR */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-        <div>
-          <h3 className="text-xs font-bold dark:text-slate-400 text-slate-500 tracking-wider uppercase">
-            HISTÓRICO DE LEITURAS DA ESTAÇÃO
-          </h3>
-          <p className="text-sm font-bold dark:text-white text-slate-900 mt-0.5">
-            Evolução do Nível ({selectedCity.name})
-          </p>
+    <section className={`${SURFACE_A} ${SECTION_PAD} py-12 sm:py-14 flex flex-col gap-[30px]`}>
+
+      {/* TÍTULO & SELETOR DE PERÍODO */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="leading-[1.2]">
+          <div className="text-lg font-light">Nível ao</div>
+          <div className="text-[26px] font-extrabold">Longo do dia</div>
         </div>
 
-        {/* TIMEFRAME BUTTONS */}
-        <div className="flex items-center gap-1 overflow-x-auto touch-pan-x max-w-full no-scrollbar dark:bg-slate-900/80 bg-slate-100 p-1 rounded-xl dark:border-slate-800 border-slate-200 border w-full sm:w-auto">
+        <div className="flex items-center gap-1 overflow-x-auto touch-pan-x max-w-full no-scrollbar">
           {timeframes.map((tf) => (
             <button
               key={tf.id}
               onClick={() => setTimeframe(tf.id)}
-              className={`whitespace-nowrap px-2.5 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-bold transition-all cursor-pointer shrink-0 ${
-                timeframe === tf.id
-                  ? 'dark:bg-[#1E293B] bg-white text-cyan-700 dark:text-cyan-400 dark:border-cyan-800 border-cyan-300 border shadow-md'
-                  : 'dark:text-slate-400 text-slate-600 hover:text-slate-900 dark:hover:text-slate-200'
+              aria-pressed={timeframe === tf.id}
+              className={`whitespace-nowrap px-2.5 py-1.5 rounded-[4px] text-xs font-bold transition-colors cursor-pointer shrink-0 ${
+                timeframe === tf.id ? 'bg-white text-[#2B333D]' : `${MUTED} hover:bg-[#3A434E]`
               }`}
             >
               {tf.label}
@@ -125,124 +68,39 @@ export const LevelChart: React.FC<LevelChartProps> = ({
         </div>
       </div>
 
-      {/* RECHARTS CANVAS */}
-      <div className="relative w-full h-[190px] sm:h-[210px]">
-        
-        {/* INSUFFICIENT DATA OVERLAY */}
-        {(!chartData || chartData.length < 2) && (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-xs rounded-2xl text-center p-4 border border-slate-800/60">
-            <AlertCircle className="w-8 h-8 text-amber-400 mb-2 animate-pulse" />
-            <p className="text-xs sm:text-sm font-bold text-slate-200">
-              Ainda não há histórico suficiente para exibir este período.
-            </p>
-            <p className="text-[11px] text-slate-400 mt-1">
-              As medições telemétricas estão sendo registradas continuamente.
-            </p>
-          </div>
-        )}
-
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart
-            data={chartData}
-            margin={{ top: 15, right: 20, left: -20, bottom: 0 }}
-          >
-            <defs>
-              <linearGradient id="levelGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#0284C7" stopOpacity={0.6} />
-                <stop offset="95%" stopColor="#0284C7" stopOpacity={0.0} />
-              </linearGradient>
-            </defs>
-
-            <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" vertical={false} />
-
-            <XAxis
-              dataKey="time"
-              stroke="#64748B"
-              fontSize={10}
-              tickLine={false}
-              minTickGap={25}
-              axisLine={{ stroke: '#1E293B' }}
-            />
-
-            <YAxis
-              domain={[yMin, yMax]}
-              ticks={yTicks}
-              stroke="#64748B"
-              fontSize={10}
-              tickLine={false}
-              axisLine={{ stroke: '#1E293B' }}
-              tickFormatter={(val) => `${val.toFixed(2)}`}
-            />
-
-            <Tooltip content={<CustomTooltip />} />
-
-            {/* REFERENCE LINES FOR THRESHOLDS */}
-            <ReferenceLine
-              y={floodLevel}
-              stroke="#EF4444"
-              strokeDasharray="4 4"
-              strokeWidth={1.5}
-            />
-            <ReferenceLine
-              y={alertLevel}
-              stroke="#F97316"
-              strokeDasharray="4 4"
-              strokeWidth={1.5}
-            />
-            <ReferenceLine
-              y={attentionLevel}
-              stroke="#EAB308"
-              strokeDasharray="4 4"
-              strokeWidth={1.5}
-            />
-            <ReferenceLine
-              y={normalLevel}
-              stroke="#22C55E"
-              strokeDasharray="4 4"
-              strokeWidth={1.5}
-            />
-
-            {/* AREA UNDER LINE */}
-            <Area
-              type="monotone"
-              dataKey="level"
-              stroke="none"
-              fill="url(#levelGradient)"
-            />
-
-            {/* MAIN GLOWING BLUE LINE */}
-            <Line
-              type="monotone"
-              dataKey="level"
-              stroke="#38BDF8"
-              strokeWidth={3}
-              dot={{ r: 3, fill: '#38BDF8', stroke: '#0284C7', strokeWidth: 2 }}
-              activeDot={{ r: 6, fill: '#38BDF8', stroke: '#FFFFFF', strokeWidth: 2 }}
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* CHART THRESHOLDS LEGEND AT BOTTOM */}
-      <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-4 pt-3 dark:border-slate-800/80 border-slate-200 border-t text-[11px] font-medium dark:text-slate-300 text-slate-700">
-        <div className="flex items-center gap-1.5">
-          <span className="w-3 h-0.5 bg-red-500 rounded-full" />
-          <span>Inundação ({floodLevel.toFixed(2).replace('.', ',')}m)</span>
+      {rows.length === 0 ? (
+        <p className={`text-sm ${MUTED}`}>
+          Ainda não há histórico suficiente para exibir este período. As medições são registradas continuamente.
+        </p>
+      ) : (
+        <div className="flex flex-col">
+          {rows.map((r) => {
+            const pct = floodLevel > 0 ? Math.max(0, Math.min(100, (r.level / floodLevel) * 100)) : 0;
+            const up = r.delta !== null && r.delta > 0.005;
+            const down = r.delta !== null && r.delta < -0.005;
+            return (
+              <div
+                key={r.key}
+                className={`grid grid-cols-[64px_minmax(0,1fr)_auto_auto] sm:grid-cols-[96px_minmax(0,1fr)_auto_auto] gap-3 sm:gap-4 items-center py-3.5 border-b ${LINE}`}
+              >
+                <span className="text-sm sm:text-base font-extrabold tracking-[-0.02em] whitespace-nowrap">{r.time}</span>
+                <div className="h-1.5 bg-[#38414C] rounded-[3px] overflow-hidden">
+                  <div className="h-full bg-[#5AA9D6]" style={{ width: `${pct}%` }} />
+                </div>
+                <span
+                  className="text-[13px] font-semibold whitespace-nowrap"
+                  style={{ color: up ? '#F2B872' : '#8FD4A8' }}
+                >
+                  {r.delta === null ? '' : `${up ? '▲ +' : down ? '▼ ' : '■ '}${formatLevel(r.delta)}`}
+                </span>
+                <span className="text-xl sm:text-2xl font-extrabold tracking-[-0.03em] text-right whitespace-nowrap">
+                  {formatLevel(r.level)} m
+                </span>
+              </div>
+            );
+          })}
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-3 h-0.5 bg-orange-500 rounded-full" />
-          <span>Alerta ({alertLevel.toFixed(2).replace('.', ',')}m)</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-3 h-0.5 bg-amber-400 rounded-full" />
-          <span>Atenção ({attentionLevel.toFixed(2).replace('.', ',')}m)</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-3 h-0.5 bg-emerald-400 rounded-full" />
-          <span>Normal ({normalLevel.toFixed(2).replace('.', ',')}m)</span>
-        </div>
-      </div>
-
-    </div>
+      )}
+    </section>
   );
 };

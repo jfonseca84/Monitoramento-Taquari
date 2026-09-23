@@ -1,5 +1,6 @@
 import React from 'react';
 import { LevelStatus } from '../types';
+import { STATUS_COLORS } from './homeTheme';
 
 interface StatusDotProps {
   status?: LevelStatus;
@@ -13,9 +14,10 @@ export const StatusDot: React.FC<StatusDotProps> = ({
   className = ''
 }) => {
   const isFlood = status === 'inundacao';
+  const color = STATUS_COLORS[status] || STATUS_COLORS.normal;
 
   const dotSizes = {
-    sm: 'w-2 h-2',
+    sm: 'w-[7px] h-[7px]',
     md: 'w-2.5 h-2.5',
     lg: 'w-3.5 h-3.5'
   };
@@ -33,27 +35,22 @@ export const StatusDot: React.FC<StatusDotProps> = ({
         className={`relative inline-flex items-center justify-center shrink-0 mx-1 ${containerSizes[size]} ${className}`}
       >
         {/* Onda sonora / sonar 1 */}
-        <span className="absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75 animate-sonar-1 pointer-events-none" />
+        <span className="absolute inline-flex h-full w-full rounded-full opacity-75 animate-sonar-1 pointer-events-none" style={{ backgroundColor: color }} />
         {/* Onda sonora / sonar 2 (atrasada) */}
-        <span className="absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-50 animate-sonar-2 pointer-events-none" />
+        <span className="absolute inline-flex h-full w-full rounded-full opacity-50 animate-sonar-2 pointer-events-none" style={{ backgroundColor: color }} />
         {/* Bolinha vermelha piscando */}
         <span
-          className={`relative inline-flex rounded-full bg-red-500 shadow-lg shadow-red-500/90 animate-alert-blink ${dotSizes[size]}`}
+          className={`relative inline-flex rounded-full animate-alert-blink ${dotSizes[size]}`}
+          style={{ backgroundColor: color }}
         />
       </span>
     );
   }
 
-  const colorMap: Record<LevelStatus, string> = {
-    inundacao: 'bg-red-500 shadow-red-500/50',
-    alerta: 'bg-orange-500 shadow-orange-500/50 animate-pulse',
-    atencao: 'bg-amber-400 shadow-amber-400/50',
-    normal: 'bg-emerald-400 shadow-emerald-400/50'
-  };
-
   return (
     <span
-      className={`inline-block rounded-full shrink-0 shadow-sm ${dotSizes[size]} ${colorMap[status]} ${className}`}
+      className={`inline-block rounded-full shrink-0 ${dotSizes[size]} ${status === 'alerta' ? 'animate-pulse' : ''} ${className}`}
+      style={{ backgroundColor: color }}
     />
   );
 };

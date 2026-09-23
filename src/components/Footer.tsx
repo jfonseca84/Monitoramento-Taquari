@@ -5,7 +5,14 @@ import { fetchSponsors } from '../lib/supabase';
 import { getBrasiliaDateString, getBrasiliaTimeString } from '../lib/dateUtils';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 
-export const Footer: React.FC = () => {
+const LOGOS_PER_VIEW = 5;
+const LOGO_INTERVAL_MS = 3000;
+
+interface FooterProps {
+  className?: string;
+}
+
+export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const { settings } = useSiteSettings();
 
@@ -36,106 +43,160 @@ export const Footer: React.FC = () => {
   const formattedTime = getBrasiliaTimeString();
   const year = new Date().getFullYear();
 
-
-  // Build grid items up to 20 slots
-  // Filter active sponsors that have a valid logo or name
+  // Somente patrocinadores ativos reais (com logo ou nome)
   const activeSponsors = sponsors.filter(s => s.active && (s.logo_url || s.name));
-  
-  // Construct 20 grid slots
-  const gridSlots: (Sponsor | null)[] = Array.from({ length: 20 }, (_, index) => {
-    return activeSponsors[index] || null;
-  });
+
+  // Carrossel: 5 por vez; com menos de 5 os espaços restantes mostram "LOGO"
+  const slots: (Sponsor | null)[] = activeSponsors.length >= LOGOS_PER_VIEW
+    ? activeSponsors
+    : Array.from({ length: LOGOS_PER_VIEW }, (_, i) => activeSponsors[i] || null);
+  const canRotate = slots.length > LOGOS_PER_VIEW;
+  const loopSlots = canRotate ? [...slots, ...slots] : slots;
+  const pageCount = Math.ceil(slots.length / LOGOS_PER_VIEW);
+
+  const [logoIdx, setLogoIdx] = useState(0);
+  const [skipTransition, setSkipTransition] = useState(false);
+  const [paused, setPaused] = useState(false);
+
+  // Avança 1 posição a cada 3 s (pausa no hover)
+  useEffect(() => {
+    if (!canRotate || paused) return;
+    const timer = setInterval(() => {
+      setSkipTransition(false);
+      setLogoIdx((i) => i + 1);
+    }, LOGO_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [canRotate, paused, logoIdx]);
+
+  // Laço contínuo: ao chegar na cópia da lista, volta ao início sem animação
+  useEffect(() => {
+    if (!canRotate || logoIdx < slots.length) return;
+    const t = setTimeout(() => {
+      setSkipTransition(true);
+      setLogoIdx(0);
+    }, 650);
+    return () => clearTimeout(t);
+  }, [canRotate, logoIdx, slots.length]);
+
+  const currentPage = Math.floor((logoIdx % Math.max(slots.length, 1)) / LOGOS_PER_VIEW);
+
+  const renderSlot = (sponsor: Sponsor | null, idx: number) => {
+    const key = `${sponsor?.id || 'slot'}-${idx}`;
+    const boxClass = 'aspect-square max-w-[150px] mx-auto rounded-[10px] border border-[#3A434E] flex items-center justify-center overflow-hidden';
+
+    if (sponsor && sponsor.logo_url) {
+      const content = (
+        <div className={`${boxClass} bg-white p-3`}>
+          <img
+            src={sponsor.logo_url}
+            alt={sponsor.name || `Patrocinador ${idx + 1}`}
+            className="max-w-full max-h-full object-contain"
+          />
+        </div>
+      );
+      return (
+        <div key={key} className="shrink-0 basis-1/5 px-1.5" title={sponsor.name}>
+          {sponsor.website ? (
+            <a
+              href={sponsor.website.startsWith('http') ? sponsor.website : `https://${sponsor.website}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block rounded-[10px] focus:outline-none focus:ring-2 focus:ring-[#7CC3E6]"
+            >
+              {content}
+            </a>
+          ) : content}
+        </div>
+      );
+    }
+
+    return (
+      <div key={key} className="shrink-0 basis-1/5 px-1.5">
+        <div className={`${boxClass} bg-[#2B333D] select-none`}>
+          <span className="text-xs font-bold tracking-[0.08em] uppercase text-[#8A9199]">
+            {sponsor?.name ? sponsor.name.substring(0, 10) : 'LOGO'}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
+  const iconBox = 'shrink-0 w-[34px] h-[34px] rounded-lg flex items-center justify-center bg-[#353E49] border border-[#3A434E] text-[#7CC3E6]';
 
   return (
-    <footer className="mt-12 dark:bg-[#050B18] bg-slate-100 border-t dark:border-[#122347] border-slate-300 dark:text-slate-300 text-slate-700 pt-8 pb-8 px-4 lg:px-8 transition-colors">
-      <div className="max-w-[1600px] mx-auto space-y-8">
-        
+    <footer className={`bg-[#222931] text-white pt-11 pb-7 px-5 sm:pr-9 sm:pl-[clamp(24px,5vw,86px)] transition-colors font-[family-name:Figtree,system-ui,sans-serif] ${className}`}>
+      <div className="max-w-[1600px] mx-auto flex flex-col gap-8 min-w-0">
+
         {/* 1. MENSAGEM DE AGRADECIMENTO E APRESENTAÇÃO INSTITUCIONAL (TOPO DO RODAPÉ) */}
-        <div className="w-full rounded-2xl border dark:border-[#1D3A73] border-slate-300 dark:bg-[#0A1836]/90 bg-slate-200/80 py-4 px-6 text-center text-xs sm:text-sm font-semibold dark:text-slate-200 text-slate-800 shadow-inner">
+        <p className="m-0 px-[22px] py-[18px] rounded-[10px] bg-[#2B333D] border border-[#3A434E] text-[13px] leading-[1.6] text-[#E3E6E9] text-center">
           A plataforma Nível Rio Taquari realiza o acompanhamento dos níveis dos rios da Bacia Taquari-Antas, com foco no Rio Taquari e seus principais afluentes (como os rios das Antas, Guaporé, Forqueta, Fão, Carreiro e Prata), oferecendo informações em tempo real e prevenção para o Vale do Taquari. Este projeto existe graças às empresas que acreditam na informação de qualidade e na proteção da população regional.
-        </div>
+        </p>
 
-        {/* 2. ÁREA DOS PATROCINADORES */}
-        <div className="pt-2">
-          {/* TITLE WITH HORIZONTAL LINES */}
-          <div className="flex items-center gap-4 mb-6">
-            <div className="h-px dark:bg-[#182C54] bg-slate-300 flex-1" />
-            <h3 className="text-xs sm:text-sm font-bold dark:text-slate-300 text-slate-700 tracking-wider uppercase whitespace-nowrap">
-              EMPRESAS PARCEIRAS DO PROJETO
-            </h3>
-            <div className="h-px dark:bg-[#182C54] bg-slate-300 flex-1" />
+        {/* 2. EMPRESAS PARCEIRAS (CARROSSEL) — oculto quando não há patrocinadores ativos */}
+        {activeSponsors.length > 0 && (
+          <div className="flex flex-col gap-[18px] min-w-0">
+            <div className="flex items-center gap-4">
+              <span className="flex-1 h-px bg-[#3A434E]" />
+              <h3 className="text-xs font-extrabold tracking-[0.1em] whitespace-nowrap">EMPRESAS PARCEIRAS DO PROJETO</h3>
+              <span className="flex-1 h-px bg-[#3A434E]" />
+            </div>
+
+            <div
+              className="overflow-hidden min-w-0"
+              onMouseEnter={() => setPaused(true)}
+              onMouseLeave={() => setPaused(false)}
+            >
+              <div
+                className="flex"
+                style={{
+                  transform: `translateX(-${(logoIdx * 100) / LOGOS_PER_VIEW}%)`,
+                  transition: skipTransition ? 'none' : 'transform .6s ease'
+                }}
+              >
+                {loopSlots.map((s, i) => renderSlot(s, i))}
+              </div>
+            </div>
+
+            {pageCount > 1 && (
+              <div className="flex justify-center gap-1.5">
+                {Array.from({ length: pageCount }, (_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    aria-label={`Página ${i + 1} de parceiros`}
+                    onClick={() => {
+                      setSkipTransition(false);
+                      setLogoIdx(i * LOGOS_PER_VIEW);
+                    }}
+                    className="h-1.5 rounded-[3px] cursor-pointer transition-[width] duration-300"
+                    style={{
+                      width: i === currentPage ? 22 : 6,
+                      backgroundColor: i === currentPage ? '#7CC3E6' : '#4A535E'
+                    }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-
-          {/* RESPONSIVE GRID FOR 20 SPONSORS */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-2.5 sm:gap-3">
-            {gridSlots.map((sponsor, idx) => {
-              const key = sponsor?.id || `slot-${idx}`;
-              
-              if (sponsor && sponsor.logo_url) {
-                const CardContent = (
-                  <div className="w-full h-16 sm:h-20 rounded-xl dark:bg-[#0A1633]/90 bg-white dark:hover:bg-[#10224A] hover:bg-slate-50 border dark:border-[#1A315F]/60 border-slate-200 hover:border-cyan-500/50 p-2 flex items-center justify-center transition-all duration-300 group shadow-sm hover:shadow-cyan-950/30 transform hover:-translate-y-0.5">
-                    <img
-                      src={sponsor.logo_url}
-                      alt={sponsor.name || `Patrocinador ${idx + 1}`}
-                      className="max-h-[50px] max-w-[85%] object-contain filter drop-shadow-sm group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                );
-
-                if (sponsor.website) {
-                  return (
-                    <a
-                      key={key}
-                      href={sponsor.website.startsWith('http') ? sponsor.website : `https://${sponsor.website}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title={sponsor.name}
-                      className="block focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded-xl"
-                    >
-                      {CardContent}
-                    </a>
-                  );
-                }
-
-                return (
-                  <div key={key} title={sponsor.name}>
-                    {CardContent}
-                  </div>
-                );
-              }
-
-              // Placeholder for empty slot
-              return (
-                <div
-                  key={key}
-                  className="w-full h-16 sm:h-20 rounded-xl dark:bg-[#09132A]/80 bg-slate-200/60 border dark:border-[#13254A]/50 border-slate-300/80 p-2 flex items-center justify-center text-center select-none"
-                >
-                  <span className="text-[11px] sm:text-xs font-bold dark:text-slate-600/70 text-slate-400 tracking-widest uppercase">
-                    {sponsor?.name ? sponsor.name.substring(0, 10) : 'LOGO'}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        )}
 
         {/* 3. INFORMAÇÕES INSTITUCIONAIS (ABAIXO DOS PATROCINADORES) */}
-        <div className="pt-10 sm:pt-12 border-t dark:border-[#122347] border-slate-300">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+        <div className="pt-8 border-t border-[#3A434E]">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-7">
             
             {/* COL 1: SITE OFICIAL DE MONITORAMENTO */}
             <div className="flex items-start gap-3.5">
-              <div className="p-2.5 rounded-xl dark:bg-[#0D1E3F] bg-white border dark:border-[#1D3B73] border-slate-200 text-cyan-600 dark:text-[#38BDF8] shrink-0 shadow-sm">
-                <ShieldCheck className="w-5 h-5" />
+              <div className={iconBox}>
+                <ShieldCheck className="w-[17px] h-[17px]" />
               </div>
               <div>
-                <h4 className="dark:text-white text-slate-900 font-bold text-xs sm:text-sm uppercase tracking-wider mb-1">
+                <h4 className="text-[13px] font-extrabold uppercase tracking-[0.06em] mb-1">
                   {settings.site_name || 'SITE OFICIAL DE MONITORAMENTO'}
                 </h4>
-                <p className="text-xs dark:text-slate-300 text-slate-700 font-medium leading-tight">
+                <p className="text-xs leading-snug">
                   {settings.site_subtitle || 'Plataforma de Monitoramento Hidrológico'}
                 </p>
-                <p className="text-xs dark:text-slate-400 text-slate-500 mt-0.5">
+                <p className="text-xs text-[#8FC7E0] mt-0.5">
                   {settings.site_description || 'Vale do Taquari - RS'}
                 </p>
               </div>
@@ -143,14 +204,14 @@ export const Footer: React.FC = () => {
 
             {/* COL 2: FONTES OFICIAIS */}
             <div className="flex items-start gap-3.5">
-              <div className="p-2.5 rounded-xl dark:bg-[#0D1E3F] bg-white border dark:border-[#1D3B73] border-slate-200 text-cyan-600 dark:text-[#38BDF8] shrink-0 shadow-sm">
-                <Building2 className="w-5 h-5" />
+              <div className={iconBox}>
+                <Building2 className="w-[17px] h-[17px]" />
               </div>
               <div>
-                <h4 className="dark:text-white text-slate-900 font-bold text-xs sm:text-sm uppercase tracking-wider mb-1">
+                <h4 className="text-[13px] font-extrabold uppercase tracking-[0.06em] mb-1">
                   FONTES OFICIAIS
                 </h4>
-                <p className="text-xs dark:text-slate-300 text-slate-700 font-medium leading-relaxed">
+                <p className="text-xs leading-[1.6] text-[#D6D9DD]">
                   Defesa Civil Estadual, Prefeituras Municipais, Rede de Sensores Automáticos do CPRM/ANA | SGB Bacia Rio Taquari | Projeto Guerreiros do Humaitá Nível dos Rios | Nível Guaíba.
                 </p>
               </div>
@@ -158,16 +219,16 @@ export const Footer: React.FC = () => {
 
             {/* COL 3: EM CASO DE EMERGÊNCIA LIGUE */}
             <div className="flex items-start gap-3.5">
-              <div className="p-2.5 rounded-xl dark:bg-[#0D1E3F] bg-white border dark:border-[#1D3B73] border-slate-200 text-cyan-600 dark:text-[#38BDF8] shrink-0 shadow-sm">
-                <PhoneCall className="w-5 h-5" />
+              <div className={iconBox}>
+                <PhoneCall className="w-[17px] h-[17px]" />
               </div>
               <div>
-                <h4 className="dark:text-white text-slate-900 font-bold text-xs sm:text-sm uppercase tracking-wider mb-1">
+                <h4 className="text-[13px] font-extrabold uppercase tracking-[0.06em] mb-1">
                   EM CASO DE EMERGÊNCIA LIGUE
                 </h4>
-                <p className="text-xs sm:text-sm font-bold text-amber-600 dark:text-amber-400 mt-1 flex flex-wrap items-center gap-1.5">
+                <p className="text-sm font-extrabold text-[#F0A43C] mt-1 flex flex-wrap items-center gap-1.5">
                   <span>Defesa Civil 199</span>
-                  <span className="dark:text-slate-400 text-slate-500">•</span>
+                  <span>•</span>
                   <span>Bombeiros 193</span>
                 </p>
               </div>
@@ -175,17 +236,17 @@ export const Footer: React.FC = () => {
 
             {/* COL 4: ÚLTIMA ATUALIZAÇÃO */}
             <div className="flex items-start gap-3.5">
-              <div className="p-2.5 rounded-xl dark:bg-[#0D1E3F] bg-white border dark:border-[#1D3B73] border-slate-200 text-cyan-600 dark:text-[#38BDF8] shrink-0 shadow-sm">
-                <Clock className="w-5 h-5" />
+              <div className={iconBox}>
+                <Clock className="w-[17px] h-[17px]" />
               </div>
               <div>
-                <h4 className="dark:text-white text-slate-900 font-bold text-xs sm:text-sm uppercase tracking-wider mb-1">
+                <h4 className="text-[13px] font-extrabold uppercase tracking-[0.06em] mb-1">
                   ÚLTIMA ATUALIZAÇÃO
                 </h4>
-                <p className="text-xs dark:text-slate-200 text-slate-800 font-mono font-bold">
+                <p className="text-xs font-mono font-semibold">
                   {formattedDate} - {formattedTime}
                 </p>
-                <p className="text-xs dark:text-slate-400 text-slate-500 mt-0.5">
+                <p className="text-xs text-[#8FC7E0] mt-0.5">
                   Sistema PWA • Monitoramento Contínuo
                 </p>
               </div>
@@ -195,14 +256,14 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* 4. RODAPÉ INFERIOR */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs dark:text-slate-400 text-slate-600 pt-4 border-t dark:border-[#122347] border-slate-300">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#B4B9BF] pt-[18px] border-t border-[#3A434E]">
           <p>© {year} {settings.site_name || 'Sistema de Monitoramento Hidrológico'}. Todos os direitos reservados.</p>
-          <div className="flex items-center gap-4 dark:text-slate-400 text-slate-600 font-medium">
-            <a href="#sobre" className="hover:text-slate-900 dark:hover:text-slate-200 transition-colors">Termos de Uso</a>
+          <div className="flex items-center gap-3.5">
+            <a href="#sobre" className="text-[#E3E6E9] hover:text-white hover:underline transition-colors">Termos de Uso</a>
             <span>•</span>
-            <a href="#sobre" className="hover:text-slate-900 dark:hover:text-slate-200 transition-colors">Privacidade</a>
+            <a href="#sobre" className="text-[#E3E6E9] hover:text-white hover:underline transition-colors">Privacidade</a>
             <span>•</span>
-            <a href="#contato" className="hover:text-slate-900 dark:hover:text-slate-200 transition-colors">Imprensa</a>
+            <a href="#contato" className="text-[#E3E6E9] hover:text-white hover:underline transition-colors">Imprensa</a>
           </div>
         </div>
 

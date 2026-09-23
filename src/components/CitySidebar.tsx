@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { City } from '../types';
-import { Waves, Search, ChevronDown } from 'lucide-react';
+import { Search, ChevronDown } from 'lucide-react';
 import { StatusDot } from './StatusDot';
+import { BASIN_SECTION_TAGS, HOME_FONT, formatLevel, shortRiverName } from './homeTheme';
 import { ConnectionStatusType } from '../lib/supabase';
 
 interface CitySidebarProps {
@@ -66,12 +67,15 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
   }
 
   const currentCity = cities.find((c) => c.id === selectedCity.id || c.slug === selectedCity.slug) || selectedCity;
-  const currentLevelFormatted = typeof currentCity.current_level === 'number' && !isNaN(currentCity.current_level)
-    ? `${currentCity.current_level.toFixed(2).replace('.', ',')} m`
-    : '-- m';
+  const currentLevelFormatted = `${formatLevel(currentCity.current_level)} m`;
+
+  const basinTabClass = (active: boolean) =>
+    `flex-1 py-1 px-1.5 rounded-[4px] transition-colors text-center cursor-pointer ${
+      active ? 'bg-white text-[#2B333D] font-extrabold' : 'text-[#C9CDD2] hover:text-white hover:bg-[#2E3742]'
+    }`;
 
   return (
-    <aside className="w-full lg:w-72 flex flex-col shrink-0 h-full">
+    <aside className={`w-full flex flex-col shrink-0 h-full min-h-0 ${HOME_FONT}`}>
 
       {/* MOBILE MENU TRIGGER (oculto no computador) */}
       <button
@@ -79,87 +83,65 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
         onClick={() => setMobileMenuOpen((open) => !open)}
         aria-expanded={mobileMenuOpen}
         aria-controls="city-menu-panel"
-        className="lg:hidden w-full flex items-center justify-between gap-3 px-4 py-3 mb-2 rounded-2xl dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 border shadow-md cursor-pointer"
+        className="lg:hidden w-full flex items-center justify-between gap-3 px-4 py-3 bg-[#1B222B] text-white border-b border-[#2E3742] cursor-pointer"
       >
         <div className="flex items-center gap-2 min-w-0">
           <StatusDot status={currentCity.status_level} size="md" />
           <div className="flex flex-col items-start min-w-0">
-            <span className="text-[10px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">Cidade</span>
-            <span className="text-sm font-bold dark:text-white text-slate-900 truncate notranslate" translate="no">{currentCity.name}</span>
+            <span className="text-[10px] uppercase tracking-wider font-bold text-[#B4B9BF]">Estação</span>
+            <span className="text-sm font-extrabold truncate notranslate" translate="no">{currentCity.name}</span>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className="font-mono text-xs font-bold text-cyan-600 dark:text-cyan-400">{currentLevelFormatted}</span>
-          <ChevronDown className={`w-4 h-4 text-slate-500 dark:text-slate-400 transition-transform ${mobileMenuOpen ? 'rotate-180' : ''}`} />
+          <span className="text-sm font-light">{currentLevelFormatted}</span>
+          <ChevronDown className={`w-4 h-4 text-[#B4B9BF] transition-transform ${mobileMenuOpen ? 'rotate-180' : ''}`} />
         </div>
       </button>
 
       {/* CITIES / STATIONS LIST (no celular só aparece com o menu aberto) */}
       <div
         id="city-menu-panel"
-        className={`${mobileMenuOpen ? 'flex' : 'hidden'} lg:flex dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-2xl p-4 shadow-xl transition-colors h-full flex-col`}
+        className={`${mobileMenuOpen ? 'flex' : 'hidden'} lg:flex bg-[#1B222B] text-white h-full min-h-0 flex-col`}
       >
-        <div className="flex items-center justify-between mb-3 px-1">
-          <div className="flex items-center gap-1.5">
-            <Waves className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
-            <h2 className="text-xs font-bold dark:text-slate-200 text-slate-800 tracking-wider uppercase">
-              Estações
-            </h2>
-          </div>
-          <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 px-1.5 py-0.5 rounded flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-ping" />
-            5 min
-          </span>
+        <div className="px-3 pt-3.5 pb-2 text-center leading-[1.1] shrink-0">
+          <div className="text-sm font-light">Estações da</div>
+          <div className="text-xl font-extrabold">Bacia</div>
         </div>
 
         {/* SEARCH BOX */}
-        <div className="relative mb-3">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+        <div className="relative mx-2.5 mb-2 shrink-0">
+          <Search className="w-3 h-3 text-[#B4B9BF] absolute left-2 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Pesquisar cidade..."
-            className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs dark:text-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+            placeholder="Pesquisar..."
+            aria-label="Pesquisar cidade"
+            className="w-full pl-6 pr-2 py-1 bg-[#2E3742] border border-[#3A434E] rounded-[4px] text-[11px] text-white placeholder-[#8A9199] focus:outline-none focus:border-[#7CC3E6]"
           />
         </div>
 
         {/* BASIN SELECTOR TABS */}
         {!searchTerm && (
-          <div className="flex items-center gap-1 dark:bg-slate-900/90 bg-slate-100 p-1 rounded-xl mb-3 dark:border-slate-800 border-slate-200 text-[11px] font-semibold border">
-            <button
-              onClick={() => setActiveBasin('taquari')}
-              className={`flex-1 py-1.5 px-2 rounded-lg transition-all text-center cursor-pointer ${
-                activeBasin === 'taquari'
-                  ? 'dark:bg-cyan-950 bg-cyan-100 text-cyan-800 dark:text-cyan-300 dark:border-cyan-800 border-cyan-300 border shadow-sm font-bold'
-                : 'dark:text-slate-400 text-slate-600 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800/50'
-              }`}
-            >
+          <div className="flex items-center gap-0.5 mx-2.5 mb-2 p-0.5 rounded-[5px] bg-[#2E3742] text-[9.5px] font-semibold leading-tight shrink-0">
+            <button onClick={() => setActiveBasin('taquari')} className={basinTabClass(activeBasin === 'taquari')}>
               Vale do Taquari
             </button>
-            <button
-              onClick={() => setActiveBasin('guaiba')}
-              className={`flex-1 py-1.5 px-2 rounded-lg transition-all text-center cursor-pointer ${
-                activeBasin === 'guaiba'
-                  ? 'dark:bg-cyan-950 bg-cyan-100 text-cyan-800 dark:text-cyan-300 dark:border-cyan-800 border-cyan-300 border shadow-sm font-bold'
-                  : 'dark:text-slate-400 text-slate-600 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800/50'
-              }`}
-            >
+            <button onClick={() => setActiveBasin('guaiba')} className={basinTabClass(activeBasin === 'guaiba')}>
               Bacia do Guaíba
             </button>
           </div>
         )}
 
-        {/* CITY / STATION BUTTONS - EXPANDED TO ALIGN WITH HISTÓRICO DE LEITURAS */}
-        <div className="flex flex-col gap-1.5 p-0.5 flex-1 max-h-[55vh] lg:max-h-[770px] lg:min-h-0 overflow-y-auto custom-scrollbar pr-1">
+        {/* CITY / STATION BUTTONS */}
+        <div className="flex flex-col flex-1 min-h-0 max-h-[60vh] lg:max-h-none overflow-y-auto no-scrollbar pb-2">
           {displayedCities.length === 0 ? (
-            <p className="text-xs text-slate-500 dark:text-slate-400 text-center py-4">Nenhuma cidade encontrada</p>
+            <p className="text-xs text-[#B4B9BF] text-center py-4">Nenhuma cidade encontrada</p>
           ) : (
             displayedCities.map((city) => {
               const isSelected = selectedCity.id === city.id || selectedCity.slug === city.slug;
-              const levelFormatted = typeof city.current_level === 'number' && !isNaN(city.current_level)
-                ? `${city.current_level.toFixed(2).replace('.', ',')} m`
-                : '-- m';
+              const tag = city.basin_section ? BASIN_SECTION_TAGS[city.basin_section] : '';
+              const riverShort = shortRiverName(city.river);
 
               return (
                 <button
@@ -168,29 +150,30 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
                     onSelectCity(city);
                     setMobileMenuOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
-                    isSelected
-                      ? 'dark:bg-[#1E293B] bg-cyan-50/90 dark:border-cyan-700/60 border-cyan-400 dark:text-white text-slate-900 shadow-md ring-1 ring-cyan-500/30'
-                      : 'dark:text-slate-300 text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800/60 dark:hover:text-white hover:text-slate-900 border border-transparent'
+                  aria-current={isSelected ? 'true' : undefined}
+                  style={isSelected ? { clipPath: 'polygon(14px 0,100% 0,100% 100%,14px 100%,0 50%)' } : undefined}
+                  className={`w-full shrink-0 min-h-[36px] py-1 pr-3 flex flex-col justify-center items-start gap-px text-left transition-colors cursor-pointer ${
+                    isSelected ? 'bg-white text-[#2B333D] pl-6' : 'text-white pl-3.5 hover:bg-[#252D37]'
                   }`}
                 >
-                  <div className="flex items-center gap-2 min-w-0 pr-2">
-                    <StatusDot status={city.status_level} size="md" />
-                    <div className="flex flex-col items-start min-w-0 truncate">
-                      <div className="flex items-center gap-1.5 w-full">
-                        <span className="font-semibold truncate text-left notranslate" translate="no">{city.name}</span>
-                        {city.basin_section && (
-                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold uppercase shrink-0">
-                            {city.basin_section === 'cabeceira' ? 'Cab' : city.basin_section === 'montante' ? 'Mont' : city.basin_section === 'medio' ? 'Médio' : 'Jus'}
-                          </span>
-                        )}
-                      </div>
-                      {city.river && <span className="text-[10px] dark:text-slate-400 text-slate-500 truncate w-full text-left notranslate" translate="no">{city.river}</span>}
-                    </div>
-                  </div>
-
-                  <span className={`font-mono text-xs font-bold shrink-0 ${isSelected ? 'text-cyan-600 dark:text-cyan-400' : 'dark:text-slate-200 text-slate-800'}`}>
-                    {levelFormatted}
+                  <span className="flex items-center gap-[5px] max-w-full min-w-0">
+                    <span className="text-xs font-extrabold leading-[1.1] truncate min-w-0 notranslate" translate="no">{city.name}</span>
+                    {tag && (
+                      <span
+                        className={`shrink-0 text-[8px] font-extrabold tracking-[0.04em] px-1 py-px rounded-[3px] ${
+                          isSelected ? 'bg-[#E6E8EB] text-[#58616B]' : 'bg-[#2E3742] text-[#C9CDD2]'
+                        }`}
+                      >
+                        {tag}
+                      </span>
+                    )}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <StatusDot status={city.status_level} size="sm" />
+                    <span className="text-[15px] font-light leading-tight">{formatLevel(city.current_level)} m</span>
+                    {riverShort && (
+                      <span className="text-[10px] opacity-65 whitespace-nowrap notranslate" translate="no">{riverShort}</span>
+                    )}
                   </span>
                 </button>
               );

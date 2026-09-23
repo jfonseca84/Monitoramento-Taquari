@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
 import { CitySidebar } from './components/CitySidebar';
 import { LiveCameraHero } from './components/LiveCameraHero';
-import { StatsPanel } from './components/StatsPanel';
 import { LevelChart } from './components/LevelChart';
-import { InteractiveMap } from './components/InteractiveMap';
+import { BasinMap } from './components/BasinMap';
+import { HOME_FONT } from './components/homeTheme';
 import { NewsSection } from './components/NewsSection';
 import { Footer } from './components/Footer';
 import { AdminDashboard } from './components/AdminDashboard';
@@ -18,12 +18,9 @@ import { RiverLevelDetailModal } from './components/RiverLevelDetailModal';
 import { LiveCamerasView } from './components/LiveCamerasView';
 import { RiskAlertSignup } from './components/RiskAlertSignup';
 
-import { SituationBanner } from './components/SituationBanner';
 import { SituationDetailModal } from './components/SituationDetailModal';
 import { AssistantChatWidget } from './components/AssistantChatWidget';
-import { TechnicalData } from './components/TechnicalData';
 import { CityWeatherForecast } from './components/CityWeatherForecast';
-import { FloodPeakProjection } from './components/FloodPeakProjection';
 
 import { EditableComponent } from './components/visualEditor/EditableComponent';
 import { AdminEditorBar } from './components/visualEditor/AdminEditorBar';
@@ -36,20 +33,12 @@ import { getBrasiliaFullDateTimeString } from './lib/dateUtils';
 import { AlertTriangle, X, Radio, Video, ChevronRight } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      if (window.location.pathname === '/defesa-civil' || window.location.hash === '#defesa-civil') {
-        return 'defesa-civil';
-      }
-    }
-    return 'inicio';
-  });
-
-  // Abas temporariamente desativadas (em desenvolvimento): qualquer caminho até elas não faz nada
-  const DISABLED_TABS = ['cameras', 'alertas', 'receber-alertas'];
+  // Por enquanto só a página Início está ativa (as demais aguardam o novo design)
+  const [activeTab, setActiveTab] = useState<string>('inicio');
+  const ENABLED_TABS = ['inicio'];
 
   const handleTabChange = (tab: string) => {
-    if (DISABLED_TABS.includes(tab)) return;
+    if (!ENABLED_TABS.includes(tab)) return;
     setActiveTab(tab);
     if (typeof window !== 'undefined') {
       if (tab === 'defesa-civil') {
@@ -67,7 +56,7 @@ export default function App() {
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
-  const [timeframe, setTimeframe] = useState<Timeframe>('6h');
+  const [timeframe, setTimeframe] = useState<Timeframe>('24h');
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatusType>('online');
@@ -84,8 +73,8 @@ export default function App() {
     timeframeRef.current = timeframe;
   }, [timeframe]);
 
-  // Theme State: sempre abre no modo claro; o usuário ainda pode alternar durante a sessão
-  const [theme, setTheme] = useState<'dark' | 'light'>('light');
+  // Tema: o layout novo é somente escuro
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   useEffect(() => {
     const root = document.documentElement;
@@ -130,9 +119,6 @@ export default function App() {
     const handlePopState = () => {
       if (window.location.pathname === '/admin' || window.location.hash === '#admin') {
         setIsAdminOpen(true);
-      } else if (window.location.pathname === '/defesa-civil' || window.location.hash === '#defesa-civil') {
-        setIsAdminOpen(false);
-        setActiveTab('defesa-civil');
       } else {
         setIsAdminOpen(false);
       }
@@ -239,10 +225,10 @@ export default function App() {
 
   if (!selectedCity) {
     return (
-      <div className="min-h-screen bg-[#0B132B] flex items-center justify-center text-white font-sans">
+      <div className="min-h-screen bg-[#2B333D] flex items-center justify-center text-white font-[family-name:Figtree,system-ui,sans-serif]">
         <div className="flex items-center gap-3">
-          <div className="w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm font-semibold tracking-wider uppercase text-cyan-400">
+          <div className="w-6 h-6 border-2 border-[#7CC3E6] border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm font-semibold tracking-wider uppercase text-[#7CC3E6]">
             Carregando Telemetria em Tempo Real...
           </span>
         </div>
@@ -251,7 +237,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen dark:bg-[#0B132B] bg-slate-100 dark:text-slate-100 text-slate-900 font-sans selection:bg-cyan-500 selection:text-white flex flex-col justify-between notranslate transition-colors duration-300 overflow-x-clip w-full max-w-full" translate="no">
+    <div className="min-h-screen bg-[#2B333D] text-white font-sans selection:bg-[#7CC3E6] selection:text-[#1B222B] flex flex-col justify-between notranslate transition-colors duration-300 overflow-x-clip w-full max-w-full" translate="no">
       
       {/* HEADER */}
       <Header
@@ -265,124 +251,81 @@ export default function App() {
         lastUpdatedText={lastUpdatedText}
       />
 
-      {/* PAINEL DE SITUAÇÃO DO VALE DO TAQUARI (DYNAMIC SYSTEM BANNER) */}
-      <EditableComponent id="inicio_banner_situacao" name="Banner de Situação do Vale" type="banner">
-        <SituationBanner
-          cities={cities}
-          onOpenSituationModal={(city) => {
-            setSituationModalCity(city || selectedCity);
-            setIsSituationModalOpen(true);
-          }}
-        />
-      </EditableComponent>
-
       {/* MAIN CONTENT CANVAS */}
-      <main className="max-w-[1600px] w-full mx-auto px-2.5 sm:px-4 lg:px-8 py-4 sm:py-6 flex-1 min-w-0">
-        
+      <main
+        className={
+          activeTab === 'inicio'
+            ? 'w-full flex-1 min-w-0'
+            : 'max-w-[1600px] w-full mx-auto px-2.5 sm:px-4 lg:px-8 py-4 sm:py-6 flex-1 min-w-0'
+        }
+      >
+
         {/* VIEW ROUTER */}
         {activeTab === 'inicio' ? (
-          /* PRIMARY OPERATIONAL DASHBOARD */
-          <div className="space-y-6">
-            
-            {/* TOP ROW: CITIES SIDEBAR & OPERATIONAL PANEL */}
-            <div className="flex flex-col lg:flex-row gap-6 items-stretch">
-              
-              {/* LEFT COLUMN: CITIES SIDEBAR & LEGEND */}
-              <LayoutBehaviorWrapper pageKey="inicio" componentKey="sidebar" className="w-full lg:w-72 shrink-0 flex flex-col h-full">
-                <EditableComponent id="inicio_sidebar_cidades" name="Sidebar de Cidades" type="panel" className="w-full h-full flex flex-col flex-1">
-                  <CitySidebar
-                    cities={cities}
-                    selectedCity={selectedCity}
-                    onSelectCity={(city) => setSelectedCity(city)}
-                    onOpenInfoModal={() => setIsInfoModalOpen(true)}
-                  />
-                </EditableComponent>
-              </LayoutBehaviorWrapper>
+          /* PÁGINA INÍCIO: mapa da bacia | conteúdo rolável | lista de estações (empilha abaixo de lg) */
+          <div className={`${HOME_FONT} flex flex-col lg:grid lg:grid-cols-[minmax(260px,0.62fr)_minmax(0,1.6fr)_176px] lg:h-[calc(100vh-56px)] lg:overflow-hidden`}>
 
-              {/* RIGHT COLUMN: PAINEL OPERACIONAL SUPERIOR */}
-              <div className="flex-1 w-full min-w-0">
-                <LayoutBehaviorWrapper pageKey="inicio" componentKey="operational_panel">
-                  <div className="flex flex-col xl:flex-row gap-6">
-                    
-                    {/* MIDDLE COLUMN: LIVE CAMERA HERO & RECHARTS */}
-                    <div className="flex-1 flex flex-col gap-6 min-w-0">
-                      <LayoutBehaviorWrapper pageKey="inicio" componentKey="camera_hero">
-                        <EditableComponent id="inicio_camera_hero" name="Câmera ao Vivo Hero" type="card">
-                          <LiveCameraHero
-                            selectedCity={selectedCity}
-                            onOpenCameraModal={() => { /* desativado temporariamente (em desenvolvimento) */ }}
-                            onOpenInfoModal={() => setIsInfoModalOpen(true)}
-                            onOpenDetailModal={() => setIsDetailModalOpen(true)}
-                          />
-                        </EditableComponent>
-                      </LayoutBehaviorWrapper>
-
-                      <LayoutBehaviorWrapper pageKey="inicio" componentKey="level_chart">
-                        <EditableComponent id="inicio_grafico_nivel" name="Gráfico Telemétrico de Nível" type="chart">
-                          <LevelChart
-                            selectedCity={selectedCity}
-                            chartData={chartData}
-                            timeframe={timeframe}
-                            setTimeframe={setTimeframe}
-                          />
-                        </EditableComponent>
-                      </LayoutBehaviorWrapper>
-
-                      <LayoutBehaviorWrapper pageKey="inicio" componentKey="flood_peak_projection">
-                        <EditableComponent id="inicio_projecao_pico" name="Projeção de Pico da Cheia" type="widget">
-                          <FloodPeakProjection selectedCity={selectedCity} cities={cities} />
-                        </EditableComponent>
-                      </LayoutBehaviorWrapper>
-                    </div>
-
-                    {/* RIGHT COLUMN: TECHNICAL DATA & STATS */}
-                    <div className="w-full xl:w-80 flex flex-col gap-6 shrink-0">
-                      <LayoutBehaviorWrapper pageKey="inicio" componentKey="weather_forecast">
-                        <EditableComponent id="inicio_previsao_tempo" name="Previsão do Tempo" type="widget">
-                          <CityWeatherForecast selectedCity={selectedCity} />
-                        </EditableComponent>
-                      </LayoutBehaviorWrapper>
-
-                      <LayoutBehaviorWrapper pageKey="inicio" componentKey="technical_data">
-                        <EditableComponent id="inicio_dados_tecnicos" name="Dados Técnicos e Estações" type="widget">
-                          <TechnicalData selectedCity={selectedCity} />
-                        </EditableComponent>
-                      </LayoutBehaviorWrapper>
-
-                      <LayoutBehaviorWrapper pageKey="inicio" componentKey="stats_panel">
-                        <EditableComponent id="inicio_stats_panel" name="Painel de Estatísticas e Cotas" type="indicator">
-                          <StatsPanel
-                            selectedCity={selectedCity}
-                            onOpenDetailModal={() => setIsDetailModalOpen(true)}
-                            onOpenAlertSignup={() => handleTabChange('receber-alertas')}
-                          />
-                        </EditableComponent>
-                      </LayoutBehaviorWrapper>
-                    </div>
-
-                  </div>
-                </LayoutBehaviorWrapper>
-              </div>
-
-            </div>
-
-            {/* EXPANDED REGIONAL HYDROLOGICAL MAP (FULL WIDTH, DECOUPLED FROM SIDEBAR) */}
-            <LayoutBehaviorWrapper pageKey="inicio" componentKey="map" className="relative z-0 isolate w-full">
-              <EditableComponent id="inicio_mapa_interativo" name="Mapa Hidrológico Regional" type="map" className="relative z-0 isolate w-full">
-                <InteractiveMap
+            {/* DIREITA: LISTA DE ESTAÇÕES (no celular vira o menu recolhível, no topo) */}
+            <LayoutBehaviorWrapper pageKey="inicio" componentKey="sidebar" className="order-1 lg:order-3 lg:h-full min-h-0 flex flex-col">
+              <EditableComponent id="inicio_sidebar_cidades" name="Sidebar de Cidades" type="panel" className="w-full h-full flex flex-col flex-1 min-h-0">
+                <CitySidebar
                   cities={cities}
                   selectedCity={selectedCity}
                   onSelectCity={(city) => setSelectedCity(city)}
+                  onOpenInfoModal={() => setIsInfoModalOpen(true)}
                 />
               </EditableComponent>
             </LayoutBehaviorWrapper>
 
-            {/* FULL WIDTH BOTTOM SECTION: NOTÍCIAS E COMUNICADOS OFICIAIS */}
-            <LayoutBehaviorWrapper pageKey="inicio" componentKey="news" className="w-full">
-              <EditableComponent id="inicio_noticias" name="Seção de Notícias e Comunicados" type="table">
-                <NewsSection
-                  news={news}
-                  onViewAllNews={() => setActiveTab('noticias')}
+            {/* CENTRO: CONTEÚDO ROLÁVEL */}
+            <div className="order-2 lg:order-2 min-w-0 lg:h-full lg:overflow-y-auto no-scrollbar dark:bg-[#2B333D] bg-white">
+              <LayoutBehaviorWrapper pageKey="inicio" componentKey="operational_panel">
+                <LayoutBehaviorWrapper pageKey="inicio" componentKey="camera_hero">
+                  <EditableComponent id="inicio_camera_hero" name="Câmera ao Vivo Hero" type="card">
+                    <LiveCameraHero
+                      selectedCity={selectedCity}
+                      onOpenCameraModal={() => { /* desativado temporariamente (em desenvolvimento) */ }}
+                      onOpenInfoModal={() => setIsInfoModalOpen(true)}
+                      onOpenDetailModal={() => setIsDetailModalOpen(true)}
+                    />
+                  </EditableComponent>
+                </LayoutBehaviorWrapper>
+
+                <LayoutBehaviorWrapper pageKey="inicio" componentKey="level_chart">
+                  <EditableComponent id="inicio_grafico_nivel" name="Gráfico Telemétrico de Nível" type="chart">
+                    <LevelChart
+                      selectedCity={selectedCity}
+                      chartData={chartData}
+                      timeframe={timeframe}
+                      setTimeframe={setTimeframe}
+                    />
+                  </EditableComponent>
+                </LayoutBehaviorWrapper>
+
+                <LayoutBehaviorWrapper pageKey="inicio" componentKey="weather_forecast">
+                  <EditableComponent id="inicio_previsao_tempo" name="Previsão do Tempo" type="widget">
+                    <CityWeatherForecast selectedCity={selectedCity} />
+                  </EditableComponent>
+                </LayoutBehaviorWrapper>
+
+                <LayoutBehaviorWrapper pageKey="inicio" componentKey="news" className="w-full">
+                  <EditableComponent id="inicio_noticias" name="Seção de Notícias e Comunicados" type="table">
+                    <NewsSection news={news} />
+                  </EditableComponent>
+                </LayoutBehaviorWrapper>
+              </LayoutBehaviorWrapper>
+
+              {/* RODAPÉ no fim da coluna central (no celular ele vai para o fim da página) */}
+              <Footer className="hidden lg:block" />
+            </div>
+
+            {/* ESQUERDA: MAPA DA BACIA (no celular fica por último) */}
+            <LayoutBehaviorWrapper pageKey="inicio" componentKey="map" className="order-3 lg:order-1 relative z-0 isolate h-[440px] lg:h-full">
+              <EditableComponent id="inicio_mapa_interativo" name="Mapa Hidrológico Regional" type="map" className="relative z-0 isolate w-full h-full">
+                <BasinMap
+                  cities={cities}
+                  selectedCity={selectedCity}
+                  onSelectCity={(city) => setSelectedCity(city)}
                 />
               </EditableComponent>
             </LayoutBehaviorWrapper>
@@ -446,8 +389,8 @@ export default function App() {
 
       </main>
 
-      {/* FOOTER */}
-      <Footer />
+      {/* FOOTER (na página Início, no desktop, ele fica dentro da coluna central) */}
+      <Footer className={activeTab === 'inicio' ? 'lg:hidden' : ''} />
 
       {/* ADMINISTRATIVE DASHBOARD MODAL */}
       <AdminDashboard
@@ -464,29 +407,29 @@ export default function App() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="dev-notice-title"
-            className="dark:bg-[#0F172A] bg-white dark:border-slate-700 border-slate-200 border rounded-3xl max-w-md w-full p-6 shadow-2xl relative animate-fade-in"
+            className="bg-[#2B333D] border border-[#3A434E] rounded-[10px] max-w-md w-full p-6 shadow-2xl relative animate-fade-in text-white font-[family-name:Figtree,system-ui,sans-serif]"
           >
             <button
               onClick={() => setIsDevNoticeOpen(false)}
               aria-label="Fechar aviso"
-              className="absolute top-4 right-4 p-2 dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900 dark:bg-slate-800 bg-slate-100 rounded-full cursor-pointer"
+              className="absolute top-4 right-4 p-2 text-[#B4B9BF] hover:text-white bg-[#353E49] rounded-md cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
 
             <div className="flex items-center gap-2.5 mb-3 pr-10">
-              <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
-              <h3 id="dev-notice-title" className="text-base font-bold dark:text-white text-slate-900">
+              <AlertTriangle className="w-5 h-5 text-[#E9C145] shrink-0" />
+              <h3 id="dev-notice-title" className="text-base font-extrabold">
                 Site em fase de desenvolvimento
               </h3>
             </div>
 
-            <div className="space-y-3 text-sm dark:text-slate-300 text-slate-700">
+            <div className="space-y-3 text-sm text-[#CDD1D6]">
               <p>
                 Este site ainda está em desenvolvimento e algumas funcionalidades e informações
                 podem estar incompletas ou sujeitas a ajustes.
               </p>
-              <p className="p-3 rounded-xl dark:bg-amber-950/50 bg-amber-50 dark:border-amber-800 border-amber-300 border font-semibold dark:text-amber-200 text-amber-900">
+              <p className="p-3 rounded-md bg-[#353E49] border-l-[3px] border-[#E9C145] font-semibold text-white">
                 As informações exibidas aqui não substituem as informações e os alertas emitidos
                 pelos órgãos oficiais, como a Defesa Civil e o Serviço Geológico do Brasil (SGB).
                 Em caso de risco, siga sempre as orientações oficiais.
@@ -496,7 +439,7 @@ export default function App() {
             <button
               onClick={() => setIsDevNoticeOpen(false)}
               autoFocus
-              className="mt-5 w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold transition-colors cursor-pointer"
+              className="mt-5 w-full py-2.5 rounded-md bg-[#35566B] hover:bg-[#42708C] text-white text-sm font-bold transition-colors cursor-pointer"
             >
               Entendi
             </button>

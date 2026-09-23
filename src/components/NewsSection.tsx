@@ -15,6 +15,10 @@ import {
   ShieldAlert,
   Globe
 } from 'lucide-react';
+import { NEWS_CATEGORY_COLORS, SURFACE_A, MUTED, SECTION_PAD } from './homeTheme';
+
+const DEMO_NEWS_IDS = new Set(INITIAL_NEWS.map((n) => n.id));
+const HOME_NEWS_LIMIT = 3;
 
 interface NewsSectionProps {
   news: NewsItem[];
@@ -28,8 +32,9 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ news, onViewAllNews, i
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
 
-  // Filter news that are allowed to be shown in the menu
-  const rawNews = news && news.length > 0 ? news : INITIAL_NEWS;
+  // Somente notícias reais: as notícias de exemplo (INITIAL_NEWS) nunca são exibidas,
+  // nem quando chegam pelo fallback local do bootstrap
+  const rawNews = (news || []).filter((n) => !DEMO_NEWS_IDS.has(n.id));
   const filteredDisplayNews = rawNews.filter((n) => n.exibir_no_menu !== false);
 
   const getCategoryBadge = (category: string) => {
@@ -201,89 +206,78 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ news, onViewAllNews, i
   if (!isFullPage) {
     return (
       <>
-        <div className="dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-3xl p-5 lg:p-6 shadow-2xl transition-colors">
+        <section className={`${SURFACE_A} ${SECTION_PAD} pt-12 pb-14 flex flex-col gap-[22px] min-w-0 overflow-hidden`}>
           {/* HEADER */}
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-xs font-bold dark:text-slate-300 text-slate-700 tracking-wider uppercase flex items-center gap-2">
-              <Newspaper className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-              <span>NOTÍCIAS E COMUNICADOS OFICIAIS</span>
-            </h3>
-
-            <button
-              onClick={onViewAllNews}
-              className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
-            >
-              <span>Ver todas</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {/* NEWS LIST CARDS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
-            {filteredDisplayNews.slice(0, 7).map((item) => (
-              <div
-                key={item.id}
-                onClick={() => setSelectedArticle(item)}
-                className="dark:bg-[#182238] bg-slate-50 dark:border-slate-800/80 border-slate-200 dark:hover:border-cyan-800/60 hover:border-cyan-400 border rounded-2xl p-3 sm:p-3.5 cursor-pointer transition-all hover:-translate-y-1 hover:shadow-xl flex flex-col justify-between group"
+          <div className="flex items-end gap-4 flex-wrap">
+            <div className="leading-[1.2]">
+              <div className="text-lg font-light">Notícias e</div>
+              <div className="text-[26px] font-extrabold">Comunicados oficiais</div>
+            </div>
+            {onViewAllNews && (
+              <button
+                onClick={onViewAllNews}
+                className="ml-auto text-sm font-bold text-[#7CC3E6] hover:underline whitespace-nowrap cursor-pointer"
               >
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider ${getCategoryBadge(
-                        item.category
-                      )}`}
-                    >
-                      {item.category}
-                    </span>
-
-                    {item.manter_permanente && (
-                      <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">
-                        <Pin className="w-2.5 h-2.5 text-amber-600" />
-                        <span>Permanente</span>
-                      </span>
-                    )}
-                  </div>
-
-                  <h4 className="text-xs font-bold dark:text-white text-slate-900 line-clamp-2 leading-snug mb-2 group-hover:text-cyan-500 transition-colors">
-                    {item.title}
-                  </h4>
-
-                  <p className="text-[11px] dark:text-slate-400 text-slate-600 line-clamp-2 leading-relaxed mb-3">
-                    {item.summary}
-                  </p>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between text-[10px] font-mono dark:text-slate-400 text-slate-500 pt-2 dark:border-slate-800 border-slate-200 border-t mb-2">
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      <span>{item.date}</span>
-                    </span>
-                    {item.fonte && (
-                      <span className="truncate max-w-[120px] font-sans font-bold dark:text-cyan-400 text-cyan-700">
-                        {item.fonte}
-                      </span>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedArticle(item);
-                    }}
-                    className="w-full bg-cyan-600/10 hover:bg-cyan-600 text-cyan-700 dark:text-cyan-300 hover:text-white text-[11px] font-bold py-1.5 px-3 rounded-xl border border-cyan-500/30 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                  >
-                    <span>Saber mais</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))}
+                Ver todas ›
+              </button>
+            )}
           </div>
-        </div>
 
-        {renderArticleModal()}
+          {/* NEWS CARDS (3 na página Início) */}
+          {filteredDisplayNews.length === 0 ? (
+            <p className={`text-sm ${MUTED}`}>Nenhum comunicado oficial publicado no momento.</p>
+          ) : (
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3.5 min-w-0">
+              {filteredDisplayNews.slice(0, HOME_NEWS_LIMIT).map((item) => {
+                const cat = NEWS_CATEGORY_COLORS[item.category] || { bg: '#D5E3EC', ink: '#27465C' };
+                const source = item.fonte || item.author;
+                return (
+                  <article
+                    key={item.id}
+                    className="min-w-0 bg-[#353E49] border border-[#434C57] rounded-[10px] p-4 flex flex-col gap-2.5"
+                  >
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span
+                        className="self-start text-[10px] font-extrabold tracking-[0.08em] uppercase px-2 py-1 rounded-[4px]"
+                        style={{ backgroundColor: cat.bg, color: cat.ink }}
+                      >
+                        {item.category}
+                      </span>
+                      {item.manter_permanente && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-[#7A4F12] bg-[#F2DDB0] px-1.5 py-1 rounded-[4px]">
+                          <Pin className="w-2.5 h-2.5" />
+                          Permanente
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 className="m-0 text-[15px] font-extrabold leading-[1.3]">{item.title}</h3>
+
+                    {item.summary && (
+                      <p className="m-0 text-[13px] leading-[1.45] text-[#CDD1D6]">{item.summary}</p>
+                    )}
+
+                    <div className="flex justify-between gap-2 text-[11px] mt-auto pt-1">
+                      <span className={`${MUTED} whitespace-nowrap`}>{item.date}</span>
+                      {source && <span className="font-bold text-right">{source}</span>}
+                    </div>
+
+                    {item.link_original && (
+                      <a
+                        href={item.link_original}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex justify-center p-[9px] rounded-md bg-[#35566B] hover:bg-[#42708C] text-white text-[13px] font-bold transition-colors"
+                      >
+                        Saber mais ›
+                      </a>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
       </>
     );
   }

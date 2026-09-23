@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { City } from '../types';
 import { fetchWeatherForecast, fetchLatestWeatherReading, WeatherForecastRow, WeatherReadingRow } from '../lib/supabase';
-import { CloudRain, Sun, CloudSun, CloudLightning, Droplets, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { SURFACE_B, LINE, MUTED, SECTION_PAD } from './homeTheme';
 
 interface CityWeatherForecastProps {
   selectedCity: City;
@@ -15,6 +16,7 @@ interface DayForecast {
   minTemp: number | null;
   rainSumMm: number;
   maxProbability: number;
+  hours: number;
 }
 
 const DAY_LABELS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
@@ -38,10 +40,12 @@ function groupByDay(rows: WeatherForecastRow[]): DayForecast[] {
         maxTemp: null,
         minTemp: null,
         rainSumMm: 0,
-        maxProbability: 0
+        maxProbability: 0,
+        hours: 0
       };
       byDay.set(dateKey, entry);
     }
+    entry.hours += 1;
 
     if (typeof row.temperature_2m === 'number' && !isNaN(row.temperature_2m)) {
       entry.maxTemp = entry.maxTemp === null ? row.temperature_2m : Math.max(entry.maxTemp, row.temperature_2m);
@@ -58,33 +62,13 @@ function groupByDay(rows: WeatherForecastRow[]): DayForecast[] {
   return Array.from(byDay.values()).sort((a, b) => a.dateKey.localeCompare(b.dateKey));
 }
 
-function weatherIconFor(rainSumMm: number, probability: number) {
-  if (rainSumMm >= 20 || (rainSumMm >= 8 && probability >= 70)) {
-    return { Icon: CloudLightning, colorClass: 'text-violet-600 dark:text-violet-400' };
-  }
-  if (rainSumMm >= 1 || probability >= 40) {
-    return { Icon: CloudRain, colorClass: 'text-cyan-600 dark:text-cyan-400' };
-  }
-  if (probability >= 15) {
-    return { Icon: CloudSun, colorClass: 'text-amber-500 dark:text-amber-400' };
-  }
-  return { Icon: Sun, colorClass: 'text-amber-500 dark:text-amber-400' };
-}
+const DAYS_TO_SHOW = 7;
+// Dias futuros só entram com a previsão (quase) completa, para não subestimar a chuva do dia
+const MIN_HOURS_FOR_FULL_DAY = 20;
+// Escala mínima das barras (mm), para que poucos milímetros não pareçam um temporal
+const MIN_BAR_SCALE_MM = 10;
 
-function rainDescription(rainSumMm: number, probability: number): string {
-  if (rainSumMm >= 20 || (rainSumMm >= 8 && probability >= 70)) {
-    return 'Chuva forte prevista, possibilidade de temporais.';
-  }
-  if (rainSumMm >= 5 || probability >= 60) {
-    return 'Pancadas de chuva ao longo do dia.';
-  }
-  if (rainSumMm >= 0.5 || probability >= 20) {
-    return 'Possibilidade de chuva isolada.';
-  }
-  return 'Sem previsão de chuva significativa.';
-}
-
-const DAYS_TO_SHOW = 3;
+const fmtMm = (v: number) => v.toFixed(1).replace('.', ',');
 
 export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ selectedCity }) => {
   const [rows, setRows] = useState<WeatherForecastRow[]>([]);
@@ -115,7 +99,10 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
 
   // Só o presente em diante (a coleta guarda past_days também) e no máximo DAYS_TO_SHOW dias
   const todayKey = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
-  const days = groupByDay(rows).filter((d) => d.dateKey >= todayKey).slice(0, DAYS_TO_SHOW);
+  const days = groupByDay(rows)
+    .filter((d) => d.dateKey === todayKey || (d.dateKey > todayKey && d.hours >= MIN_HOURS_FOR_FULL_DAY))
+    .slice(0, DAYS_TO_SHOW);
+  const barScaleMm = Math.max(MIN_BAR_SCALE_MM, ...days.map((d) => d.rainSumMm));
 
   // Horário mais recente entre a previsão e a coleta de chuva medida, para mostrar que os dados são atuais
   const lastUpdateMs = Math.max(
@@ -158,110 +145,81 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
   const hasForecastRain = rain72hForecast !== null;
   const hasRainData = hasMeasuredRain || hasForecastRain;
 
+  const accumulated = [
+    { label: 'Últimas 24h', sub: 'medida', value: typeof rain24h === 'number' ? rain24h : null },
+    { label: 'Últimas 72h', sub: 'medida', value: typeof rain72h === 'number' ? rain72h : null },
+    { label: 'Próximas 72h', sub: 'prevista', value: rain72hForecast }
+  ];
+
   return (
-    <div className="dark:bg-[#0F172A]/90 bg-white dark:border-slate-800 border-slate-200 rounded-2xl p-5 shadow-xl transition-colors border">
-      <h3 className="text-xs font-bold dark:text-slate-300 text-slate-700 tracking-wider uppercase mb-1 flex items-center justify-between">
-        <span>Previsão do Tempo</span>
-        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-100 dark:bg-cyan-950 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800 lowercase">
-          open-meteo
-        </span>
-      </h3>
-      {updatedLabel && (
-        <p className="text-[10px] dark:text-slate-500 text-slate-400 normal-case mb-3">{updatedLabel}</p>
-      )}
+    <section className={`${SURFACE_B} ${SECTION_PAD} pt-12 sm:pt-14 pb-14 sm:pb-16 flex flex-col gap-[30px]`}>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="leading-[1.2]">
+          <div className="text-lg font-light">Chuva prevista para</div>
+          <div className="text-[26px] font-extrabold">Os próximos dias</div>
+        </div>
+        {updatedLabel && (
+          <span className={`text-xs ${MUTED}`}>Open-Meteo · {updatedLabel}</span>
+        )}
+      </div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-xs dark:text-slate-400 text-slate-500">
+        <div className={`flex items-center gap-2 py-6 text-sm ${MUTED}`}>
           <Loader2 className="w-4 h-4 animate-spin" />
           Carregando previsão...
         </div>
       ) : days.length === 0 && !hasRainData ? (
-        <p className="text-xs dark:text-slate-400 text-slate-500 text-center py-6">
+        <p className={`text-sm ${MUTED}`}>
           Previsão indisponível no momento para {selectedCity.name}.
         </p>
       ) : (
         <>
-          {/* PREVISÃO POR DIA (temperatura, chuva prevista e chance) */}
+          {/* COLUNAS POR DIA: chuva prevista (mm) */}
           {days.length > 0 && (
-            <div className="flex flex-col gap-2">
-              {days.map((d, i) => {
-                const { Icon, colorClass } = weatherIconFor(d.rainSumMm, d.maxProbability);
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(72px,1fr))] sm:grid-cols-[repeat(auto-fit,minmax(90px,1fr))] gap-4 items-end">
+              {days.map((d) => {
+                const pct = Math.max(2, Math.min(100, (d.rainSumMm / barScaleMm) * 100));
+                const isToday = d.dateKey === todayKey;
                 return (
                   <div
                     key={d.dateKey}
-                    className="flex items-center gap-3 p-2.5 rounded-xl dark:bg-slate-900/60 bg-slate-50 dark:border-slate-800 border-slate-200 border"
+                    className="flex flex-col gap-2.5 items-start"
+                    title={d.maxProbability > 0 ? `${Math.round(d.maxProbability)}% de chance de chuva` : undefined}
                   >
-                    <div className="w-14 shrink-0 text-left">
-                      <div className="text-xs font-bold dark:text-white text-slate-900">
-                        {i === 0 ? 'Hoje' : d.dayLabel}
-                      </div>
-                      <div className="text-[10px] dark:text-slate-400 text-slate-500">{d.dateLabel}</div>
+                    <span className="text-[15px] font-extrabold whitespace-nowrap">{fmtMm(d.rainSumMm)} mm</span>
+                    <div className="w-full h-[120px] flex items-end bg-[#2A323B] rounded-[3px]">
+                      <div className="w-full bg-[#4F9BD0] rounded-[3px]" style={{ height: `${pct}%` }} />
                     </div>
-
-                    <Icon className={`w-6 h-6 shrink-0 ${colorClass}`} />
-
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[11px] dark:text-slate-300 text-slate-600 leading-snug">
-                        {rainDescription(d.rainSumMm, d.maxProbability)}
-                      </div>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <Droplets className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
-                        <span className="text-[10px] font-mono font-semibold text-cyan-700 dark:text-cyan-300">
-                          {d.rainSumMm.toFixed(1).replace('.', ',')} mm
-                        </span>
-                        {d.maxProbability > 0 && (
-                          <span className="text-[10px] dark:text-slate-500 text-slate-400 ml-1">
-                            ({Math.round(d.maxProbability)}% chance)
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="shrink-0 text-right font-mono">
-                      <div className="text-xs font-bold dark:text-white text-slate-900">
-                        {d.maxTemp !== null ? `${Math.round(d.maxTemp)}°` : '--'}
-                      </div>
-                      <div className="text-[10px] dark:text-slate-500 text-slate-400">
-                        {d.minTemp !== null ? `${Math.round(d.minTemp)}°` : '--'}
-                      </div>
-                    </div>
+                    <span className="text-sm font-extrabold leading-none">{isToday ? 'Hoje' : d.dayLabel.slice(0, 3)}</span>
+                    <span className={`text-xs -mt-1.5 ${MUTED}`}>{d.dateLabel}</span>
                   </div>
                 );
               })}
             </div>
           )}
 
-          {/* CHUVA ACUMULADA: medida (24h/72h) e prevista (72h à frente), lado a lado */}
+          {/* CHUVA ACUMULADA: medida (24h/72h) e prevista (72h à frente) */}
           {hasRainData && (
-            <div className={`p-3 rounded-xl dark:bg-cyan-950/40 bg-cyan-50 dark:border-cyan-900 border-cyan-200 border ${days.length > 0 ? 'mt-3' : ''}`}>
-              <div className="flex items-center gap-1.5 mb-2 text-[11px] font-semibold dark:text-cyan-300 text-cyan-800">
-                <Droplets className="w-3.5 h-3.5 shrink-0" />
-                <span>Chuva acumulada</span>
+            <div className={`flex flex-col gap-3 pt-5 border-t ${LINE}`}>
+              <div className="text-sm font-light">
+                Chuva <strong className="font-extrabold">acumulada</strong>
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <div className="text-sm font-mono font-bold dark:text-white text-slate-900">
-                    {typeof rain24h === 'number' ? rain24h.toFixed(1).replace('.', ',') : '--'} mm
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-5">
+                {accumulated.map((a) => (
+                  <div key={a.label} className="flex flex-col gap-0.5 border-l-[3px] border-[#4F9BD0] pl-3">
+                    <span className="text-xs font-semibold text-[#C4C8CD]">
+                      {a.label} <span className="font-normal">({a.sub})</span>
+                    </span>
+                    <span className="text-xl font-extrabold tracking-[-0.02em]">
+                      {a.value !== null ? `${fmtMm(a.value)} mm` : '--'}
+                    </span>
                   </div>
-                  <div className="text-[10px] dark:text-slate-400 text-slate-500">Últimas 24h</div>
-                </div>
-                <div>
-                  <div className="text-sm font-mono font-bold dark:text-white text-slate-900">
-                    {typeof rain72h === 'number' ? rain72h.toFixed(1).replace('.', ',') : '--'} mm
-                  </div>
-                  <div className="text-[10px] dark:text-slate-400 text-slate-500">Últimas 72h</div>
-                </div>
-                <div>
-                  <div className="text-sm font-mono font-bold dark:text-white text-slate-900">
-                    {rain72hForecast !== null ? rain72hForecast.toFixed(1).replace('.', ',') : '--'} mm
-                  </div>
-                  <div className="text-[10px] dark:text-slate-400 text-slate-500">Próximas 72h</div>
-                </div>
+                ))}
               </div>
             </div>
           )}
         </>
       )}
-    </div>
+    </section>
   );
 };
