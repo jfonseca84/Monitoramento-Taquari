@@ -3,6 +3,7 @@ import { ComponentConfig, DashboardLayoutState } from '../types/visualEditor';
 import { isSupabaseConfigured, supabase, verifyAdminUserProfile } from '../lib/supabase';
 
 const LAYOUT_STORAGE_KEY = 'rio_taquari_layout_editor_config_v1';
+const HOME_REDESIGN_MIGRATION_KEY = 'rio_taquari_home_redesign_migrated';
 
 interface VisualEditorContextType {
   isEditMode: boolean;
@@ -125,6 +126,16 @@ export const VisualEditorProvider: React.FC<{ children: ReactNode }> = ({ childr
       if (saved) {
         const parsed: DashboardLayoutState = JSON.parse(saved);
         if (parsed && parsed.components) {
+          // Migração única do redesign da página Início: ajustes salvos para o layout antigo
+          // (altura fixa, largura, ordem, transparência) cortavam o conteúdo do layout novo.
+          if (!localStorage.getItem(HOME_REDESIGN_MIGRATION_KEY)) {
+            const kept = Object.fromEntries(
+              Object.entries(parsed.components).filter(([id]) => !id.startsWith('inicio_'))
+            );
+            parsed.components = kept;
+            localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify({ ...parsed, updatedAt: new Date().toISOString() }));
+            localStorage.setItem(HOME_REDESIGN_MIGRATION_KEY, 'done');
+          }
           setConfigs(parsed.components);
         }
       }

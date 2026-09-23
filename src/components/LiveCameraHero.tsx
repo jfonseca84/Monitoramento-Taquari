@@ -31,19 +31,26 @@ interface LatestReading {
   recorded_at: string;
 }
 
-// Última leitura gravada da estação, pelo endpoint de histórico que o worker já expõe
-// (/api/history lê river_levels direto do banco; sem esse endpoint, retorna null e a tela mostra "--")
-async function fetchLatestReading(cityId: string, currentLevel?: number): Promise<LatestReading | null> {
+// Leitura gravada em river_levels que corresponde ao nível exibido, pelo endpoint de histórico
+// que o worker já expõe. O painel e o histórico podem chegar em momentos diferentes (uma leitura
+// nova pode já estar no histórico), então procura a leitura mais recente com o MESMO nível na tela.
+// Sem o endpoint ou sem correspondência, retorna null e a tela mostra "--".
+async function fetchReadingForLevel(cityId: string, currentLevel?: number): Promise<LatestReading | null> {
+  if (!isValidNumber(currentLevel)) return null;
   try {
     // "v" muda a cada nova leitura para o navegador não reaproveitar uma resposta antiga do cache HTTP
-    const res = await fetch(`/api/history?cityId=${encodeURIComponent(cityId)}&timeframe=6h&v=${encodeURIComponent(String(currentLevel ?? ''))}`);
+    const res = await fetch(`/api/history?cityId=${encodeURIComponent(cityId)}&timeframe=6h&v=${encodeURIComponent(String(currentLevel))}`);
     if (!res.ok) return null;
     const rows = await res.json();
-    if (!Array.isArray(rows) || rows.length === 0) return null;
-    const last = rows[rows.length - 1];
-    const level = Number(last?.level);
-    if (!isValidNumber(level) || typeof last?.recorded_at !== 'string') return null;
-    return { level, recorded_at: last.recorded_at };
+    if (!Array.isArray(rows)) return null;
+    for (let i = rows.length - 1; i >= 0; i--) {
+      const level = Number(rows[i]?.level);
+      const recordedAt = rows[i]?.recorded_at;
+      if (isValidNumber(level) && typeof recordedAt === 'string' && Math.abs(level - currentLevel) < 0.0005) {
+        return { level, recorded_at: recordedAt };
+      }
+    }
+    return null;
   } catch {
     return null;
   }
@@ -88,7 +95,7 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity }) 
   useEffect(() => {
     let isMounted = true;
     setLatestReading(null);
-    fetchLatestReading(selectedCity.id, selectedCity.current_level).then((reading) => {
+    fetchReadingForLevel(selectedCity.id, selectedCity.current_level).then((reading) => {
       if (isMounted) setLatestReading(reading);
     });
     return () => {
@@ -109,12 +116,9 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity }) 
   const trendColor = isUp ? '#F2A65A' : isDown ? '#7DCB9A' : '#FFFFFF';
   const rateStr = isValidNumber(rate) ? `${rate > 0 ? '+' : ''}${formatLevel(rate)} m/h` : '-- m/h';
 
-  // Hora da medição exibida: vêm da última linha de river_levels, e só são mostradas
-  // se essa leitura for a mesma do nível na tela (cities.updated_at é a hora da coleta, não da medição)
-  const reading =
-    latestReading && isValidNumber(selectedCity.current_level) && Math.abs(latestReading.level - selectedCity.current_level) < 0.0005
-      ? latestReading
-      : null;
+  // Hora da leitura exibida: recorded_at da linha de river_levels com o mesmo nível na tela
+  // (cities.updated_at é a hora da execução do worker, não a da leitura)
+  const reading = latestReading;
   const readingDate = reading && !isNaN(new Date(reading.recorded_at).getTime()) ? reading.recorded_at : null;
   // Formato: "23/09/2026 • Última atualização às 06h40" (a fonte fica no rodapé)
   const readingLabel = readingDate
