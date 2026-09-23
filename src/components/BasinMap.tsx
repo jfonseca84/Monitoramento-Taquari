@@ -42,7 +42,7 @@ const BASIN_CONFIG: Record<BasinKey, { url: string; rivers: River[]; aria: strin
   taquari: {
     url: '/geo/bacia-taquari-antas.json',
     rivers: TAQUARI_RIVERS,
-    labelHalo: '#A9CDE6',
+    labelHalo: '#EFF1F3',
     aria: 'Mapa da Bacia Taquari-Antas com as estações de monitoramento'
   },
   guaiba: {
@@ -302,22 +302,23 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
           role="img"
           aria-label={config.aria}
         >
-          {/* Bacia como forma única: contorno só na borda externa */}
-          <g>
+          {/* Bacia como forma única: contorno só na borda externa (tom apagado, é só contexto) */}
+          <g opacity={0.4}>
             {basinPaths.map((b) => (
               <path key={`o-${b.key}`} d={b.d} fill={C_EDGE} stroke={C_EDGE} strokeWidth={2.8} strokeLinejoin="round" />
             ))}
           </g>
-          <g>
+          <g opacity={0.28}>
             {basinPaths.map((b) => (
               <path key={`f-${b.key}`} d={b.d} fill={C_BASIN} stroke={C_BASIN} strokeWidth={0.8} />
             ))}
           </g>
+          {/* Município da estação selecionada: sempre em destaque, cor conforme o status (verde=normal … vermelho=inundação) */}
           <g>
             {basinPaths
               .filter((b) => b.key === selectedMunKey)
               .map((b) => (
-                <path key={`s-${b.key}`} d={b.d} fill={selectedFill} stroke={selectedFill} strokeWidth={0.8} />
+                <path key={`s-${b.key}`} d={b.d} fill={selectedFill} stroke={C_INK} strokeWidth={1.4} strokeLinejoin="round" />
               ))}
           </g>
 
