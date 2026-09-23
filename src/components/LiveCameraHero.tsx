@@ -13,6 +13,7 @@ import {
   MUTED,
   SECTION_PAD,
   formatLevel,
+  isRealHistory,
   isValidNumber
 } from './homeTheme';
 
@@ -25,11 +26,36 @@ interface LiveCameraHeroProps {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+interface LatestReading {
+  level: number;
+  recorded_at: string;
+}
+
+// Última leitura gravada da estação, pelo endpoint de histórico que o worker já expõe
+// (/api/history lê river_levels direto do banco; sem esse endpoint, retorna null e a tela mostra "--")
+async function fetchLatestReading(cityId: string, currentLevel?: number): Promise<LatestReading | null> {
+  try {
+    // "v" muda a cada nova leitura para o navegador não reaproveitar uma resposta antiga do cache HTTP
+    const res = await fetch(`/api/history?cityId=${encodeURIComponent(cityId)}&timeframe=6h&v=${encodeURIComponent(String(currentLevel ?? ''))}`);
+    if (!res.ok) return null;
+    const rows = await res.json();
+    if (!Array.isArray(rows) || rows.length === 0) return null;
+    const last = rows[rows.length - 1];
+    const level = Number(last?.level);
+    if (!isValidNumber(level) || typeof last?.recorded_at !== 'string') return null;
+    return { level, recorded_at: last.recorded_at };
+  } catch {
+    return null;
+  }
+}
+
 // Cabeçalho da cidade, nível atual (hero) e cotas de referência da página Início.
 // A câmera ao vivo segue desativada (onOpenCameraModal é mantido na interface).
 export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity }) => {
-  // Máxima no dia: maior leitura real das últimas 24 h (histórico do banco)
+  // Máxima no dia: maior leitura real das últimas 24 h (histórico do banco, uma leitura por hora)
   const [maxToday, setMaxToday] = useState<number | null>(null);
+  // Última medição gravada em river_levels (hora real da leitura exibida)
+  const [latestReading, setLatestReading] = useState<LatestReading | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -37,6 +63,10 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity }) 
     fetchCityHistory(selectedCity.id, '24h')
       .then((points) => {
         if (!isMounted) return;
+        if (!isRealHistory(points)) {
+          setMaxToday(null);
+          return;
+        }
         const cutoff = Date.now() - DAY_MS;
         const levels = (points || [])
           .filter((p: any) => {
@@ -53,7 +83,18 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity }) 
     return () => {
       isMounted = false;
     };
-  }, [selectedCity.id, selectedCity.last_updated]);
+  }, [selectedCity.id, selectedCity.current_level]);
+
+  useEffect(() => {
+    let isMounted = true;
+    setLatestReading(null);
+    fetchLatestReading(selectedCity.id, selectedCity.current_level).then((reading) => {
+      if (isMounted) setLatestReading(reading);
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedCity.id, selectedCity.current_level]);
 
   const thresholds = getCityThresholds(selectedCity);
   const status = selectedCity.status_level;
@@ -68,18 +109,18 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity }) 
   const trendColor = isUp ? '#F2A65A' : isDown ? '#7DCB9A' : '#FFFFFF';
   const rateStr = isValidNumber(rate) ? `${rate > 0 ? '+' : ''}${formatLevel(rate)} m/h` : '-- m/h';
 
-  // Horário da leitura em Brasília; sem data válida mostra "--"
-  // (updated_at traz o recorded_at bruto; last_updated já vem formatado como texto)
-  const rawDate = [selectedCity.updated_at, selectedCity.last_updated].find(
-    (d) => !!d && !isNaN(new Date(d).getTime())
-  );
-  const hasValidDate = !!rawDate;
-  // Leitura de hoje mostra só a hora (como no modelo); de outro dia, inclui a data
-  const isToday = hasValidDate && getBrasiliaDateString(rawDate) === getBrasiliaDateString();
-  const readingLabel = hasValidDate
-    ? isToday
-      ? `das ${getBrasiliaTimeString(rawDate)}`
-      : `de ${getBrasiliaDateString(rawDate)} às ${getBrasiliaTimeString(rawDate)}`
+  // Hora da medição exibida: vêm da última linha de river_levels, e só são mostradas
+  // se essa leitura for a mesma do nível na tela (cities.updated_at é a hora da coleta, não da medição)
+  const reading =
+    latestReading && isValidNumber(selectedCity.current_level) && Math.abs(latestReading.level - selectedCity.current_level) < 0.0005
+      ? latestReading
+      : null;
+  const readingDate = reading && !isNaN(new Date(reading.recorded_at).getTime()) ? reading.recorded_at : null;
+  // Leitura de hoje mostra só a hora; de outro dia, inclui a data (a fonte fica no rodapé)
+  const readingLabel = readingDate
+    ? getBrasiliaDateString(readingDate) === getBrasiliaDateString()
+      ? `às ${getBrasiliaTimeString(readingDate)}`
+      : `em ${getBrasiliaDateString(readingDate)} às ${getBrasiliaTimeString(readingDate)}`
     : '--';
 
   const quotas = [
@@ -136,7 +177,7 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity }) 
         </div>
 
         <div className={`text-[13px] ${MUTED}`}>
-          Fonte: {selectedCity.source_origin || '--'} — leitura {readingLabel}
+          Última medição {readingLabel}
         </div>
       </section>
 

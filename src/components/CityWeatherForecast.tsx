@@ -115,10 +115,10 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
   const updatedLabel = (() => {
     if (!lastUpdateMs) return null;
     const diffMin = Math.round((Date.now() - lastUpdateMs) / 60000);
-    if (diffMin < 1) return 'atualizado agora';
-    if (diffMin < 60) return `atualizado há ${diffMin} min`;
+    if (diffMin < 1) return 'coletado há menos de 1 min';
+    if (diffMin < 60) return `coletado há ${diffMin} min`;
     const diffH = Math.round(diffMin / 60);
-    return `atualizado há ${diffH}h`;
+    return `coletado há ${diffH}h`;
   })();
 
   const rain24h = reading?.rain_24h_mm;
@@ -146,9 +146,9 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
   const hasRainData = hasMeasuredRain || hasForecastRain;
 
   const accumulated = [
-    { label: 'Últimas 24h', sub: 'medida', value: typeof rain24h === 'number' ? rain24h : null },
-    { label: 'Últimas 72h', sub: 'medida', value: typeof rain72h === 'number' ? rain72h : null },
-    { label: 'Próximas 72h', sub: 'prevista', value: rain72hForecast }
+    { label: 'Últimas 24h', value: typeof rain24h === 'number' ? rain24h : null },
+    { label: 'Últimas 72h', value: typeof rain72h === 'number' ? rain72h : null },
+    { label: 'Próximas 72h (previsão)', value: rain72hForecast }
   ];
 
   return (
@@ -159,7 +159,7 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
           <div className="text-[26px] font-extrabold">Os próximos dias</div>
         </div>
         {updatedLabel && (
-          <span className={`text-xs ${MUTED}`}>Open-Meteo · {updatedLabel}</span>
+          <span className={`text-xs ${MUTED}`}>Fonte: Open-Meteo · {updatedLabel}</span>
         )}
       </div>
 
@@ -203,12 +203,15 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
             <div className={`flex flex-col gap-3 pt-5 border-t ${LINE}`}>
               <div className="text-sm font-light">
                 Chuva <strong className="font-extrabold">acumulada</strong>
+                <span className={`block text-xs mt-0.5 ${MUTED}`}>
+                  Dados do modelo meteorológico Open-Meteo, não de pluviômetro.
+                </span>
               </div>
               <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-5">
                 {accumulated.map((a) => (
                   <div key={a.label} className="flex flex-col gap-0.5 border-l-[3px] border-[#4F9BD0] pl-3">
                     <span className="text-xs font-semibold text-[#C4C8CD]">
-                      {a.label} <span className="font-normal">({a.sub})</span>
+                      {a.label}
                     </span>
                     <span className="text-xl font-extrabold tracking-[-0.02em]">
                       {a.value !== null ? `${fmtMm(a.value)} mm` : '--'}

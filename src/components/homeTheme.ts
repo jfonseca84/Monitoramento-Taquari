@@ -72,7 +72,15 @@ export const BASIN_DEFAULT_CITY: Record<BasinKey, string> = {
 export const basinOfCity = (slug?: string): BasinKey | null =>
   slug && BASIN_STATIONS.guaiba.includes(slug) ? 'guaiba' : slug && BASIN_STATIONS.taquari.includes(slug) ? 'taquari' : null;
 
-export const isValidNumber =(v: unknown): v is number => typeof v === 'number' && !isNaN(v);
+// Histórico vindo do banco traz o recorded_at do PostgREST ("...+00:00"). Quando a consulta falha
+// ou volta vazia, fetchCityHistory gera uma curva ilustrativa com toISOString() ("...Z");
+// esses pontos nunca devem aparecer como leituras.
+export const isRealHistory = (points: { timestamp?: string }[] | null | undefined): boolean =>
+  Array.isArray(points) &&
+  points.length > 0 &&
+  points.every((p) => typeof p?.timestamp === 'string' && !p.timestamp.endsWith('Z'));
+
+export const isValidNumber = (v: unknown): v is number => typeof v === 'number' && !isNaN(v);
 
 // Nível formatado com vírgula; ausente = "--"
 export const formatLevel = (v: unknown, digits = 2): string =>

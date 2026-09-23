@@ -1,7 +1,7 @@
 import React from 'react';
 import { Timeframe, ChartDataPoint, City } from '../types';
 import { getCityThresholds } from '../data/cityThresholds';
-import { SURFACE_A, MUTED, SECTION_PAD, formatLevel, isValidNumber } from './homeTheme';
+import { SURFACE_A, MUTED, SECTION_PAD, formatLevel, isRealHistory, isValidNumber } from './homeTheme';
 
 interface LevelChartProps {
   selectedCity: City;
@@ -10,17 +10,16 @@ interface LevelChartProps {
   setTimeframe: (tf: Timeframe) => void;
 }
 
-// Linhas do modelo: agora, 1 a 6 h atrás e depois 8, 10 e 12 h atrás (uma leitura por hora)
+// Linhas do modelo: leitura mais recente, 1 a 6 h atrás e depois 8, 10 e 12 h atrás (uma leitura por hora)
 const HOURS_BACK = [0, 1, 2, 3, 4, 5, 6, 8, 10, 12];
-// A leitura mais recente só é rotulada "Agora" se for de até 90 min atrás
-const NOW_WINDOW_MS = 90 * 60 * 1000;
 
 // "Nível ao longo do dia": leituras reais do histórico, mais recentes primeiro
 export const LevelChart: React.FC<LevelChartProps> = ({ selectedCity, chartData }) => {
   const floodLevel = getCityThresholds(selectedCity).flood;
 
   // Histórico por hora (24 h), da mais recente para a mais antiga
-  const hourly = (chartData || [])
+  // Só leituras reais do banco (nunca a curva ilustrativa gerada quando a consulta falha)
+  const hourly = (isRealHistory(chartData) ? chartData : [])
     .filter((d) => isValidNumber(Number(d?.level)))
     .slice()
     .reverse();
@@ -31,10 +30,10 @@ export const LevelChart: React.FC<LevelChartProps> = ({ selectedCity, chartData 
       const p = hourly[b];
       const level = Number(p.level);
       const older = hourly[b + 1];
+      // Variação em relação à leitura real da hora anterior
       const delta = older ? level - Number(older.level) : null;
-      const t = new Date(p.timestamp).getTime();
-      const isNow = b === 0 && !isNaN(t) && Date.now() - t <= NOW_WINDOW_MS;
-      return { key: `${p.timestamp}-${b}`, label: isNow ? 'Agora' : p.time, level, delta };
+      // Horário real da medição (recorded_at), nunca o horário atual
+      return { key: `${p.timestamp}-${b}`, label: p.time, level, delta };
     });
 
   return (

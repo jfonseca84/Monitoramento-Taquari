@@ -56,7 +56,7 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
           </span>
         </span>
         <span className="flex items-center gap-2 shrink-0">
-          <span className="text-[15px] font-light">{formatLevel(currentCity.current_level, 1)} m</span>
+          <span className="text-[15px] font-light">{formatLevel(currentCity.current_level)} m</span>
           <ChevronDown className={`w-4 h-4 text-[#B4B9BF] transition-transform ${mobileMenuOpen ? 'rotate-180' : ''}`} />
         </span>
       </button>
@@ -126,7 +126,7 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
                   style={{ backgroundColor: dotColor(city) }}
                   title={city.status_level || undefined}
                 />
-                <span className="text-[15px] font-light">{formatLevel(city.current_level, 1)} m</span>
+                <span className="text-[15px] font-light">{formatLevel(city.current_level)} m</span>
                 {riverShort && (
                   <span className="text-[10px] opacity-65 whitespace-nowrap notranslate" translate="no">{riverShort}</span>
                 )}
