@@ -33,22 +33,12 @@ const ENABLED_NAV_ITEMS = ['inicio'];
 export const Header: React.FC<HeaderProps> = ({
   activeTab,
   setActiveTab,
-  onOpenAdmin,
-  isSyncing = false,
-  connectionStatus = 'online'
+  onOpenAdmin
 }) => {
   const { settings } = useSiteSettings();
   const { isAdmin, isEditMode, setEditMode } = useVisualEditor();
 
   const logoTimestamp = settings.updated_at ? new Date(settings.updated_at).getTime() : 1;
-
-  // Indicador de sincronização (realtime / poll)
-  const syncColor = connectionStatus === 'offline' ? '#D9483B' : isSyncing || connectionStatus === 'updating' ? '#E9C145' : '#3FA46A';
-  const syncTitle = connectionStatus === 'offline'
-    ? 'Sem conexão com os dados em tempo real'
-    : isSyncing || connectionStatus === 'updating'
-      ? 'Sincronizando dados...'
-      : 'Dados em tempo real conectados';
 
   return (
     <header className="sticky top-0 z-40 h-14 box-border bg-white border-b border-[#E6E9ED] flex items-center gap-4 md:gap-6 px-[clamp(16px,3.5vw,64px)] font-[family-name:Figtree,system-ui,sans-serif]">
@@ -107,14 +97,6 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* AÇÕES */}
       <div className="flex items-center gap-3.5 shrink-0 ml-auto md:ml-0">
-        <span
-          className={`w-2 h-2 rounded-full ${isSyncing ? 'animate-pulse' : ''}`}
-          style={{ backgroundColor: syncColor }}
-          title={syncTitle}
-          aria-label={syncTitle}
-          role="status"
-        />
-
         {isAdmin && (
           <button
             onClick={() => setEditMode(!isEditMode)}
