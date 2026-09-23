@@ -20,6 +20,21 @@ import { NEWS_CATEGORY_COLORS, SURFACE_A, MUTED, SECTION_PAD } from './homeTheme
 const DEMO_NEWS_IDS = new Set(INITIAL_NEWS.map((n) => n.id));
 const HOME_NEWS_LIMIT = 3;
 
+// No banco "date" é TIMESTAMPTZ: mostra tempo relativo ("há 2 horas"); texto livre passa como está
+function relativeTime(value?: string): string {
+  if (!value) return '';
+  const t = new Date(value).getTime();
+  if (isNaN(t)) return value;
+  const diffMin = Math.max(0, Math.round((Date.now() - t) / 60000));
+  if (diffMin < 1) return 'agora';
+  if (diffMin < 60) return `há ${diffMin} min`;
+  const h = Math.round(diffMin / 60);
+  if (h < 24) return `há ${h} ${h === 1 ? 'hora' : 'horas'}`;
+  const d = Math.round(h / 24);
+  if (d < 30) return `há ${d} ${d === 1 ? 'dia' : 'dias'}`;
+  return new Date(t).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+}
+
 interface NewsSectionProps {
   news: NewsItem[];
   onViewAllNews?: () => void;
@@ -36,6 +51,15 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ news, onViewAllNews, i
   // nem quando chegam pelo fallback local do bootstrap
   const rawNews = (news || []).filter((n) => !DEMO_NEWS_IDS.has(n.id));
   const filteredDisplayNews = rawNews.filter((n) => n.exibir_no_menu !== false);
+  // Página Início: só comunicados publicados e ainda válidos
+  const homeNews = filteredDisplayNews.filter((n) => {
+    if (n.published === false) return false;
+    if (n.expires_at) {
+      const exp = new Date(n.expires_at).getTime();
+      if (!isNaN(exp) && exp < Date.now()) return false;
+    }
+    return true;
+  });
 
   const getCategoryBadge = (category: string) => {
     switch (category) {
@@ -224,11 +248,11 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ news, onViewAllNews, i
           </div>
 
           {/* NEWS CARDS (3 na página Início) */}
-          {filteredDisplayNews.length === 0 ? (
+          {homeNews.length === 0 ? (
             <p className={`text-sm ${MUTED}`}>Nenhum comunicado oficial publicado no momento.</p>
           ) : (
             <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3.5 min-w-0">
-              {filteredDisplayNews.slice(0, HOME_NEWS_LIMIT).map((item) => {
+              {homeNews.slice(0, HOME_NEWS_LIMIT).map((item) => {
                 const cat = NEWS_CATEGORY_COLORS[item.category] || { bg: '#D5E3EC', ink: '#27465C' };
                 const source = item.fonte || item.author;
                 return (
@@ -258,7 +282,7 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ news, onViewAllNews, i
                     )}
 
                     <div className="flex justify-between gap-2 text-[11px] mt-auto pt-1">
-                      <span className={`${MUTED} whitespace-nowrap`}>{item.date}</span>
+                      <span className={`${MUTED} whitespace-nowrap`}>{relativeTime(item.date)}</span>
                       {source && <span className="font-bold text-right">{source}</span>}
                     </div>
 
