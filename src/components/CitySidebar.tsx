@@ -84,9 +84,9 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
           </div>
         )}
 
-        <div className="hidden lg:block shrink-0 pt-3.5 pb-2.5 px-3 text-center leading-[1.1]">
-          <div className="text-sm font-light">Estações da</div>
-          <div className="text-xl font-extrabold">Bacia</div>
+        <div className="hidden lg:block sticky top-0 z-10 shrink-0 pt-2 pb-1.5 px-2 text-center leading-[1.1] bg-[#1B222B]">
+          <div className="text-[11px] font-light whitespace-nowrap">Estações da</div>
+          <div className="text-xl font-extrabold whitespace-nowrap">Bacia</div>
         </div>
 
         {stations.map((city) => {
@@ -104,7 +104,7 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
               }}
               aria-current={on ? 'true' : undefined}
               style={on ? { clipPath: SELECTED_CLIP } : undefined}
-              className={`grow shrink-0 basis-auto min-h-[36px] pr-3 flex flex-col justify-center items-start gap-px text-left cursor-pointer ${
+              className={`shrink-0 h-[54px] pr-3 flex flex-col justify-center items-start gap-px text-left cursor-pointer ${
                 on ? 'bg-white text-[#2B333D] pl-6' : 'text-white pl-3.5 hover:bg-[#232B35]'
               }`}
             >
@@ -120,15 +120,15 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
                   </span>
                 )}
               </span>
-              <span className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1.5 max-w-full min-w-0">
                 <span
                   className="w-[7px] h-[7px] rounded-full shrink-0"
                   style={{ backgroundColor: dotColor(city) }}
                   title={city.status_level || undefined}
                 />
-                <span className="text-[15px] font-light">{formatLevel(city.current_level)} m</span>
+                <span className="text-[15px] font-light shrink-0 whitespace-nowrap">{formatLevel(city.current_level)} m</span>
                 {riverShort && (
-                  <span className="text-[10px] opacity-65 whitespace-nowrap notranslate" translate="no">{riverShort}</span>
+                  <span className="text-[10px] opacity-65 whitespace-nowrap overflow-hidden text-ellipsis min-w-0 notranslate" translate="no">{riverShort}</span>
                 )}
               </span>
             </button>

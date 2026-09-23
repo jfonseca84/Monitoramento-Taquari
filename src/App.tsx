@@ -273,7 +273,7 @@ export default function App() {
         {/* VIEW ROUTER */}
         {activeTab === 'inicio' ? (
           /* PÁGINA INÍCIO: mapa da bacia | conteúdo rolável | lista de estações (empilha abaixo de lg) */
-          <div className={`${HOME_FONT} flex flex-col lg:grid lg:grid-cols-[minmax(260px,0.62fr)_minmax(0,1.6fr)_176px] lg:h-[calc(100vh-56px)] lg:overflow-hidden`}>
+          <div className={`${HOME_FONT} flex flex-col lg:grid lg:grid-cols-[minmax(260px,0.62fr)_minmax(0,1.6fr)_150px] lg:h-[calc(100vh-56px)] lg:overflow-hidden`}>
 
             {/* DIREITA: LISTA DE ESTAÇÕES (no celular vira o menu recolhível, no topo) */}
             <LayoutBehaviorWrapper pageKey="inicio" componentKey="sidebar" className="order-1 lg:order-3 lg:h-full min-h-0 flex flex-col">

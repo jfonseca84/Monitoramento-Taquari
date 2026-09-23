@@ -45,7 +45,7 @@ export const SURFACE_A = 'bg-[#2B333D] text-white';
 export const SURFACE_B = 'bg-[#222931] text-white';
 export const LINE = 'border-[#3A434E]';
 export const MUTED = 'text-[#B4B9BF]';
-export const SECTION_PAD = 'px-5 sm:pr-9 sm:pl-[clamp(24px,5vw,86px)]';
+export const SECTION_PAD = 'px-5 sm:pr-9 sm:pl-[clamp(24px,5vw,86px)] lg:pl-[86px]';
 
 // Bacias exibidas na página Início: estações (slugs) de montante para jusante
 export type BasinKey = 'taquari' | 'guaiba';
@@ -86,7 +86,16 @@ export const isValidNumber = (v: unknown): v is number => typeof v === 'number' 
 export const formatLevel = (v: unknown, digits = 2): string =>
   isValidNumber(v) ? v.toFixed(digits).replace('.', ',') : '--';
 
+// Remove o prefixo "Rio " e o artigo (das/dos/da/do) que antecede o nome
+const stripRiverPrefixes = (s: string): string =>
+  s.trim().replace(/^Rio\s+/i, '').replace(/^(das|dos|da|do)\s+/i, '').trim();
+
+// Nomes compostos (ex.: "Rio Taquari / Rio das Antas") ficam longos demais para a
+// coluna estreita da lista de estações. Mantém o primeiro rio por extenso e abrevia
+// os demais em 3 letras: "Rio Taquari / Rio das Antas" -> "Taquari/Ant"
 export const shortRiverName = (river?: string): string => {
   if (!river) return '';
-  return river.toLowerCase().startsWith('rio ') ? river.slice(4).trim() : river;
+  const parts = river.split('/').map(stripRiverPrefixes).filter(Boolean);
+  if (parts.length <= 1) return parts[0] || '';
+  return parts.map((p, i) => (i === 0 ? p : p.length > 4 ? p.slice(0, 3) : p)).join('/');
 };

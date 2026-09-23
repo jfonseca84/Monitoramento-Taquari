@@ -143,21 +143,21 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity, ci
       <CitySearchHeader selectedCity={selectedCity} cities={cities} onSelectCity={onSelectCity} />
 
       {/* b) NÍVEL ATUAL (HERO) */}
-      <section className={`${SURFACE_A} ${SECTION_PAD} pt-10 sm:pt-14 pb-12 sm:pb-16 flex flex-col gap-[30px]`}>
+      <section className={`${SURFACE_A} ${SECTION_PAD} pt-10 sm:pt-14 pb-12 sm:pb-16 [@media(max-height:820px)]:pt-6 [@media(max-height:820px)]:pb-8 flex flex-col gap-[30px] [@media(max-height:820px)]:gap-5`}>
         <div className="text-lg font-light text-[#D6D9DD]">
           Nível do <strong className="font-extrabold text-white notranslate" translate="no">{riverName}</strong>
         </div>
 
         <div className="flex items-start leading-[0.8]">
-          <span className="text-[clamp(88px,13vw,240px)] font-black tracking-[-0.06em]">
+          <span className="text-[clamp(56px,22cqw,200px)] font-black tracking-[-0.06em]">
             {formatLevel(selectedCity.current_level)}
           </span>
-          <span className="text-[clamp(40px,5vw,80px)] font-extrabold ml-2.5 mt-1.5">m</span>
+          <span className="text-[clamp(24px,7.3cqw,68px)] font-extrabold ml-2.5 mt-1.5">m</span>
         </div>
 
         <div className="flex max-w-[440px] w-full">
           <div
-            className="flex-1 px-5 py-4 text-sm font-extrabold uppercase tracking-[0.03em] rounded-l-[4px]"
+            className="flex-1 px-5 py-4 [@media(max-height:820px)]:py-3 text-sm font-extrabold uppercase tracking-[0.03em] rounded-l-[4px]"
             style={
               status
                 ? { backgroundColor: STATUS_COLORS[status], color: STATUS_INK[status] }
@@ -167,7 +167,7 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity, ci
             {status ? STATUS_LABELS[status] : '--'}
           </div>
           <div
-            className="flex-1 px-5 py-4 text-sm font-extrabold uppercase tracking-[0.03em] rounded-r-[4px] bg-[#3F4955] whitespace-nowrap"
+            className="flex-1 px-5 py-4 [@media(max-height:820px)]:py-3 text-sm font-extrabold uppercase tracking-[0.03em] rounded-r-[4px] bg-[#3F4955] whitespace-nowrap"
             style={{ color: trendColor }}
           >
             {trendArrow} {rateStr}
@@ -180,15 +180,15 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity, ci
       </section>
 
       {/* c) COTAS DE REFERÊNCIA */}
-      <section className={`${SURFACE_B} ${SECTION_PAD} py-[22px] flex flex-col gap-3.5`}>
+      <section className={`${SURFACE_B} ${SECTION_PAD} py-[22px] [@media(max-height:820px)]:py-4 flex flex-col gap-3.5`}>
         <div className="text-sm font-light">
           Cotas de referência em <strong className="font-extrabold notranslate" translate="no">{selectedCity.name}</strong>
         </div>
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-5">
+        <div className="grid grid-cols-5 gap-1.5 sm:gap-4">
           {quotas.map((q) => (
-            <div key={q.label} className="flex flex-col gap-0.5 border-l-[3px] pl-3" style={{ borderLeftColor: q.color }}>
-              <span className="text-xs font-semibold text-[#C4C8CD] whitespace-nowrap">{q.label}</span>
-              <span className="text-xl font-extrabold tracking-[-0.02em] whitespace-nowrap">
+            <div key={q.label} className="flex flex-col gap-0.5 border-l-[3px] pl-1.5 sm:pl-3 min-w-0" style={{ borderLeftColor: q.color }}>
+              <span className="text-[clamp(7px,1.9cqw,12px)] font-semibold text-[#C4C8CD] whitespace-nowrap overflow-hidden text-ellipsis">{q.label}</span>
+              <span className="text-[clamp(9px,2.8cqw,20px)] font-extrabold tracking-[-0.02em] whitespace-nowrap overflow-hidden text-ellipsis">
                 {isValidNumber(q.value) ? `${q.prefix}${formatLevel(q.value)} m` : '--'}
               </span>
             </div>
