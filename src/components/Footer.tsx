@@ -182,8 +182,8 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
 
         {/* 3. INFORMAÇÕES INSTITUCIONAIS (ABAIXO DOS PATROCINADORES) */}
         <div className="pt-8 border-t border-[#3A434E]">
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-7">
-            
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+
             {/* COL 1: SITE OFICIAL DE MONITORAMENTO */}
             <div className="flex items-start gap-3.5">
               <div className={iconBox}>
@@ -217,24 +217,7 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
               </div>
             </div>
 
-            {/* COL 3: EM CASO DE EMERGÊNCIA LIGUE */}
-            <div className="flex items-start gap-3.5">
-              <div className={iconBox}>
-                <PhoneCall className="w-[17px] h-[17px]" />
-              </div>
-              <div>
-                <h4 className="text-[13px] font-extrabold uppercase tracking-[0.06em] mb-1">
-                  EM CASO DE EMERGÊNCIA LIGUE
-                </h4>
-                <p className="text-sm font-extrabold text-[#F0A43C] mt-1 flex flex-wrap items-center gap-1.5">
-                  <span>Defesa Civil 199</span>
-                  <span>•</span>
-                  <span>Bombeiros 193</span>
-                </p>
-              </div>
-            </div>
-
-            {/* COL 4: ÚLTIMA ATUALIZAÇÃO */}
+            {/* COL 3: ÚLTIMA ATUALIZAÇÃO */}
             <div className="flex items-start gap-3.5">
               <div className={iconBox}>
                 <Clock className="w-[17px] h-[17px]" />
@@ -252,6 +235,21 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
               </div>
             </div>
 
+          </div>
+
+          {/* EM CASO DE EMERGÊNCIA LIGUE: faixa de rodapé, centralizada */}
+          <div className="mt-7 pt-6 border-t border-[#3A434E] flex flex-col items-center text-center gap-1.5">
+            <div className="flex items-center gap-2 text-[#8FC7E0]">
+              <PhoneCall className="w-[15px] h-[15px]" />
+              <h4 className="text-[12px] font-extrabold uppercase tracking-[0.06em] text-white">
+                Em caso de emergência ligue
+              </h4>
+            </div>
+            <p className="text-[13px] font-extrabold text-[#F0A43C] flex items-center gap-1.5 whitespace-nowrap">
+              <span>Defesa Civil 199</span>
+              <span>•</span>
+              <span>Bombeiros 193</span>
+            </p>
           </div>
         </div>
 
