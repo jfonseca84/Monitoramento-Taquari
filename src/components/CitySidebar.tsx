@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { City } from '../types';
 import { ChevronDown } from 'lucide-react';
-import { BASIN_LABELS, BASIN_SECTION_TAGS, BASIN_STATIONS, BasinKey, HOME_FONT, STATUS_COLORS, formatLevel, shortRiverName } from './homeTheme';
+import { BASIN_LABELS, BASIN_SECTION_TAGS, BASIN_STATIONS, BasinKey, HOME_FONT, STATUS_COLORS, STATUS_INK, formatLevel, shortRiverName } from './homeTheme';
 import { ConnectionStatusType } from '../lib/supabase';
 
 interface CitySidebarProps {
@@ -93,6 +93,11 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
           const on = isSelected(city);
           const tag = city.basin_section ? BASIN_SECTION_TAGS[city.basin_section] : '';
           const riverShort = shortRiverName(city.river);
+          // Indicador da estação selecionada: branco em nível normal; cor do status
+          // (amarelo/laranja/vermelho) só em atenção, alerta ou inundação
+          const hasAlert = city.status_level && city.status_level !== 'normal';
+          const selectedBg = hasAlert ? STATUS_COLORS[city.status_level!] : '#FFFFFF';
+          const selectedInk = hasAlert ? STATUS_INK[city.status_level!] : '#2B333D';
 
           return (
             <button
@@ -103,9 +108,9 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
                 setMobileMenuOpen(false);
               }}
               aria-current={on ? 'true' : undefined}
-              style={on ? { clipPath: SELECTED_CLIP } : undefined}
-              className={`shrink-0 h-[54px] pr-3 flex flex-col justify-center items-start gap-px text-left cursor-pointer ${
-                on ? 'bg-white text-[#2B333D] pl-6' : 'text-white pl-3.5 hover:bg-[#232B35]'
+              style={on ? { clipPath: SELECTED_CLIP, backgroundColor: selectedBg, color: selectedInk } : undefined}
+              className={`shrink-0 h-[50px] pr-3 flex flex-col justify-center items-start gap-px text-left cursor-pointer ${
+                on ? 'pl-6' : 'text-white pl-3.5 hover:bg-[#232B35]'
               }`}
             >
               <span className="flex items-center gap-[5px] max-w-full min-w-0">
@@ -123,7 +128,7 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
               <span className="flex items-center gap-1.5 max-w-full min-w-0">
                 <span
                   className="w-[7px] h-[7px] rounded-full shrink-0"
-                  style={{ backgroundColor: dotColor(city) }}
+                  style={on ? { backgroundColor: selectedInk } : { backgroundColor: dotColor(city) }}
                   title={city.status_level || undefined}
                 />
                 <span className="text-[15px] font-light shrink-0 whitespace-nowrap">{formatLevel(city.current_level)} m</span>
