@@ -4,7 +4,7 @@ import { CitySidebar } from './components/CitySidebar';
 import { LiveCameraHero } from './components/LiveCameraHero';
 import { LevelChart } from './components/LevelChart';
 import { BasinMap } from './components/BasinMap';
-import { HOME_FONT } from './components/homeTheme';
+import { HOME_FONT, BASIN_DEFAULT_CITY, BASIN_STATIONS, BasinKey, basinOfCity } from './components/homeTheme';
 import { NewsSection } from './components/NewsSection';
 import { Footer } from './components/Footer';
 import { AdminDashboard } from './components/AdminDashboard';
@@ -54,6 +54,16 @@ export default function App() {
   };
   const [cities, setCities] = useState<City[]>([]);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
+  // Bacia exibida no mapa e no menu de estações da página Início
+  const [basin, setBasin] = useState<BasinKey>('taquari');
+  const handleBasinChange = (next: BasinKey) => {
+    setBasin(next);
+    if (basinOfCity(selectedCity?.slug) !== next) {
+      const target = cities.find((c) => c.slug === BASIN_DEFAULT_CITY[next])
+        || cities.find((c) => BASIN_STATIONS[next].includes(c.slug));
+      if (target) setSelectedCity(target);
+    }
+  };
   const [news, setNews] = useState<NewsItem[]>([]);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [timeframe, setTimeframe] = useState<Timeframe>('24h');
@@ -273,6 +283,8 @@ export default function App() {
                   selectedCity={selectedCity}
                   onSelectCity={(city) => setSelectedCity(city)}
                   onOpenInfoModal={() => setIsInfoModalOpen(true)}
+                  basin={basin}
+                  onChangeBasin={handleBasinChange}
                 />
               </EditableComponent>
             </LayoutBehaviorWrapper>
@@ -326,6 +338,8 @@ export default function App() {
                   cities={cities}
                   selectedCity={selectedCity}
                   onSelectCity={(city) => setSelectedCity(city)}
+                  basin={basin}
+                  onChangeBasin={handleBasinChange}
                 />
               </EditableComponent>
             </LayoutBehaviorWrapper>

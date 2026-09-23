@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { City } from '../types';
-import { STATUS_COLORS, formatLevel } from './homeTheme';
+import { STATUS_COLORS, BASIN_LABELS, BASIN_STATIONS, BasinKey, formatLevel } from './homeTheme';
 
 interface BasinMapProps {
   cities: City[];
   selectedCity: City;
   onSelectCity: (city: City) => void;
+  basin: BasinKey;
+  onChangeBasin: (basin: BasinKey) => void;
 }
 
 type Ring = [number, number][];
@@ -13,34 +15,10 @@ interface BasinFeature {
   properties: { nome: string };
   geometry: { type: 'MultiPolygon'; coordinates: Ring[][] };
 }
+interface River { nome: string; major?: boolean; lbl: [number, number]; pts: [number, number][] }
 
-// Contorno aproximado da Bacia Taquari-Antas (municípios IBGE), servido estático de public/
-const BASIN_URL = '/geo/bacia-taquari-antas.json';
-let basinCache: BasinFeature[] | null = null;
-let basinRequest: Promise<BasinFeature[]> | null = null;
-
-function loadBasin(): Promise<BasinFeature[]> {
-  if (basinCache) return Promise.resolve(basinCache);
-  if (!basinRequest) {
-    basinRequest = fetch(BASIN_URL)
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((fc) => {
-        basinCache = (fc?.features || []) as BasinFeature[];
-        return basinCache;
-      })
-      .catch((err) => {
-        basinRequest = null;
-        throw err;
-      });
-  }
-  return basinRequest;
-}
-
-// Traçado esquemático dos rios principais (lon, lat), mesmo da referência de design
-const RIVERS: { nome: string; major?: boolean; lbl: [number, number]; pts: [number, number][] }[] = [
+// Traçado esquemático dos rios principais (lon, lat)
+const TAQUARI_RIVERS: River[] = [
   { nome: 'Rio das Antas', major: true, lbl: [-50.75, -28.74], pts: [[-50.05, -28.72], [-50.45, -28.70], [-50.85, -28.80], [-51.15, -28.93], [-51.41, -29.01], [-51.60, -29.08], [-51.73, -29.14], [-51.87, -29.17]] },
   { nome: 'Rio Taquari', major: true, lbl: [-52.16, -29.70], pts: [[-51.87, -29.17], [-51.88, -29.26], [-51.92, -29.35], [-51.97, -29.46], [-51.94, -29.60], [-51.86, -29.80]] },
   { nome: 'Rio Carreiro', lbl: [-51.66, -28.64], pts: [[-51.95, -28.50], [-51.82, -28.74], [-51.72, -28.95], [-51.68, -29.09]] },
@@ -50,6 +28,58 @@ const RIVERS: { nome: string; major?: boolean; lbl: [number, number]; pts: [numb
   { nome: 'Rio Fão', lbl: [-52.52, -29.30], pts: [[-52.55, -29.20], [-52.35, -29.24], [-52.18, -29.30]] },
   { nome: 'Rio Tainhas', lbl: [-50.40, -29.00], pts: [[-50.30, -29.12], [-50.45, -28.95], [-50.58, -28.78]] }
 ];
+
+const GUAIBA_RIVERS: River[] = [
+  { nome: 'Rio Jacuí', major: true, lbl: [-52.62, -29.94], pts: [[-53.36, -29.62], [-53.15, -29.80], [-52.89, -30.04], [-52.60, -30.02], [-52.37, -29.99], [-52.05, -29.93], [-51.76, -29.90], [-51.55, -29.96], [-51.30, -30.00]] },
+  { nome: 'Lago Guaíba', major: true, lbl: [-51.50, -30.24], pts: [[-51.26, -30.01], [-51.29, -30.10], [-51.30, -30.22], [-51.22, -30.32], [-51.06, -30.38]] },
+  { nome: 'Rio Caí', lbl: [-51.56, -29.50], pts: [[-51.28, -29.40], [-51.31, -29.45], [-51.38, -29.59], [-51.46, -29.69], [-51.40, -29.83], [-51.33, -29.93]] },
+  { nome: 'Rio dos Sinos', lbl: [-50.9, -29.76], pts: [[-50.60, -29.63], [-50.78, -29.65], [-51.00, -29.70], [-51.15, -29.76], [-51.20, -29.85], [-51.24, -29.93]] },
+  { nome: 'Rio Gravataí', lbl: [-50.98, -30.05], pts: [[-50.80, -29.92], [-50.99, -29.94], [-51.12, -29.96], [-51.23, -29.98]] }
+];
+
+// Contornos aproximados (municípios IBGE), servidos estáticos de public/
+const BASIN_CONFIG: Record<BasinKey, { url: string; rivers: River[]; aria: string; labelHalo: string }> = {
+  taquari: {
+    url: '/geo/bacia-taquari-antas.json',
+    rivers: TAQUARI_RIVERS,
+    labelHalo: '#A9CDE6',
+    aria: 'Mapa da Bacia Taquari-Antas com as estações de monitoramento'
+  },
+  guaiba: {
+    url: '/geo/bacia-lago-guaiba.json',
+    rivers: GUAIBA_RIVERS,
+    // Rios da região ficam em boa parte fora do contorno da bacia do lago
+    labelHalo: '#EFF1F3',
+    aria: 'Mapa da Bacia do Lago Guaíba com as estações de monitoramento'
+  }
+};
+
+const geoCache = new Map<string, BasinFeature[]>();
+const geoRequests = new Map<string, Promise<BasinFeature[]>>();
+
+function loadGeo(url: string): Promise<BasinFeature[]> {
+  const cached = geoCache.get(url);
+  if (cached) return Promise.resolve(cached);
+  let req = geoRequests.get(url);
+  if (!req) {
+    req = fetch(url)
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((fc) => {
+        const features = (fc?.features || []) as BasinFeature[];
+        geoCache.set(url, features);
+        return features;
+      })
+      .catch((err) => {
+        geoRequests.delete(url);
+        throw err;
+      });
+    geoRequests.set(url, req);
+  }
+  return req;
+}
 
 const C_BASIN = '#A9CDE6';
 const C_EDGE = '#2F6FA3';
@@ -91,21 +121,27 @@ function smoothPath(points: [number, number][]): string {
   return d;
 }
 
-export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSelectCity }) => {
+const hasCoords = (c: City) =>
+  typeof c.latitude === 'number' && typeof c.longitude === 'number' && !isNaN(c.latitude) && !isNaN(c.longitude);
+
+export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSelectCity, basin, onChangeBasin }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
-  const [basin, setBasin] = useState<BasinFeature[] | null>(basinCache);
+  const config = BASIN_CONFIG[basin];
+  const [shapes, setShapes] = useState<BasinFeature[] | null>(geoCache.get(config.url) || null);
   const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     let alive = true;
-    loadBasin()
-      .then((f) => alive && setBasin(f))
+    setLoadError(false);
+    setShapes(geoCache.get(config.url) || null);
+    loadGeo(config.url)
+      .then((f) => alive && setShapes(f))
       .catch(() => alive && setLoadError(true));
     return () => {
       alive = false;
     };
-  }, []);
+  }, [config.url]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -117,22 +153,26 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
     return () => ro.disconnect();
   }, []);
 
-  // Projeção ajustada ao contorno da bacia dentro da área disponível
+  // Estações da bacia ativa com coordenadas do banco
+  const basinCities = useMemo(
+    () => cities.filter((c) => c.active !== false && BASIN_STATIONS[basin].includes(c.slug) && hasCoords(c)),
+    [cities, basin]
+  );
+
+  // Projeção ajustada ao contorno da bacia e às estações dentro da área disponível
   const projection = useMemo(() => {
-    if (!basin || basin.length === 0 || size.w < 50 || size.h < 50) return null;
+    if (!shapes || shapes.length === 0 || size.w < 50 || size.h < 50) return null;
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    for (const f of basin) {
-      for (const poly of f.geometry.coordinates) {
-        for (const [lon, lat] of poly[0]) {
-          const x = mercX(lon), y = mercY(lat);
-          if (x < minX) minX = x;
-          if (x > maxX) maxX = x;
-          if (y < minY) minY = y;
-          if (y > maxY) maxY = y;
-        }
-      }
-    }
-    const pad = { l: 18, r: 18, t: 50, b: 60 };
+    const add = (lon: number, lat: number) => {
+      const x = mercX(lon), y = mercY(lat);
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    };
+    for (const f of shapes) for (const poly of f.geometry.coordinates) for (const [lon, lat] of poly[0]) add(lon, lat);
+    for (const c of basinCities) add(c.longitude, c.latitude);
+    const pad = { l: 18, r: 18, t: 72, b: 60 };
     const availW = size.w - pad.l - pad.r;
     const availH = size.h - pad.t - pad.b;
     const k = Math.min(availW / (maxX - minX), availH / (maxY - minY));
@@ -146,11 +186,11 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
     const centerLat = ((2 * Math.atan(Math.exp((minY + maxY) / 2)) - Math.PI / 2) * 180) / Math.PI;
     const kmPerPx = (EARTH_RADIUS_KM * Math.cos((centerLat * Math.PI) / 180)) / k;
     return { project, kmPerPx };
-  }, [basin, size.w, size.h]);
+  }, [shapes, basinCities, size.w, size.h]);
 
   const basinPaths = useMemo(() => {
-    if (!basin || !projection) return [];
-    return basin.map((f) => {
+    if (!shapes || !projection) return [];
+    return shapes.map((f) => {
       const d = f.geometry.coordinates
         .map((poly) =>
           poly
@@ -163,30 +203,36 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
         .join('');
       return { nome: f.properties.nome, key: norm(f.properties.nome), d };
     });
-  }, [basin, projection]);
+  }, [shapes, projection]);
 
   const isSelected = (c: City) => c.id === selectedCity.id || c.slug === selectedCity.slug;
   const statusColor = (c: City) => (c.status_level ? STATUS_COLORS[c.status_level] : '#FFFFFF');
 
-  // Estações da bacia com coordenadas do banco (a Bacia do Guaíba fica fora deste mapa)
   const stations = useMemo(() => {
     if (!projection) return [];
-    return cities
-      .filter((c) => c.active !== false && c.basin !== 'guaiba')
-      .filter((c) => typeof c.latitude === 'number' && typeof c.longitude === 'number' && !isNaN(c.latitude) && !isNaN(c.longitude))
-      .map((c) => ({ city: c, p: projection.project(c.longitude, c.latitude) }))
-      .filter(({ p }) => p[0] >= 0 && p[0] <= size.w && p[1] >= 0 && p[1] <= size.h);
-  }, [cities, projection, size.w, size.h]);
+    return basinCities.map((c) => ({ city: c, p: projection.project(c.longitude, c.latitude) }));
+  }, [basinCities, projection]);
 
   // Município da estação selecionada (preenchido com a cor do status)
   const selectedMunKey = norm(selectedCity.municipality || selectedCity.name || '');
   const selectedFill = statusColor(selectedCity);
 
-  // Rótulos: rio principal primeiro; estação selecionada sempre visível; demais somem se colidirem
+  // Rótulos: estação selecionada sempre visível; demais e rios somem se colidirem
   const labels = useMemo(() => {
-    if (!projection) return { rivers: [], stations: [] as { id: string; x: number; y: number; anchor: 'start' | 'end'; text: string; on: boolean }[] };
+    type StationLabel = { id: string; x: number; y: number; anchor: 'start' | 'end'; text: string; on: boolean };
+    if (!projection) return { rivers: [] as { nome: string; x: number; y: number }[], stations: [] as StationLabel[] };
     const boxes: Box[] = [];
-    const out: { id: string; x: number; y: number; anchor: 'start' | 'end'; text: string; on: boolean }[] = [];
+    // Como na referência: rótulos dos rios primeiro (principais antes), depois as estações
+    const rivers: { nome: string; x: number; y: number }[] = [];
+    const riverOrder = [...config.rivers].sort((a, b) => Number(!!b.major) - Number(!!a.major));
+    for (const r of riverOrder) {
+      const [x, y] = projection.project(r.lbl[0], r.lbl[1]);
+      const box = textBox(x, y, r.nome, 10, 'middle');
+      if (box.x < 2 || box.x + box.w > size.w - 2 || box.y < 50 || overlaps(box, boxes)) continue;
+      boxes.push(box);
+      rivers.push({ nome: r.nome, x, y });
+    }
+    const out: StationLabel[] = [];
     const ordered = [...stations].sort((a, b) => Number(isSelected(b.city)) - Number(isSelected(a.city)));
     for (const s of ordered) {
       const on = isSelected(s.city);
@@ -205,17 +251,8 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
       boxes.push(box);
       out.push({ id: s.city.id, x, y, anchor, text: s.city.name, on });
     }
-    const rivers: { nome: string; x: number; y: number }[] = [];
-    const riverOrder = [...RIVERS].sort((a, b) => Number(!!b.major) - Number(!!a.major));
-    for (const r of riverOrder) {
-      const [x, y] = projection.project(r.lbl[0], r.lbl[1]);
-      const box = textBox(x, y, r.nome, 10, 'middle');
-      if (box.x < 2 || box.x + box.w > size.w - 2 || overlaps(box, boxes)) continue;
-      boxes.push(box);
-      rivers.push({ nome: r.nome, x, y });
-    }
     return { rivers, stations: out };
-  }, [stations, projection, selectedCity.id, selectedCity.slug, size.w]);
+  }, [stations, projection, config.rivers, selectedCity.id, selectedCity.slug, size.w]);
 
   const scale = projection
     ? { px25: 25 / projection.kmPerPx, px50: 50 / projection.kmPerPx }
@@ -223,13 +260,34 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
 
   const drawOrder = [...stations].sort((a, b) => Number(isSelected(a.city)) - Number(isSelected(b.city)));
 
+  const tabClass = (active: boolean) =>
+    `px-3 py-1.5 rounded-[5px] text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
+      active ? 'bg-[#2B333D] text-white' : 'text-[#3A434E] hover:bg-[#DCE1E6]'
+    }`;
+
   return (
     <div
       ref={containerRef}
       id="mapa-estacoes"
       className="relative w-full h-full min-h-[420px] bg-[#EFF1F3] overflow-hidden font-[family-name:Figtree,system-ui,sans-serif]"
     >
-      {!basin && (
+      {/* SELETOR DE BACIA */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-0.5 p-0.5 rounded-[7px] bg-white border border-[#D5DAE0] shadow-sm" role="tablist" aria-label="Bacia exibida">
+        {(Object.keys(BASIN_LABELS) as BasinKey[]).map((key) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={basin === key}
+            onClick={() => onChangeBasin(key)}
+            className={tabClass(basin === key)}
+          >
+            {BASIN_LABELS[key]}
+          </button>
+        ))}
+      </div>
+
+      {!projection && (
         <div className="absolute inset-0 flex items-center justify-center text-xs text-[#6B737C]">
           {loadError ? 'Não foi possível carregar o mapa.' : 'Carregando mapa…'}
         </div>
@@ -242,7 +300,7 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
           viewBox={`0 0 ${size.w} ${size.h}`}
           className="block"
           role="img"
-          aria-label="Mapa da Bacia Taquari-Antas com as estações de monitoramento"
+          aria-label={config.aria}
         >
           {/* Bacia como forma única: contorno só na borda externa */}
           <g>
@@ -265,7 +323,7 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
 
           {/* Rios principais */}
           <g>
-            {RIVERS.map((r) => (
+            {config.rivers.map((r) => (
               <path
                 key={r.nome}
                 d={smoothPath(r.pts.map(([lon, lat]) => projection.project(lon, lat)))}
@@ -285,7 +343,7 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
                 fontStyle="italic"
                 fontWeight={600}
                 fill={C_RIVER}
-                stroke={C_BASIN}
+                stroke={config.labelHalo}
                 strokeWidth={3}
                 paintOrder="stroke"
                 pointerEvents="none"

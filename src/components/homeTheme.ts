@@ -47,7 +47,32 @@ export const LINE = 'border-[#3A434E]';
 export const MUTED = 'text-[#B4B9BF]';
 export const SECTION_PAD = 'px-5 sm:pr-9 sm:pl-[clamp(24px,5vw,86px)]';
 
-export const isValidNumber = (v: unknown): v is number => typeof v === 'number' && !isNaN(v);
+// Bacias exibidas na página Início: estações (slugs) de montante para jusante
+export type BasinKey = 'taquari' | 'guaiba';
+export const BASIN_STATIONS: Record<BasinKey, string[]> = {
+  taquari: [
+    'santatereza', 'linhajosejulio', 'passocarreiro', 'linhacolombo', 'passotainhas',
+    'barradofao', 'mucum', 'encantado', 'rocasales', 'lajeado', 'estrela',
+    'cruzeirodosul', 'bomretirodosul', 'portomariante', 'taquari'
+  ],
+  guaiba: [
+    'donafrancisca', 'cachoeiradosul', 'riopardo', 'feliz', 'saosebastiaodocai',
+    'montenegro', 'taquara', 'saoleopoldo', 'gravatai', 'portoalegre'
+  ]
+};
+export const BASIN_LABELS: Record<BasinKey, string> = {
+  taquari: 'Bacia do Taquari',
+  guaiba: 'Bacia do Guaíba'
+};
+// Cidade exibida ao trocar para a bacia, quando a selecionada é de outra bacia
+export const BASIN_DEFAULT_CITY: Record<BasinKey, string> = {
+  taquari: 'lajeado',
+  guaiba: 'portoalegre'
+};
+export const basinOfCity = (slug?: string): BasinKey | null =>
+  slug && BASIN_STATIONS.guaiba.includes(slug) ? 'guaiba' : slug && BASIN_STATIONS.taquari.includes(slug) ? 'taquari' : null;
+
+export const isValidNumber =(v: unknown): v is number => typeof v === 'number' && !isNaN(v);
 
 // Nível formatado com vírgula; ausente = "--"
 export const formatLevel = (v: unknown, digits = 2): string =>

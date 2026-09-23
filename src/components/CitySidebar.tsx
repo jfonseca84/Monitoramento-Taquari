@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { City } from '../types';
 import { ChevronDown } from 'lucide-react';
-import { BASIN_SECTION_TAGS, HOME_FONT, STATUS_COLORS, formatLevel, shortRiverName } from './homeTheme';
+import { BASIN_LABELS, BASIN_SECTION_TAGS, BASIN_STATIONS, BasinKey, HOME_FONT, STATUS_COLORS, formatLevel, shortRiverName } from './homeTheme';
 import { ConnectionStatusType } from '../lib/supabase';
 
 interface CitySidebarProps {
@@ -9,42 +9,29 @@ interface CitySidebarProps {
   selectedCity: City;
   onSelectCity: (city: City) => void;
   onOpenInfoModal?: () => void;
+  basin?: BasinKey;
+  onChangeBasin?: (basin: BasinKey) => void;
   connectionStatus?: ConnectionStatusType;
   lastUpdatedText?: string;
 }
-
-// Estações da Bacia Taquari-Antas exibidas na lista, na ordem de montante para jusante
-const TAQUARI_SLUGS = [
-  'santatereza',
-  'linhajosejulio',
-  'passocarreiro',
-  'linhacolombo',
-  'passotainhas',
-  'barradofao',
-  'mucum',
-  'encantado',
-  'rocasales',
-  'lajeado',
-  'estrela',
-  'cruzeirodosul',
-  'bomretirodosul',
-  'portomariante',
-  'taquari'
-];
 
 const SELECTED_CLIP = 'polygon(14px 0,100% 0,100% 100%,14px 100%,0 50%)';
 
 export const CitySidebar: React.FC<CitySidebarProps> = ({
   cities,
   selectedCity,
-  onSelectCity
+  onSelectCity,
+  basin = 'taquari',
+  onChangeBasin
 }) => {
   // Somente celular/tablet: a lista de estações fica recolhida dentro de um menu
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Estações da bacia escolhida no mapa, de montante para jusante
+  const slugs = BASIN_STATIONS[basin];
   const stations = cities
-    .filter((c) => TAQUARI_SLUGS.includes(c.slug))
-    .sort((a, b) => TAQUARI_SLUGS.indexOf(a.slug) - TAQUARI_SLUGS.indexOf(b.slug));
+    .filter((c) => slugs.includes(c.slug))
+    .sort((a, b) => slugs.indexOf(a.slug) - slugs.indexOf(b.slug));
 
   const isSelected = (c: City) => selectedCity.id === c.id || selectedCity.slug === c.slug;
   const currentCity = cities.find(isSelected) || selectedCity;
@@ -80,6 +67,23 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
         aria-label="Estações da Bacia"
         className={`${mobileMenuOpen ? 'flex' : 'hidden'} lg:flex flex-col flex-1 min-h-0 overflow-y-auto no-scrollbar`}
       >
+        {/* Seletor de bacia no celular (no computador ele fica sobre o mapa) */}
+        {onChangeBasin && (
+          <div className="lg:hidden flex gap-0.5 m-3 p-0.5 rounded-[6px] bg-[#2E3742] text-xs font-bold">
+            {(Object.keys(BASIN_LABELS) as BasinKey[]).map((key) => (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={basin === key}
+                onClick={() => onChangeBasin(key)}
+                className={`flex-1 py-1.5 rounded-[5px] cursor-pointer ${basin === key ? 'bg-white text-[#2B333D]' : 'text-[#C9CDD2]'}`}
+              >
+                {BASIN_LABELS[key]}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="hidden lg:block shrink-0 pt-3.5 pb-2.5 px-3 text-center leading-[1.1]">
           <div className="text-sm font-light">Estações da</div>
           <div className="text-xl font-extrabold">Bacia</div>
