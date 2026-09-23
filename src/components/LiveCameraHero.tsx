@@ -3,6 +3,7 @@ import { City } from '../types';
 import { getBrasiliaDateString, getBrasiliaTimeString } from '../lib/dateUtils';
 import { fetchCityHistory } from '../lib/supabase';
 import { getCityThresholds } from '../data/cityThresholds';
+import { CitySearchHeader } from './CitySearchHeader';
 import {
   STATUS_COLORS,
   STATUS_INK,
@@ -22,6 +23,9 @@ interface LiveCameraHeroProps {
   onOpenCameraModal: () => void;
   onOpenInfoModal: () => void;
   onOpenDetailModal?: () => void;
+  // Busca de cidades no cabeçalho
+  cities?: City[];
+  onSelectCity?: (city: City) => void;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -58,7 +62,7 @@ async function fetchReadingForLevel(cityId: string, currentLevel?: number): Prom
 
 // Cabeçalho da cidade, nível atual (hero) e cotas de referência da página Início.
 // A câmera ao vivo segue desativada (onOpenCameraModal é mantido na interface).
-export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity }) => {
+export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity, cities = [], onSelectCity }) => {
   // Máxima no dia: maior leitura real das últimas 24 h (histórico do banco, uma leitura por hora)
   const [maxToday, setMaxToday] = useState<number | null>(null);
   // Última medição gravada em river_levels (hora real da leitura exibida)
@@ -136,15 +140,7 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity }) 
   return (
     <div className="flex flex-col">
       {/* a) CABEÇALHO DA CIDADE */}
-      <div className={`${SURFACE_A} ${LINE} border-b flex items-center gap-5 sm:gap-7 py-5 sm:py-[26px] px-5 sm:px-9`}>
-        <span aria-hidden="true" className="relative w-[26px] h-[26px] border-4 border-white rounded-full shrink-0">
-          <span className="absolute w-1 h-3 bg-white -left-1.5 -bottom-[11px] rotate-45 rounded-sm" />
-        </span>
-        <span aria-hidden="true" className="w-px h-12 bg-[#4A535E] shrink-0" />
-        <h1 className="m-0 text-[32px] sm:text-[50px] font-black tracking-[-0.03em] leading-[1.15] truncate notranslate" translate="no">
-          {selectedCity.name}, RS
-        </h1>
-      </div>
+      <CitySearchHeader selectedCity={selectedCity} cities={cities} onSelectCity={onSelectCity} />
 
       {/* b) NÍVEL ATUAL (HERO) */}
       <section className={`${SURFACE_A} ${SECTION_PAD} pt-10 sm:pt-14 pb-12 sm:pb-16 flex flex-col gap-[30px]`}>

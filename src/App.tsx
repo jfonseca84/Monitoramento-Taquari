@@ -299,6 +299,13 @@ export default function App() {
                       onOpenCameraModal={() => { /* desativado temporariamente (em desenvolvimento) */ }}
                       onOpenInfoModal={() => setIsInfoModalOpen(true)}
                       onOpenDetailModal={() => setIsDetailModalOpen(true)}
+                      cities={cities}
+                      onSelectCity={(city) => {
+                        // Busca: mostra a cidade e leva o mapa e o menu para a bacia dela
+                        const cityBasin = basinOfCity(city.slug);
+                        if (cityBasin) setBasin(cityBasin);
+                        setSelectedCity(city);
+                      }}
                     />
                   </EditableComponent>
                 </LayoutBehaviorWrapper>
