@@ -18,7 +18,8 @@ const SearchGlyph: React.FC = () => (
   </span>
 );
 
-// Cabeçalho da cidade com busca: a lupa abre um campo para procurar entre as estações das duas bacias
+// Cabeçalho da cidade com busca: a lupa abre um campo; as sugestões (estações das duas bacias)
+// só aparecem depois que a pessoa digita
 export const CitySearchHeader: React.FC<CitySearchHeaderProps> = ({ selectedCity, cities, onSelectCity }) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -36,7 +37,8 @@ export const CitySearchHeader: React.FC<CitySearchHeaderProps> = ({ selectedCity
 
   const results = useMemo(() => {
     const q = norm(query);
-    if (!q) return searchable;
+    // Sem texto digitado não há sugestões (a lupa abre só o campo)
+    if (!q) return [];
     return searchable.filter((c) => norm(c.name).includes(q) || norm(c.river || '').includes(q));
   }, [searchable, query]);
 
@@ -113,7 +115,7 @@ export const CitySearchHeader: React.FC<CitySearchHeaderProps> = ({ selectedCity
             placeholder="Buscar cidade ou rio…"
             aria-label="Buscar cidade ou rio"
             role="combobox"
-            aria-expanded={true}
+            aria-expanded={norm(query) !== ''}
             aria-controls="city-search-results"
             aria-activedescendant={results[active] ? `city-opt-${results[active].id}` : undefined}
             autoComplete="off"
@@ -134,7 +136,7 @@ export const CitySearchHeader: React.FC<CitySearchHeaderProps> = ({ selectedCity
         </h1>
       )}
 
-      {open && (
+      {open && norm(query) !== '' && (
         <ul
           id="city-search-results"
           role="listbox"
