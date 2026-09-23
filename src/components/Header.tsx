@@ -1,5 +1,5 @@
-import React from 'react';
-import { Lock, Moon, Pencil } from 'lucide-react';
+import React, { useState } from 'react';
+import { Lock, Menu, Moon, Pencil, X } from 'lucide-react';
 import { ConnectionStatusType } from '../lib/supabase';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { useVisualEditor } from '../context/VisualEditorContext';
@@ -37,23 +37,26 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { settings } = useSiteSettings();
   const { isAdmin, isEditMode, setEditMode } = useVisualEditor();
+  const [logoFailed, setLogoFailed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const logoTimestamp = settings.updated_at ? new Date(settings.updated_at).getTime() : 1;
 
   return (
-    <header className="sticky top-0 z-40 h-14 box-border bg-white border-b border-[#E6E9ED] flex items-center gap-4 md:gap-6 px-[clamp(16px,3.5vw,64px)] font-[family-name:Figtree,system-ui,sans-serif]">
+    <header className="sticky top-0 z-40 h-14 box-border bg-white border-b border-[#E6E9ED] flex items-center gap-2 md:gap-4 px-[clamp(12px,3.5vw,64px)] font-[family-name:Figtree,system-ui,sans-serif] relative">
 
       {/* LOGO */}
       <button
         type="button"
         onClick={() => setActiveTab('inicio')}
-        className="flex flex-col leading-[1.05] min-w-0 md:shrink-0 text-left cursor-pointer"
+        className="flex flex-col leading-[1.05] min-w-[70px] flex-1 md:flex-none md:shrink-0 text-left cursor-pointer"
       >
-        {settings.logo_url ? (
+        {settings.logo_url && !logoFailed ? (
           <img
             src={`${settings.logo_url}${settings.logo_url.includes('?') ? '&' : '?'}v=${logoTimestamp}`}
             alt={settings.site_name || 'Nível Taquari'}
             className="h-8 max-w-[170px] object-contain"
+            onError={() => setLogoFailed(true)}
           />
         ) : (
           <>
@@ -67,8 +70,8 @@ export const Header: React.FC<HeaderProps> = ({
         )}
       </button>
 
-      {/* MENU */}
-      <nav className="hidden md:flex flex-1 min-w-0 justify-center-safe items-center gap-1 overflow-x-auto no-scrollbar" aria-label="Menu principal">
+      {/* MENU (telas largas: tudo em uma linha, sem cortar nada) */}
+      <nav className="hidden lg:flex flex-1 min-w-0 justify-center-safe items-center gap-0.5 overflow-x-auto no-scrollbar" aria-label="Menu principal">
         {NAV_ITEMS.map((item) => {
           const enabled = ENABLED_NAV_ITEMS.includes(item.id);
           const active = activeTab === item.id;
@@ -80,7 +83,7 @@ export const Header: React.FC<HeaderProps> = ({
               disabled={!enabled}
               aria-current={active ? 'page' : undefined}
               title={enabled ? undefined : 'Em breve'}
-              className={`shrink-0 flex items-center gap-[5px] px-3 py-1.5 rounded-[7px] text-[12.5px] font-medium tracking-[0.03em] whitespace-nowrap border ${
+              className={`shrink-0 flex items-center gap-[5px] px-1.5 py-1.5 rounded-[7px] text-[11px] font-medium tracking-[0.03em] whitespace-nowrap border ${
                 active
                   ? 'text-[#1F6F95] bg-[#EAF6FB] border-[#A9D6EA]'
                   : enabled
@@ -95,8 +98,59 @@ export const Header: React.FC<HeaderProps> = ({
         })}
       </nav>
 
-      {/* AÇÕES */}
-      <div className="flex items-center gap-3.5 shrink-0 ml-auto md:ml-0">
+      {/* PAINEL DO MENU (telas estreitas) */}
+      {mobileNavOpen && (
+        <nav
+          id="mobile-nav-panel"
+          aria-label="Menu principal"
+          className="lg:hidden absolute top-full left-0 right-0 bg-white border-b border-[#E6E9ED] shadow-lg flex flex-col p-2 max-h-[calc(100vh-56px)] overflow-y-auto"
+        >
+          {NAV_ITEMS.map((item) => {
+            const enabled = ENABLED_NAV_ITEMS.includes(item.id);
+            const active = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  if (enabled) {
+                    setActiveTab(item.id);
+                    setMobileNavOpen(false);
+                  }
+                }}
+                disabled={!enabled}
+                aria-current={active ? 'page' : undefined}
+                title={enabled ? undefined : 'Em breve'}
+                className={`flex items-center gap-[5px] px-3 py-2.5 rounded-[7px] text-[13px] font-medium tracking-[0.03em] text-left ${
+                  active
+                    ? 'text-[#1F6F95] bg-[#EAF6FB]'
+                    : enabled
+                      ? 'text-[#3A434E] hover:bg-[#F4F7F9] cursor-pointer'
+                      : 'text-[#A3AAB2] cursor-not-allowed'
+                }`}
+              >
+                {item.label}
+                {item.caret && <span className="text-[9px]">⌄</span>}
+              </button>
+            );
+          })}
+        </nav>
+      )}
+
+      {/* GATILHO DO MENU + AÇÕES */}
+      <div className="flex items-center gap-2 lg:gap-3.5 shrink-0 ml-auto">
+        {/* GATILHO DO MENU (telas estreitas: nada fica escondido, vai para um painel) */}
+        <button
+          type="button"
+          onClick={() => setMobileNavOpen((open) => !open)}
+          aria-expanded={mobileNavOpen}
+          aria-controls="mobile-nav-panel"
+          aria-label={mobileNavOpen ? 'Fechar menu' : 'Abrir menu'}
+          className="lg:hidden flex items-center justify-center w-9 h-9 rounded-lg border border-[#E6E9ED] text-[#3A434E] cursor-pointer"
+        >
+          {mobileNavOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+        </button>
+
         {isAdmin && (
           <button
             onClick={() => setEditMode(!isEditMode)}
