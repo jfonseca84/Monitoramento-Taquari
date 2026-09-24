@@ -2,6 +2,7 @@ import cron, { ScheduledTask } from 'node-cron';
 import { LoggerService } from '../logs/logger.service.js';
 import { RiverCollector } from '../collectors/river.collector.js';
 import { WeatherCollector } from '../collectors/weather.collector.js';
+import { WeatherCacheService } from '../services/weather-cache.service.js';
 import { HealthService } from '../services/health.service.js';
 import { CacheService } from '../services/cache.service.js';
 import { NewsCollector } from '../collectors/news.collector.js';
@@ -118,7 +119,7 @@ export class CronService {
     LoggerService.info('WEATHER', 'Buscando dados meteorológicos (chuva, umidade do solo, previsão)');
 
     try {
-      const cities = await SupabaseService.fetchExistingCities();
+      const cities = await WeatherCollector.loadCities();
       const result = await WeatherCollector.executeCollection(cities);
 
       if (result.errorsCount > 0) {
@@ -128,6 +129,13 @@ export class CronService {
         'WEATHER',
         `Clima atualizado para ${result.citiesProcessed}/${cities.length} cidades, ${result.forecastsInserted} pontos de previsão (${result.durationMs}ms)`
       );
+
+      // O site lê a previsão deste cache em memória, não do Supabase
+      try {
+        await WeatherCacheService.refresh(cities);
+      } catch (cacheErr: any) {
+        LoggerService.warn('WEATHER', `Cache do clima não renovado: ${cacheErr?.message || cacheErr}`);
+      }
     } catch (err: any) {
       LoggerService.error('WEATHER', `Falha na coleta meteorológica: ${err.message || err}`);
     } finally {

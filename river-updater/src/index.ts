@@ -8,6 +8,7 @@ import { SupabaseService } from './services/supabase.service.js';
 import { CronService } from './scheduler/cron.service.js';
 import { HealthService } from './services/health.service.js';
 import { CacheService } from './services/cache.service.js';
+import { WeatherCacheService } from './services/weather-cache.service.js';
 import { NewsCollector } from './collectors/news.collector.js';
 
 // Carrega variáveis de ambiente locais sem sobrescrever as variáveis injetadas na Railway
@@ -118,6 +119,25 @@ function startHttpServer() {
         .catch((err) => {
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Erro ao buscar telemetria', details: err?.message || err }));
+        });
+      return;
+    }
+
+    // Previsão do tempo servida do cache em memória (mesmo modelo do /api/telemetry dos níveis)
+    if (pathname === '/api/weather') {
+      const cityId = parsedUrl.searchParams.get('city') || '';
+      const headwaterIds = (parsedUrl.searchParams.get('hw') || '').split(',').filter(Boolean);
+      WeatherCacheService.getBundle(cityId, headwaterIds)
+        .then(({ status, body }) => {
+          res.writeHead(status, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': status === 200 ? 'public, max-age=60, s-maxage=300, stale-while-revalidate=600' : 'no-store'
+          });
+          res.end(JSON.stringify(body));
+        })
+        .catch((err) => {
+          res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+          res.end(JSON.stringify({ error: err?.message || String(err) }));
         });
       return;
     }

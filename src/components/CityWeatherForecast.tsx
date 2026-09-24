@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { City } from '../types';
-import { fetchWeatherForecast, fetchLatestWeatherReading, WeatherForecastRow, WeatherReadingRow } from '../lib/supabase';
+import { fetchWeatherForecast, fetchLatestWeatherReading, fetchWeatherBundle, WeatherForecastRow, WeatherReadingRow } from '../lib/supabase';
 import { Loader2, CloudRain, CloudDrizzle, Cloud, CloudSun, CloudMoon, Sun, Moon, Droplet, History, CalendarDays, Clock, Mountain, Sprout, TrendingUp, TrendingDown, Minus, LucideIcon } from 'lucide-react';
 import { SECTION_PAD, basinOfCity } from './homeTheme';
 
@@ -145,6 +145,21 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
       return;
     }
     setHeadRain(null);
+    // 1) Resumo pronto no cache do worker (0 consultas ao Supabase)
+    const cityIdForBundle = selectedCity?.id;
+    const fromServer = cityIdForBundle ? fetchWeatherBundle(cityIdForBundle, headwaters.map((c) => c.id)) : Promise.resolve(null);
+    fromServer.then((bundle) => {
+      if (cancelled) return;
+      if (bundle?.headwaters) {
+        const h = bundle.headwaters;
+        setHeadRain({ r24: h.r24, r72: h.r72, f72: h.f72, measured: h.measured });
+        return;
+      }
+      // 2) Sem o cache do worker: consulta direta como antes
+      loadHeadwatersDirect();
+    });
+
+    function loadHeadwatersDirect() {
     Promise.all(
       headwaters.map((c) => Promise.all([fetchLatestWeatherReading(c.id), fetchWeatherForecast(c.id, 100)]))
     ).then((res) => {
@@ -159,6 +174,7 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
         measured: measured.length
       });
     });
+    }
     return () => { cancelled = true; };
   }, [headKey]);
 
@@ -175,7 +191,13 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
     setLoading(true);
     setRows([]);
     setReading(null);
-    Promise.all([fetchWeatherForecast(cityId, 160), fetchLatestWeatherReading(cityId)]).then(([forecast, latest]) => {
+    // Cache do worker primeiro; se falhar, consulta direta ao Supabase como antes
+    const load = async () => {
+      const bundle = await fetchWeatherBundle(cityId, headwaters.map((c) => c.id));
+      if (bundle) return [bundle.forecast, bundle.reading] as const;
+      return Promise.all([fetchWeatherForecast(cityId, 160), fetchLatestWeatherReading(cityId)]);
+    };
+    load().then(([forecast, latest]) => {
       if (!cancelled) {
         setRows(forecast);
         setReading(latest);
@@ -344,8 +366,8 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
               <CloudRain className="w-6 h-6 text-[#4F9BD0]" />
             </span>
             <div className="leading-tight">
-              <div className="text-sm font-semibold">Fonte: Open-Meteo</div>
-              <div className={`text-xs ${isStale ? 'text-[#E9C145]' : 'text-[#B4B9BF]'}`}>{isStale ? `desatualizado · ${updatedLabel}` : updatedLabel}</div>
+              <div className="text-sm font-semibold">Previsão: Open-Meteo</div>
+              <div className={`text-xs ${isStale ? 'text-[#E9C145]' : 'text-[#B4B9BF]'}`}>{isStale ? `desatualizado · ${updatedLabel}` : `${isMeasured(reading) || (headRain?.measured ?? 0) > 0 ? 'Chuva medida: ANA · ' : ''}${updatedLabel}`}</div>
             </div>
           </div>
         )}

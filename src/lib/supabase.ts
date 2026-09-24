@@ -1016,6 +1016,39 @@ export interface WeatherForecastRow {
   temperature_2m: number | null;
 }
 
+// Pacote do clima servido pelo cache do worker (/api/weather): 1 requisição HTTP, 0 consultas ao Supabase
+export interface WeatherBundle {
+  cityId: string;
+  cachedAt: string;
+  reading: WeatherReadingRow | null;
+  forecast: WeatherForecastRow[];
+  headwaters: { stations: number; measured: number; r24: number | null; r72: number | null; f72: number | null } | null;
+}
+const WEATHER_BUNDLE_MEMO_MS = 60_000;
+const weatherBundleMemo = new Map<string, { at: number; promise: Promise<WeatherBundle | null> }>();
+
+/** Devolve null se o endpoint não existir/falhar; quem chama volta para a consulta direta ao Supabase. */
+export function fetchWeatherBundle(cityId: string, headwaterIds: string[] = []): Promise<WeatherBundle | null> {
+  if (!cityId) return Promise.resolve(null);
+  const url = `/api/weather?city=${encodeURIComponent(cityId)}${headwaterIds.length ? `&hw=${headwaterIds.map(encodeURIComponent).join(',')}` : ''}`;
+  const hit = weatherBundleMemo.get(url);
+  if (hit && Date.now() - hit.at < WEATHER_BUNDLE_MEMO_MS) return hit.promise;
+
+  const promise = (async () => {
+    try {
+      const res = await fetch(url);
+      if (!res.ok || !(res.headers.get('content-type') || '').includes('json')) return null;
+      const data = await res.json();
+      return data && data.cityId ? (data as WeatherBundle) : null;
+    } catch {
+      return null;
+    }
+  })();
+  weatherBundleMemo.set(url, { at: Date.now(), promise });
+  promise.then((v) => { if (!v) weatherBundleMemo.delete(url); });
+  return promise;
+}
+
 export async function fetchWeatherForecast(cityId: string, limit: number = 120): Promise<WeatherForecastRow[]> {
   if (!cityId || !isSupabaseConfigured || !supabase) return [];
   try {

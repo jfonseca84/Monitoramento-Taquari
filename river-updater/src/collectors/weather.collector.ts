@@ -204,6 +204,28 @@ export class WeatherCollector {
   private static PREFIX = LOG;
 
   /**
+   * Lê a lista de cidades no início do ciclo. Falhas transitórias do Supabase (ex.: "JWT issued at future")
+   * abortavam o ciclo inteiro; agora há mais 2 tentativas antes de desistir.
+   */
+  public static async loadCities(): Promise<DBCity[]> {
+    const waits = [2000, 5000];
+    const total = waits.length + 1;
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await SupabaseService.fetchExistingCities();
+      } catch (err: any) {
+        const msg = err?.message || String(err);
+        if (attempt >= total) {
+          LoggerService.error(LOG, `Lista de cidades | falha final após ${attempt} tentativas | ${msg}`);
+          throw err;
+        }
+        LoggerService.warn(LOG, `Lista de cidades | tentativa ${attempt}/${total} | erro: ${msg} | nova tentativa em ${fmtSeconds(waits[attempt - 1])}`);
+        await sleep(waits[attempt - 1]);
+      }
+    }
+  }
+
+  /**
    * Cidade cujo Open-Meteo falhou: NÃO grava dados de clima novos (a última leitura válida fica como está).
    * A chuva medida pela ANA é independente do Open-Meteo e continua sendo gravada.
    * Retorna a data da última leitura válida existente, ou null se a cidade nunca teve leitura.
