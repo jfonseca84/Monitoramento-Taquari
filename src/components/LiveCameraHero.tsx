@@ -155,9 +155,9 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity, ci
           <span className="text-[clamp(24px,7.3cqw,68px)] font-extrabold ml-2.5 mt-1.5">m</span>
         </div>
 
-        <div className="flex max-w-[440px] w-full">
+        <div className={`flex max-w-[440px] w-full rounded-[4px] ${status === 'inundacao' ? 'flood-badge-wave' : ''}`}>
           <div
-            className="flex-1 px-5 py-4 [@media(max-height:820px)]:py-3 text-sm font-extrabold uppercase tracking-[0.03em] rounded-l-[4px]"
+            className="flex-1 flex items-center gap-2.5 px-5 py-4 [@media(max-height:820px)]:py-3 text-sm font-extrabold uppercase tracking-[0.03em] rounded-l-[4px]"
             style={
               status
                 ? { backgroundColor: STATUS_COLORS[status], color: STATUS_INK[status] }

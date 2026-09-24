@@ -81,8 +81,8 @@ function loadGeo(url: string): Promise<BasinFeature[]> {
   return req;
 }
 
-const C_BASIN = '#A9CDE6';
-const C_EDGE = '#2F6FA3';
+const C_BASIN = '#BAD9EE'; // preenchimento da bacia
+const C_EDGE = '#2F6FA3'; // contorno bem visível da bacia
 const C_RIVER = '#2F5BD0';
 const C_INK = '#2B333D';
 const EARTH_RADIUS_KM = 6371;
@@ -123,6 +123,31 @@ function smoothPath(points: [number, number][]): string {
 
 const hasCoords = (c: City) =>
   typeof c.latitude === 'number' && typeof c.longitude === 'number' && !isNaN(c.latitude) && !isNaN(c.longitude);
+
+// Fluxo dos rios entre as estações (montante → jusante). Esquemático: liga as estações que já existem
+// no menu, seguindo o curso dos rios principais de cada bacia.
+const FLOW_EDGES: Record<BasinKey, [string, string][]> = {
+  taquari: [
+    ['passotainhas', 'linhajosejulio'], ['linhajosejulio', 'santatereza'], ['santatereza', 'mucum'],
+    ['passocarreiro', 'mucum'], ['mucum', 'encantado'], ['encantado', 'rocasales'], ['linhacolombo', 'rocasales'],
+    ['rocasales', 'lajeado'], ['barradofao', 'lajeado'], ['lajeado', 'estrela'], ['estrela', 'cruzeirodosul'],
+    ['cruzeirodosul', 'bomretirodosul'], ['bomretirodosul', 'portomariante'], ['portomariante', 'taquari']
+  ],
+  guaiba: [
+    ['donafrancisca', 'cachoeiradosul'], ['cachoeiradosul', 'riopardo'], ['riopardo', 'portoalegre'],
+    ['feliz', 'saosebastiaodocai'], ['saosebastiaodocai', 'montenegro'], ['montenegro', 'portoalegre'],
+    ['taquara', 'saoleopoldo'], ['saoleopoldo', 'portoalegre'], ['gravatai', 'portoalegre']
+  ]
+};
+
+const TREND_UP = '#D9483B';
+const TREND_DOWN = '#2F6FA3';
+const fmtCota = (v: unknown) => (typeof v === 'number' && isFinite(v) && v > 0 ? v.toFixed(2).replace('.', ',') : null);
+const trendOf = (c: City): { glyph: string; color: string } => {
+  const r = Number(c.rate_of_change);
+  if (!isFinite(r) || Math.abs(r) <= 0.02) return { glyph: '–', color: '#7A838C' };
+  return r > 0 ? { glyph: '▲', color: TREND_UP } : { glyph: '▼', color: TREND_DOWN };
+};
 
 export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSelectCity, basin, onChangeBasin }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -206,7 +231,7 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
   }, [shapes, projection]);
 
   const isSelected = (c: City) => c.id === selectedCity.id || c.slug === selectedCity.slug;
-  const statusColor = (c: City) => (c.status_level ? STATUS_COLORS[c.status_level] : '#FFFFFF');
+  const statusColor = (c: City) => (c.status_level ? STATUS_COLORS[c.status_level] : '#8A9199');
 
   const stations = useMemo(() => {
     if (!projection) return [];
@@ -217,12 +242,34 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
   const selectedMunKey = norm(selectedCity.municipality || selectedCity.name || '');
   const selectedFill = statusColor(selectedCity);
 
-  // Rótulos: estação selecionada sempre visível; demais e rios somem se colidirem
+  // Fluxo entre estações: linhas curvas de montante para jusante, na cor do status da estação de montante
+  const flows = useMemo(() => {
+    const bySlug = new Map<string, { city: City; p: [number, number] }>();
+    stations.forEach((s) => bySlug.set(s.city.slug, s));
+    return FLOW_EDGES[basin].flatMap(([from, to]) => {
+      const a = bySlug.get(from);
+      const b = bySlug.get(to);
+      if (!a || !b) return [];
+      const [ax, ay] = a.p;
+      const [bx, by] = b.p;
+      const len = Math.hypot(bx - ax, by - ay) || 1;
+      const cx = (ax + bx) / 2 - ((by - ay) / len) * len * 0.12;
+      const cy = (ay + by) / 2 + ((bx - ax) / len) * len * 0.12;
+      const t = 0.62;
+      const px = (1 - t) * (1 - t) * ax + 2 * (1 - t) * t * cx + t * t * bx;
+      const py = (1 - t) * (1 - t) * ay + 2 * (1 - t) * t * cy + t * t * by;
+      const tx = 2 * (1 - t) * (cx - ax) + 2 * t * (bx - cx);
+      const ty = 2 * (1 - t) * (cy - ay) + 2 * t * (by - cy);
+      const ang = (Math.atan2(ty, tx) * 180) / Math.PI;
+      return [{ key: `${from}-${to}`, d: `M${ax.toFixed(1)},${ay.toFixed(1)} Q${cx.toFixed(1)},${cy.toFixed(1)} ${bx.toFixed(1)},${by.toFixed(1)}`, color: statusColor(a.city), flooding: a.city.status_level === 'inundacao', px, py, ang, len }];
+    });
+  }, [stations, basin]);
+
+  // Rótulos: rios primeiro; depois cada estação (nome + nível + cota) na primeira posição livre ao redor do ponto
   const labels = useMemo(() => {
-    type StationLabel = { id: string; x: number; y: number; anchor: 'start' | 'end'; text: string; on: boolean };
+    type StationLabel = { id: string; anchor: 'start' | 'middle' | 'end'; x: number; y1: number; y2: number | null; name: string; info: string; on: boolean };
     if (!projection) return { rivers: [] as { nome: string; x: number; y: number }[], stations: [] as StationLabel[] };
-    const boxes: Box[] = [];
-    // Como na referência: rótulos dos rios primeiro (principais antes), depois as estações
+    const boxes: Box[] = stations.map((s) => ({ x: s.p[0] - 8, y: s.p[1] - 8, w: 16, h: 16 }));
     const rivers: { nome: string; x: number; y: number }[] = [];
     const riverOrder = [...config.rivers].sort((a, b) => Number(!!b.major) - Number(!!a.major));
     for (const r of riverOrder) {
@@ -233,30 +280,38 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
       rivers.push({ nome: r.nome, x, y });
     }
     const out: StationLabel[] = [];
-    const ordered = [...stations].sort((a, b) => Number(isSelected(b.city)) - Number(isSelected(a.city)));
+    // Selecionada primeiro; depois as em atenção/alerta/inundação; depois as demais
+    const rank = (c: City) => (isSelected(c) ? 0 : c.status_level && c.status_level !== 'normal' ? 1 : 2);
+    const ordered = [...stations].sort((a, b) => rank(a.city) - rank(b.city));
     for (const s of ordered) {
       const on = isSelected(s.city);
-      const fontSize = on ? 12 : 9.5;
-      const weight = on ? 800 : 600;
-      let anchor: 'start' | 'end' = 'start';
-      let x = s.p[0] + (on ? 10 : 7);
-      const y = s.p[1] + 3.5;
-      let box = textBox(x, y, s.city.name, fontSize, anchor, weight);
-      if (box.x + box.w > size.w - 4) {
-        anchor = 'end';
-        x = s.p[0] - (on ? 10 : 7);
-        box = textBox(x, y, s.city.name, fontSize, anchor, weight);
+      const nameSize = on ? 12 : 10.5;
+      const infoSize = 9.5;
+      const cota = fmtCota(Number(s.city.flood_level));
+      const tr = trendOf(s.city);
+      const info = `${tr.glyph} ${formatLevel(s.city.current_level)} m${cota ? ` · cota ${cota}` : ''}`;
+      const r = on ? 9 : 7;
+      const [px, py] = s.p;
+      const nameW = textBox(0, 0, s.city.name, nameSize, 'start', 800).w;
+      const w = Math.max(nameW, textBox(0, 0, info, infoSize, 'start').w);
+      const tries: { anchor: 'start' | 'middle' | 'end'; x: number; y1: number; y2: number | null; box: Box }[] = [];
+      for (const two of [true, false]) {
+        const h = two ? nameSize + infoSize + 3 : nameSize + 1;
+        const ww = two ? w : nameW;
+        const yy = (top: number) => ({ y1: top + nameSize * 0.85, y2: two ? top + nameSize + infoSize * 0.95 + 2 : null });
+        tries.push({ anchor: 'start', x: px + r + 3, ...yy(py - h / 2), box: { x: px + r + 3, y: py - h / 2, w: ww, h } });
+        tries.push({ anchor: 'end', x: px - r - 3, ...yy(py - h / 2), box: { x: px - r - 3 - ww, y: py - h / 2, w: ww, h } });
+        tries.push({ anchor: 'middle', x: px, ...yy(py - r - 3 - h), box: { x: px - ww / 2, y: py - r - 3 - h, w: ww, h } });
+        tries.push({ anchor: 'middle', x: px, ...yy(py + r + 3), box: { x: px - ww / 2, y: py + r + 3, w: ww, h } });
       }
-      if (!on && overlaps(box, boxes)) continue;
-      boxes.push(box);
-      out.push({ id: s.city.id, x, y, anchor, text: s.city.name, on });
+      const fits = (b: Box) => b.x >= 3 && b.x + b.w <= size.w - 3 && b.y >= 52 && b.y + b.h <= size.h - 30;
+      const pick = tries.find((t) => fits(t.box) && !overlaps(t.box, boxes)) || (on ? tries.find((t) => fits(t.box)) : undefined);
+      if (!pick) continue;
+      boxes.push(pick.box);
+      out.push({ id: s.city.id, anchor: pick.anchor, x: pick.x, y1: pick.y1, y2: pick.y2, name: s.city.name, info, on });
     }
     return { rivers, stations: out };
-  }, [stations, projection, config.rivers, selectedCity.id, selectedCity.slug, size.w]);
-
-  const scale = projection
-    ? { px25: 25 / projection.kmPerPx, px50: 50 / projection.kmPerPx }
-    : null;
+  }, [stations, projection, config.rivers, selectedCity.id, selectedCity.slug, size.w, size.h]);
 
   const drawOrder = [...stations].sort((a, b) => Number(isSelected(a.city)) - Number(isSelected(b.city)));
 
@@ -265,23 +320,23 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
       active ? 'bg-[#2B333D] text-white' : 'text-[#3A434E] hover:bg-[#DCE1E6]'
     }`;
 
+  const LEGEND = [
+    { k: 'normal', label: 'Normal' },
+    { k: 'atencao', label: 'Atenção' },
+    { k: 'alerta', label: 'Alerta' },
+    { k: 'inundacao', label: 'Inundação' }
+  ] as const;
+
   return (
     <div
       ref={containerRef}
       id="mapa-estacoes"
-      className="relative w-full h-full min-h-[420px] bg-[#EFF1F3] overflow-hidden font-[family-name:Figtree,system-ui,sans-serif]"
+      className="relative w-full h-full min-h-[420px] bg-[#EFF1F3] text-[#2B333D] overflow-hidden font-[family-name:Figtree,system-ui,sans-serif]"
     >
       {/* SELETOR DE BACIA */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-0.5 p-0.5 rounded-[7px] bg-white border border-[#D5DAE0] shadow-sm" role="tablist" aria-label="Bacia exibida">
         {(Object.keys(BASIN_LABELS) as BasinKey[]).map((key) => (
-          <button
-            key={key}
-            type="button"
-            role="tab"
-            aria-selected={basin === key}
-            onClick={() => onChangeBasin(key)}
-            className={tabClass(basin === key)}
-          >
+          <button key={key} type="button" role="tab" aria-selected={basin === key} onClick={() => onChangeBasin(key)} className={tabClass(basin === key)}>
             {BASIN_LABELS[key]}
           </button>
         ))}
@@ -294,31 +349,30 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
       )}
 
       {projection && (
-        <svg
-          width={size.w}
-          height={size.h}
-          viewBox={`0 0 ${size.w} ${size.h}`}
-          className="block"
-          role="img"
-          aria-label={config.aria}
-        >
-          {/* Bacia como forma única: contorno só na borda externa (tom apagado, é só contexto) */}
-          <g opacity={0.4}>
+        <svg width={size.w} height={size.h} viewBox={`0 0 ${size.w} ${size.h}`} className="block" role="img" aria-label={config.aria}>
+          {/* Desenho da bacia: contorno claro e bem visível, preenchimento sólido em azul-acinzentado */}
+          <g>
             {basinPaths.map((b) => (
-              <path key={`o-${b.key}`} d={b.d} fill={C_EDGE} stroke={C_EDGE} strokeWidth={2.8} strokeLinejoin="round" />
+              <path key={`o-${b.key}`} d={b.d} fill={C_EDGE} stroke={C_EDGE} strokeWidth={3.4} strokeLinejoin="round" />
             ))}
           </g>
-          <g opacity={0.28}>
+          <g>
             {basinPaths.map((b) => (
-              <path key={`f-${b.key}`} d={b.d} fill={C_BASIN} stroke={C_BASIN} strokeWidth={0.8} />
+              <path key={`f-${b.key}`} d={b.d} fill={C_BASIN} stroke={C_BASIN} strokeWidth={1} />
             ))}
           </g>
-          {/* Município da estação selecionada: sempre em destaque, cor conforme o status (verde=normal … vermelho=inundação) */}
+          {/* Divisas dos municípios, discretas */}
+          <g>
+            {basinPaths.map((b) => (
+              <path key={`m-${b.key}`} d={b.d} fill="none" stroke="#2F6FA3" strokeOpacity={0.22} strokeWidth={0.6} />
+            ))}
+          </g>
+          {/* Município da estação selecionada: em destaque, cor conforme o status */}
           <g>
             {basinPaths
               .filter((b) => b.key === selectedMunKey)
               .map((b) => (
-                <path key={`s-${b.key}`} d={b.d} fill={selectedFill} stroke={C_INK} strokeWidth={1.4} strokeLinejoin="round" />
+                <path key={`s-${b.key}`} d={b.d} fill={selectedFill} fillOpacity={0.65} stroke="#2B333D" strokeWidth={1.4} strokeLinejoin="round" />
               ))}
           </g>
 
@@ -330,27 +384,28 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
                 d={smoothPath(r.pts.map(([lon, lat]) => projection.project(lon, lat)))}
                 fill="none"
                 stroke={C_RIVER}
-                strokeWidth={r.major ? 2.2 : 1.4}
+                strokeWidth={r.major ? 2.4 : 1.5}
                 strokeLinecap="round"
+                opacity={0.85}
               />
             ))}
             {labels.rivers.map((r) => (
-              <text
-                key={`l-${r.nome}`}
-                x={r.x}
-                y={r.y}
-                textAnchor="middle"
-                fontSize={10}
-                fontStyle="italic"
-                fontWeight={600}
-                fill={C_RIVER}
-                stroke={config.labelHalo}
-                strokeWidth={3}
-                paintOrder="stroke"
-                pointerEvents="none"
-              >
+              <text key={`l-${r.nome}`} x={r.x} y={r.y} textAnchor="middle" fontSize={10} fontStyle="italic" fontWeight={600} fill={C_RIVER} stroke="#EEF5FA" strokeWidth={3} paintOrder="stroke" pointerEvents="none">
                 {r.nome}
               </text>
+            ))}
+          </g>
+
+          {/* Fluxo entre estações: linha suave + pontos correndo no sentido do rio + seta */}
+          <g pointerEvents="none">
+            {flows.map((f) => (
+              <g key={f.key}>
+                <path d={f.d} fill="none" stroke={f.color} strokeOpacity={0.55} strokeWidth={2.8} strokeLinecap="round" />
+                {f.flooding && <path d={f.d} fill="none" stroke={f.color} strokeWidth={2.8} strokeLinecap="round" strokeDasharray="2 9" className="basin-flow-dots" />}
+                {f.len > 34 && (
+                  <path d="M-4.5,-3.6 L4,0 L-4.5,3.6 Z" fill={f.color} stroke="#FFFFFF" strokeWidth={1} strokeLinejoin="round" transform={`translate(${f.px.toFixed(1)},${f.py.toFixed(1)}) rotate(${f.ang.toFixed(1)})`} />
+                )}
+              </g>
             ))}
           </g>
 
@@ -359,43 +414,24 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
             {drawOrder.map(({ city, p }) => {
               const on = isSelected(city);
               const flooding = city.status_level === 'inundacao';
-              const baseR = on ? 6 : 3.8;
+              const baseR = on ? 6.5 : 4.6;
+              const color = statusColor(city);
               return (
                 <React.Fragment key={city.id}>
-                  {/* Onda de alerta: só para estações em inundação, some atrás do marcador */}
                   {flooding && (
                     <>
-                      <circle
-                        cx={p[0]}
-                        cy={p[1]}
-                        r={baseR}
-                        fill="none"
-                        stroke={STATUS_COLORS.inundacao}
-                        strokeWidth={1.5}
-                        vectorEffect="non-scaling-stroke"
-                        pointerEvents="none"
-                        className="flood-ping-ring"
-                      />
-                      <circle
-                        cx={p[0]}
-                        cy={p[1]}
-                        r={baseR}
-                        fill="none"
-                        stroke={STATUS_COLORS.inundacao}
-                        strokeWidth={1.5}
-                        vectorEffect="non-scaling-stroke"
-                        pointerEvents="none"
-                        className="flood-ping-ring flood-ping-ring--delayed"
-                      />
+                      <circle cx={p[0]} cy={p[1]} r={baseR} fill="none" stroke={STATUS_COLORS.inundacao} strokeWidth={1.5} vectorEffect="non-scaling-stroke" pointerEvents="none" className="flood-ping-ring" />
+                      <circle cx={p[0]} cy={p[1]} r={baseR} fill="none" stroke={STATUS_COLORS.inundacao} strokeWidth={1.5} vectorEffect="non-scaling-stroke" pointerEvents="none" className="flood-ping-ring flood-ping-ring--delayed" />
                     </>
                   )}
+                                    <circle cx={p[0]} cy={p[1]} r={baseR + 3.5} fill={color} fillOpacity={0.22} pointerEvents="none" />
                   <circle
                     cx={p[0]}
                     cy={p[1]}
                     r={baseR}
-                    fill={statusColor(city)}
-                    stroke={on ? C_INK : '#FFFFFF'}
-                    strokeWidth={on ? 2 : 1.2}
+                    fill={color}
+                    stroke={on ? '#2B333D' : '#FFFFFF'}
+                    strokeWidth={on ? 2.4 : 1.8}
                     className="cursor-pointer"
                     role="button"
                     tabIndex={0}
@@ -416,44 +452,32 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
             {labels.stations.map((l) => {
               const city = stations.find((s) => s.city.id === l.id)?.city;
               return (
-                <text
-                  key={`t-${l.id}`}
-                  x={l.x}
-                  y={l.y}
-                  textAnchor={l.anchor}
-                  fontSize={l.on ? 12 : 9.5}
-                  fontWeight={l.on ? 800 : 600}
-                  fill={C_INK}
-                  stroke="#EEF5FA"
-                  strokeWidth={3}
-                  paintOrder="stroke"
-                  className="cursor-pointer select-none"
-                  onClick={() => city && onSelectCity(city)}
-                >
-                  {l.text}
-                </text>
+                <g key={`t-${l.id}`} className="cursor-pointer select-none" onClick={() => city && onSelectCity(city)}>
+                  <text x={l.x} y={l.y1} textAnchor={l.anchor} fontSize={l.on ? 12 : 10.5} fontWeight={800} fill="#2B333D" stroke="#EEF5FA" strokeWidth={3.2} paintOrder="stroke" strokeLinejoin="round">
+                    {l.name}
+                  </text>
+                  {l.y2 !== null && (
+                    <text x={l.x} y={l.y2} textAnchor={l.anchor} fontSize={9.5} fontWeight={600} fill="#3A434E" stroke="#EEF5FA" strokeWidth={3} paintOrder="stroke" strokeLinejoin="round">
+                      {l.info}
+                    </text>
+                  )}
+                </g>
               );
             })}
           </g>
-
-          {/* Norte e escala gráfica 0/25/50 km */}
-          {scale && (
-            <g transform={`translate(20, ${size.h - 22})`}>
-              <path d="M6 -30 L12 -10 L6 -14 L0 -10 Z" fill={C_INK} />
-              <text x={6} y={-34} textAnchor="middle" fontSize={11} fontWeight={800} fill={C_INK}>N</text>
-              <line x1={28} x2={28 + scale.px50} y1={0} y2={0} stroke={C_INK} />
-              {[0, 25, 50].map((v) => {
-                const x = 28 + (v === 0 ? 0 : v === 25 ? scale.px25 : scale.px50);
-                return (
-                  <g key={v}>
-                    <line x1={x} x2={x} y1={-4} y2={0} stroke={C_INK} />
-                    <text x={x} y={-8} textAnchor="middle" fontSize={10} fill="#58616B">{v === 50 ? '50 km' : v}</text>
-                  </g>
-                );
-              })}
-            </g>
-          )}
         </svg>
+      )}
+
+      {/* Legenda */}
+      {projection && (
+        <div className="absolute left-3 right-3 bottom-2.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-[#58616B] pointer-events-none">
+          {LEGEND.map(({ k, label }) => (
+            <span key={k} className="inline-flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: STATUS_COLORS[k] }} />
+              {label}
+            </span>
+          ))}
+        </div>
       )}
     </div>
   );
