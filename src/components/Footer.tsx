@@ -5,7 +5,8 @@ import { fetchSponsors } from '../lib/supabase';
 import { getBrasiliaDateString, getBrasiliaTimeString } from '../lib/dateUtils';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 
-const LOGOS_PER_VIEW = 5;
+const LOGOS_PER_VIEW_DESKTOP = 5;
+const LOGOS_PER_VIEW_MOBILE = 3; // celular: 3 por vez, em tamanho maior
 const LOGO_SLOTS = 20;
 const LOGO_INTERVAL_MS = 3000;
 
@@ -16,6 +17,14 @@ interface FooterProps {
 export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const { settings } = useSiteSettings();
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)');
+    const onChange = () => setIsMobile(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  const LOGOS_PER_VIEW = isMobile ? LOGOS_PER_VIEW_MOBILE : LOGOS_PER_VIEW_DESKTOP;
 
   const loadSponsors = async () => {
     try {
@@ -95,7 +104,7 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
         </div>
       );
       return (
-        <div key={key} className="shrink-0 basis-1/5 px-1.5" title={sponsor.name}>
+        <div key={key} className="shrink-0 px-1.5" style={{ flexBasis: `${100 / LOGOS_PER_VIEW}%` }} title={sponsor.name}>
           {sponsor.website ? (
             <a
               href={sponsor.website.startsWith('http') ? sponsor.website : `https://${sponsor.website}`}
@@ -111,7 +120,7 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
     }
 
     return (
-      <div key={key} className="shrink-0 basis-1/5 px-1.5">
+      <div key={key} className="shrink-0 px-1.5" style={{ flexBasis: `${100 / LOGOS_PER_VIEW}%` }}>
         <div className={`${boxClass} bg-[#2B333D] select-none`}>
           <span className="text-xs font-bold tracking-[0.08em] uppercase text-[#8A9199]">
             {sponsor?.name ? sponsor.name.substring(0, 10) : 'LOGO'}

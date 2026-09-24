@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { City } from '../types';
 import { fetchWeatherForecast, fetchLatestWeatherReading, fetchWeatherBundle, WeatherForecastRow, WeatherReadingRow } from '../lib/supabase';
-import { Loader2, CloudRain, CloudDrizzle, Cloud, CloudSun, CloudMoon, Sun, Moon, Droplet, History, CalendarDays, Clock, Mountain, Sprout, TrendingUp, TrendingDown, Minus, LucideIcon } from 'lucide-react';
+import { Loader2, CloudRain, CloudDrizzle, Cloud, CloudSun, CloudMoon, Sun, Moon, Droplet, History, CalendarDays, Clock, Mountain, Sprout, TrendingUp, TrendingDown, Minus, Info, LucideIcon } from 'lucide-react';
 import { SECTION_PAD, basinOfCity } from './homeTheme';
 
 interface CityWeatherForecastProps {
@@ -276,13 +276,26 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
           ? { label: 'Descendo', Icon: TrendingDown }
           : { label: 'Estável', Icon: Minus };
   const fmtRate = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(2).replace('.', ',')} m/h`;
-  const Chip: React.FC<{ Icon: LucideIcon; label: string; value: React.ReactNode; sub?: string; title?: string }> = ({ Icon, label, value, sub, title }) => (
-    <div title={title} className="flex items-center gap-2.5 rounded-xl border border-[#3A434E] bg-[#2B333D] px-3 py-2 min-w-[150px] flex-1">
-      <Icon className="w-5 h-5 text-[#7DB6DC] shrink-0" strokeWidth={1.6} />
-      <div className="leading-tight">
-        <div className="text-[11px] text-[#B4B9BF]">{label}</div>
-        <div className="text-base font-extrabold">{value}</div>
-        {sub && <div className="text-[11px] text-[#B4B9BF]">{sub}</div>}
+  // Celular: sem cartão, rótulo em cima, valor em negrito, centralizado e separado dos vizinhos por linha fina.
+  // A partir de sm: cartão com ícone, como antes.
+  const Chip: React.FC<{ Icon: LucideIcon; label: string; mobileLabel: string; value: React.ReactNode; sub?: string; mobileSub?: string; title?: string }> = ({ Icon, label, mobileLabel, value, sub, mobileSub, title }) => (
+    <div
+      title={title}
+      className="min-w-0 flex-1 flex flex-col items-center justify-center text-center px-1 max-sm:not-first:border-l max-sm:border-[#3A434E] sm:flex-row sm:text-left sm:gap-2.5 sm:rounded-xl sm:border sm:border-[#3A434E] sm:bg-[#2B333D] sm:px-3 sm:py-2 sm:min-w-[150px]"
+    >
+      <Icon className="hidden sm:block w-5 h-5 text-[#7DB6DC] shrink-0" strokeWidth={1.6} />
+      <div className="leading-tight min-w-0">
+        <div className="text-[11px] font-semibold text-white sm:font-normal sm:text-[#B4B9BF]">
+          <span className="sm:hidden">{mobileLabel}</span>
+          <span className="hidden sm:inline">{label}</span>
+        </div>
+        <div className="text-[20px] sm:text-base font-extrabold">{value}</div>
+        {sub && (
+          <div className="text-[11px] text-[#B4B9BF]">
+            <span className="sm:hidden">{mobileSub ?? sub}</span>
+            <span className="hidden sm:inline">{sub}</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -294,17 +307,56 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
         label={headRain.measured > 0 ? 'Chuva medida nas cabeceiras (24h)' : 'Chuva estimada nas cabeceiras (24h)'}
         title={headRain.measured > 0 ? `Média de ${headRain.measured} pluviômetro(s) da ANA; previsão: modelo Open-Meteo` : 'Estimativa do modelo Open-Meteo (sem pluviômetro nas cabeceiras)'}
         value={headRain.r24 !== null ? <>{fmtMm(headRain.r24)}<span className="text-xs font-normal text-[#B4B9BF] ml-1">mm</span></> : '--'}
+        mobileLabel="Chuva 24h"
         sub={`72h: ${headRain.r72 !== null ? fmtMm(headRain.r72) : '--'} mm · prev. 72h: ${headRain.f72 !== null ? fmtMm(headRain.f72) : '--'} mm`}
+        mobileSub={`72h: ${headRain.r72 !== null ? fmtMm(headRain.r72) : '--'} · prev.: ${headRain.f72 !== null ? fmtMm(headRain.f72) : '--'}`}
       />
     ),
-    soil && <Chip key="solo" Icon={Sprout} label="Solo (umidade)" value={soil.label} sub={soil.pct} />,
-    river && headRate !== null && <Chip key="rio" Icon={river.Icon} label="Rio nas cabeceiras" value={river.label} sub={fmtRate(headRate)} />
+    soil && <Chip key="solo" Icon={Sprout} label="Solo (umidade)" mobileLabel="Solo" value={soil.label} sub={soil.pct} />,
+    river && headRate !== null && <Chip key="rio" Icon={river.Icon} label="Rio nas cabeceiras" mobileLabel="Rio" value={river.label} sub={fmtRate(headRate)} />
   ].filter(Boolean);
+
+  // Texto de leitura da previsão do DIA SELECIONADO (regras simples; é uma estimativa do modelo, não um alerta).
+  // O Vale usa a chuva prevista para aquele dia; as cabeceiras só têm o total das próximas 72h, então entram só nos 3 primeiros dias.
+  const buildOutlook = (day: DayForecast | undefined, idx: number): string | null => {
+    if (!day) return null;
+    const cab = headwaters.length > 0 && idx <= 2 ? headRain?.f72 ?? null : null;
+    const v = day.rainSumMm;
+    const c = cab ?? 0;
+    const mm = (x: number) => `${fmtMm(x)} mm`;
+    const worst = Math.max(v, c);
+    const cityName = selectedCity?.name ?? 'a cidade';
+    const when = day.dateKey === todayKey ? 'hoje' : idx === 1 ? 'amanhã' : `${day.dayLabel.toLowerCase()} (${day.dateLabel})`;
+    const headTxt = cab !== null ? ` Nas cabeceiras, a previsão é de ${mm(c)} nas próximas 72h.` : '';
+
+    if (worst < 5) return `Sem chuva significativa prevista para ${when} (${mm(v)} em ${cityName}).${headTxt} Sem risco de alagamento ou de enchente por chuva nesse período.`;
+
+    const where =
+      c >= 10 && v < 10
+        ? `A chuva se concentra nas cabeceiras (${mm(c)} em 72h), com pouco volume no Vale ${when} (${mm(v)}). Essa água chega ao rio depois, então o nível em ${cityName} pode subir com atraso de horas ou dias.`
+        : v >= 10 && c < 10
+          ? `A chuva de ${when} se concentra no Vale (${mm(v)} em ${cityName})${cab !== null ? `, com pouco volume nas cabeceiras (${mm(c)} em 72h)` : ''}. O efeito tende a ser local e mais rápido.`
+          : v < 10 && c < 10
+            ? `Chuva fraca prevista para ${when}: ${mm(v)} no Vale.${headTxt}`
+            : `Há chuva prevista no Vale ${when} (${mm(v)}) e nas cabeceiras (${mm(c)} em 72h). As duas regiões contribuem, e o rio pode subir de forma mais forte.`;
+
+    const risk =
+      worst < 15
+        ? 'Volume baixo: no máximo poças e acúmulo pontual de água; enchente é improvável.'
+        : worst < 40
+          ? 'Volume moderado: podem ocorrer alagamentos pontuais em áreas baixas e o rio pode subir; enchente de pequeno porte só se o solo já estiver encharcado.'
+          : worst < 80
+            ? 'Volume alto: há possibilidade de alagamentos e de enchente de pequeno a médio porte, principalmente com solo saturado.'
+            : 'Volume muito alto: risco de enchente de médio a grande porte. Acompanhe os níveis e os avisos da Defesa Civil.';
+
+    return `${where} ${risk} Estimativa do modelo, que pode mudar a cada atualização.`;
+  };
 
   // Resumo do topo: dia selecionado (hoje = agora; demais dias = máxima/mínima)
   const activeIdx = Math.min(selectedIdx, Math.max(0, days.length - 1));
   const activeDay = days[activeIdx];
   const isTodayActive = !!activeDay && activeDay.dateKey === todayKey;
+  const outlook = buildOutlook(activeDay, activeIdx);
   const nearestRow = rows.reduce<WeatherForecastRow | null>((best, r) => {
     const t = new Date(r.forecast_for).getTime();
     if (isNaN(t)) return best;
@@ -417,7 +469,27 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
         </div>
       )}
 
-      {!loading && days.length > 0 && chips.length > 0 && <div className="relative flex flex-wrap gap-2">{chips}</div>}
+      {!loading && days.length > 0 && outlook && (
+        <div className="relative rounded-2xl border border-[#3A434E] bg-[#2B333D] px-4 py-3">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Info className="w-4 h-4 text-[#4F9BD0] shrink-0" strokeWidth={1.8} />
+            Leitura da previsão
+          </div>
+          <p className="mt-1.5 text-[13px] leading-relaxed text-[#D5D9DD]">{outlook}</p>
+        </div>
+      )}
+
+      {!loading && days.length > 0 && chips.length > 0 && (
+        <>
+          {/* Celular: linha horizontal separa os blocos; título acima, sem cartão */}
+          <div aria-hidden className="sm:hidden relative h-px bg-[#3A434E]" />
+          <div className="sm:hidden relative -mb-2 flex items-center gap-2">
+            <Mountain className="w-4 h-4 text-[#4F9BD0] shrink-0" strokeWidth={1.8} />
+            <span className="text-sm font-semibold">Cabeceiras, solo e rio</span>
+          </div>
+          <div className="relative flex w-full items-stretch sm:flex-wrap sm:gap-2">{chips}</div>
+        </>
+      )}
 
       {loading ? (
         <div className="relative flex items-center gap-2 py-6 text-sm text-[#B4B9BF]">
@@ -432,31 +504,47 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
         <>
           {/* CHUVA ACUMULADA: medida (24h/72h) e prevista (72h à frente) */}
           {hasRainData && (
-            <div className={`relative ${CARD} px-4 py-3 flex flex-wrap sm:flex-nowrap items-center gap-x-4 gap-y-3`}>
-              <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                <span className="w-8 h-8 rounded-full bg-[#343D48] flex items-center justify-center shrink-0">
-                  <Droplet className="w-4 h-4 text-[#4F9BD0]" strokeWidth={1.8} />
-                </span>
-                <div className="leading-tight">
-                  <div className="text-sm font-semibold">Histórico de chuva acumulada</div>
-                  <div className="text-[11px] text-[#B4B9BF]">{isMeasured(reading) ? 'Medido: ANA · previsão: Open-Meteo.' : 'Modelo Open-Meteo, não é pluviômetro.'}</div>
+            <>
+              {/* Celular: o título fica ACIMA do cartão, com linha horizontal separando do bloco anterior */}
+              <div aria-hidden className="sm:hidden relative h-px bg-[#3A434E]" />
+              <div className="sm:hidden relative -mb-2 flex items-center gap-2">
+                <Droplet className="w-4 h-4 text-[#4F9BD0] shrink-0" strokeWidth={1.8} />
+                <span className="text-sm font-semibold">Histórico de chuva acumulada</span>
+              </div>
+              <div className="relative flex sm:flex-nowrap items-center sm:gap-x-4 sm:rounded-2xl sm:border sm:border-[#3A434E] sm:bg-[#2B333D] sm:overflow-hidden sm:py-3 sm:px-4">
+                {/* Telas maiores: título dentro do cartão, ao lado dos valores */}
+                <div className="hidden sm:flex items-center gap-2.5 flex-1 min-w-0">
+                  <span className="w-8 h-8 rounded-full bg-[#343D48] flex items-center justify-center shrink-0">
+                    <Droplet className="w-4 h-4 text-[#4F9BD0]" strokeWidth={1.8} />
+                  </span>
+                  <div className="text-sm font-semibold leading-tight">Histórico de chuva acumulada</div>
+                </div>
+                {/* Celular: só os 3 dados, em UMA linha, separados por linha fina e ocupando o cartão todo. A partir de sm: com ícone. */}
+                <div className="flex w-full items-stretch sm:contents">
+                  {accumulated.map(({ label, value, Icon }, i) => (
+                    <div
+                      key={label}
+                      title={label}
+                      className={`min-w-0 flex-1 flex flex-col items-center justify-center text-center px-1 ${i > 0 ? 'border-l border-[#3A434E]' : ''} sm:flex-none sm:flex-row sm:items-center sm:text-left sm:gap-2 sm:shrink-0 sm:border-l sm:border-[#3A434E] sm:pl-4 sm:pr-0`}
+                    >
+                      <span className="hidden sm:flex w-8 h-8 rounded-full bg-[#343D48] items-center justify-center shrink-0">
+                        <Icon className="w-4 h-4 text-[#7DB6DC]" strokeWidth={1.6} />
+                      </span>
+                      <div className="leading-tight min-w-0">
+                        <div className="text-[11px] font-semibold text-white sm:text-[13px] sm:font-normal sm:text-[#4F9BD0] whitespace-nowrap">
+                          <span className="sm:hidden">{label.replace(' (previsão)', '')}</span>
+                          <span className="hidden sm:inline">{label}</span>
+                        </div>
+                        <div className="whitespace-nowrap">
+                          <span className="text-[20px] sm:text-xl font-extrabold tracking-[-0.02em]">{value !== null ? fmtMm(value) : '--'}</span>
+                          {value !== null && <span className="text-xs text-[#B4B9BF] ml-1">mm</span>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-              {accumulated.map(({ label, value, Icon }) => (
-                <div key={label} className="flex items-center gap-2 shrink-0 sm:border-l border-[#3A434E] sm:pl-4">
-                  <span className="w-8 h-8 rounded-full bg-[#343D48] flex items-center justify-center shrink-0">
-                    <Icon className="w-4 h-4 text-[#7DB6DC]" strokeWidth={1.6} />
-                  </span>
-                  <div className="leading-tight">
-                    <div className="text-[13px] text-[#4F9BD0] whitespace-nowrap">{label}</div>
-                    <div className="whitespace-nowrap">
-                      <span className="text-xl font-extrabold tracking-[-0.02em]">{value !== null ? fmtMm(value) : '--'}</span>
-                      {value !== null && <span className="text-xs text-[#B4B9BF] ml-1">mm</span>}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            </>
           )}
         </>
       )}

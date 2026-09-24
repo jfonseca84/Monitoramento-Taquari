@@ -61,22 +61,36 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
         </span>
       </button>
 
-      {/* LISTA DE ESTAÇÕES (no celular só aparece com o menu aberto) */}
+      {/* Celular: toque fora do menu (na parte da esquerda) fecha */}
+      {mobileMenuOpen && (
+        <button
+          type="button"
+          aria-label="Fechar menu de estações"
+          onClick={() => setMobileMenuOpen(false)}
+          className="lg:hidden fixed inset-0 z-30 bg-black/25 cursor-default"
+        />
+      )}
+
+      {/* LISTA DE ESTAÇÕES: no celular abre como painel na lateral DIREITA (a página continua visível à esquerda) */}
       <nav
         id="city-menu-panel"
         aria-label="Estações da Bacia"
-        className={`${mobileMenuOpen ? 'flex' : 'hidden'} lg:flex flex-col flex-1 min-h-0 overflow-y-auto no-scrollbar`}
+        className={`${
+          mobileMenuOpen
+            ? 'flex fixed right-0 top-14 bottom-0 w-[172px] z-40 bg-[#1B222B] shadow-[-10px_0_28px_rgba(0,0,0,0.55)]'
+            : 'hidden'
+        } lg:flex lg:static lg:w-auto lg:shadow-none lg:z-auto flex-col flex-1 min-h-0 overflow-y-auto no-scrollbar`}
       >
         {/* Seletor de bacia no celular (no computador ele fica sobre o mapa) */}
         {onChangeBasin && (
-          <div className="lg:hidden flex gap-0.5 m-3 p-0.5 rounded-[6px] bg-[#2E3742] text-xs font-bold">
+          <div className="lg:hidden flex flex-col gap-0.5 m-2 p-0.5 rounded-[6px] bg-[#2E3742] text-xs font-bold">
             {(Object.keys(BASIN_LABELS) as BasinKey[]).map((key) => (
               <button
                 key={key}
                 type="button"
                 aria-pressed={basin === key}
                 onClick={() => onChangeBasin(key)}
-                className={`flex-1 py-1.5 rounded-[5px] cursor-pointer ${basin === key ? 'bg-white text-[#2B333D]' : 'text-[#C9CDD2]'}`}
+                className={`py-1.5 rounded-[5px] cursor-pointer ${basin === key ? 'bg-white text-[#2B333D]' : 'text-[#C9CDD2]'}`}
               >
                 {BASIN_LABELS[key]}
               </button>

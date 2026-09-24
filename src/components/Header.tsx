@@ -103,10 +103,19 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* PAINEL DO MENU (telas estreitas) */}
       {mobileNavOpen && (
+        <>
+        {/* Toque fora do painel (na parte da esquerda) fecha o menu */}
+        <button
+          type="button"
+          aria-label="Fechar menu"
+          onClick={() => setMobileNavOpen(false)}
+          className="lg:hidden fixed inset-x-0 bottom-0 top-14 bg-black/25 cursor-default"
+        />
+        {/* Painel na lateral direita: a página continua visível à esquerda */}
         <nav
           id="mobile-nav-panel"
           aria-label="Menu principal"
-          className="lg:hidden absolute top-full left-0 right-0 bg-white border-b border-[#E6E9ED] shadow-lg flex flex-col p-2 max-h-[calc(100vh-56px)] overflow-y-auto"
+          className="lg:hidden fixed right-0 top-14 bottom-0 w-[210px] bg-white border-l border-[#E6E9ED] shadow-[-10px_0_28px_rgba(0,0,0,0.35)] flex flex-col p-2 overflow-y-auto"
         >
           {NAV_ITEMS.map((item) => {
             const enabled = ENABLED_NAV_ITEMS.includes(item.id);
@@ -126,7 +135,7 @@ export const Header: React.FC<HeaderProps> = ({
                 title={enabled ? undefined : 'Em breve'}
                 className={`flex items-center gap-[5px] px-3 py-2.5 rounded-[7px] text-[13px] font-medium tracking-[0.03em] text-left ${
                   active
-                    ? 'text-[#1F6F95] bg-[#EAF6FB]'
+                    ? 'text-white bg-[#2B333D] font-semibold'
                     : enabled
                       ? 'text-[#3A434E] hover:bg-[#F4F7F9] cursor-pointer'
                       : 'text-[#A3AAB2] cursor-not-allowed'
@@ -138,6 +147,7 @@ export const Header: React.FC<HeaderProps> = ({
             );
           })}
         </nav>
+        </>
       )}
 
       {/* GATILHO DO MENU + AÇÕES */}
