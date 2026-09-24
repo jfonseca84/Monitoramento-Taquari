@@ -109,7 +109,9 @@ function soilLevel(v: number | null | undefined): { label: string; pct: string }
   return { label: v >= 0.35 ? 'Saturado' : v >= 0.2 ? 'Úmido' : 'Seco', pct: `${Math.round(v * 100)}%` };
 }
 
-interface HeadwaterRain { r24: number | null; r72: number | null; f72: number | null }
+// measured = quantas estações de cabeceira têm chuva medida em pluviômetro (ANA); 0 = só estimativa do modelo
+interface HeadwaterRain { r24: number | null; r72: number | null; f72: number | null; measured: number }
+const isMeasured = (r?: WeatherReadingRow | null) => /ana/.test(r?.source ?? '');
 
 const DAYS_TO_SHOW = 5;
 // Dias futuros só entram com a previsão (quase) completa, para não subestimar a chuva do dia
@@ -143,10 +145,14 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
       headwaters.map((c) => Promise.all([fetchLatestWeatherReading(c.id), fetchWeatherForecast(c.id, 100)]))
     ).then((res) => {
       if (cancelled) return;
+      // Prefere a chuva medida em pluviômetro; sem nenhuma estação medida, usa a estimativa do modelo
+      const measured = res.filter(([r]) => isMeasured(r));
+      const use = measured.length ? measured : res;
       setHeadRain({
-        r24: avg(res.map(([r]) => r?.rain_24h_mm)),
-        r72: avg(res.map(([r]) => r?.rain_72h_mm)),
-        f72: avg(res.map(([, f]) => sumWindow(f, 72)))
+        r24: avg(use.map(([r]) => r?.rain_24h_mm)),
+        r72: avg(use.map(([r]) => r?.rain_72h_mm)),
+        f72: avg(res.map(([, f]) => sumWindow(f, 72))),
+        measured: measured.length
       });
     });
     return () => { cancelled = true; };
@@ -242,8 +248,8 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
           ? { label: 'Descendo', Icon: TrendingDown }
           : { label: 'Estável', Icon: Minus };
   const fmtRate = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(2).replace('.', ',')} m/h`;
-  const Chip: React.FC<{ Icon: LucideIcon; label: string; value: React.ReactNode; sub?: string }> = ({ Icon, label, value, sub }) => (
-    <div className="flex items-center gap-2.5 rounded-xl border border-[#3A434E] bg-[#2B333D] px-3 py-2 min-w-[150px] flex-1">
+  const Chip: React.FC<{ Icon: LucideIcon; label: string; value: React.ReactNode; sub?: string; title?: string }> = ({ Icon, label, value, sub, title }) => (
+    <div title={title} className="flex items-center gap-2.5 rounded-xl border border-[#3A434E] bg-[#2B333D] px-3 py-2 min-w-[150px] flex-1">
       <Icon className="w-5 h-5 text-[#7DB6DC] shrink-0" strokeWidth={1.6} />
       <div className="leading-tight">
         <div className="text-[11px] text-[#B4B9BF]">{label}</div>
@@ -257,7 +263,8 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
       <Chip
         key="chuva"
         Icon={Mountain}
-        label="Chuva nas cabeceiras (24h)"
+        label={headRain.measured > 0 ? 'Chuva medida nas cabeceiras (24h)' : 'Chuva estimada nas cabeceiras (24h)'}
+        title={headRain.measured > 0 ? `Média de ${headRain.measured} pluviômetro(s) da ANA; previsão: modelo Open-Meteo` : 'Estimativa do modelo Open-Meteo (sem pluviômetro nas cabeceiras)'}
         value={headRain.r24 !== null ? <>{fmtMm(headRain.r24)}<span className="text-xs font-normal text-[#B4B9BF] ml-1">mm</span></> : '--'}
         sub={`72h: ${headRain.r72 !== null ? fmtMm(headRain.r72) : '--'} mm · prev. 72h: ${headRain.f72 !== null ? fmtMm(headRain.f72) : '--'} mm`}
       />
@@ -412,7 +419,7 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
                 </span>
                 <div className="leading-tight">
                   <div className="text-sm font-semibold">Histórico de chuva acumulada</div>
-                  <div className="text-[11px] text-[#B4B9BF]">Modelo Open-Meteo, não é pluviômetro.</div>
+                  <div className="text-[11px] text-[#B4B9BF]">{isMeasured(reading) ? 'Medido: ANA · previsão: Open-Meteo.' : 'Modelo Open-Meteo, não é pluviômetro.'}</div>
                 </div>
               </div>
               {accumulated.map(({ label, value, Icon }) => (

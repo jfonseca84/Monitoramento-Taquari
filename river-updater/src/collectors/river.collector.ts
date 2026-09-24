@@ -227,6 +227,89 @@ const ANA_STATION_CODES: Record<string, string> = {
   portomariante: '86895000'
 };
 
+// Estações da ANA usadas só para CHUVA medida: as de nível acima + Santa Tereza (86472600, Rio Taquari).
+// Santa Tereza fica de fora de ANA_STATION_CODES de propósito, para não trocar a fonte do nível dela.
+const ANA_RAIN_STATION_CODES: Record<string, string> = {
+  ...ANA_STATION_CODES,
+  santatereza: '86472600'
+};
+
+export interface AnaRain {
+  rain1h: number;
+  rain6h: number;
+  rain24h: number;
+  rain72h: number;
+  rain7d: number | null;
+  lastMs: number;
+}
+
+// Cobertura mínima de leituras (a ANA mede a cada 15 min) para confiar num acumulado
+const ANA_MIN_COVERAGE = 0.6;
+// Sem leitura recente, o pluviômetro é ignorado e vale a estimativa do modelo
+const ANA_MAX_AGE_MS = 3 * 60 * 60 * 1000;
+
+/**
+ * Chuva MEDIDA (pluviômetro) das estações telemétricas da ANA, por slug de cidade.
+ * O campo <Chuva> é o incremento de cada leitura de 15 min, então o acumulado é a soma.
+ * Estação sem dado recente ou com muitas falhas fica de fora (o chamador usa o modelo).
+ */
+export async function fetchAnaRain(catalogCities: DBCity[] = []): Promise<Map<string, AnaRain>> {
+  const brDate = (d: Date) => d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  const nowMs = Date.now();
+  const dataFim = brDate(new Date(nowMs));
+  const dataInicio = brDate(new Date(nowMs - 8 * 24 * 60 * 60 * 1000));
+  const out = new Map<string, AnaRain>();
+
+  await Promise.all(
+    catalogCities
+      .filter((city) => ANA_RAIN_STATION_CODES[city.slug])
+      .map(async (city) => {
+        const apiUrl = `https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos?CodEstacao=${ANA_RAIN_STATION_CODES[city.slug]}&DataInicio=${encodeURIComponent(dataInicio)}&DataFim=${encodeURIComponent(dataFim)}`;
+        try {
+          const response = await fetchWithRetry(apiUrl, { headers: { 'Accept': 'application/xml' } }, 2, 800, 20000);
+          const xml = await response.text();
+
+          const samples: { ms: number; mm: number }[] = [];
+          for (const block of xml.matchAll(/<DadosHidrometereologicos[^>]*>([\s\S]*?)<\/DadosHidrometereologicos>/g)) {
+            const dt = /<DataHora>\s*([^<]*?)\s*<\/DataHora>/.exec(block[1])?.[1];
+            const chuva = /<Chuva>\s*([^<]*?)\s*<\/Chuva>/.exec(block[1])?.[1];
+            if (!dt || !chuva) continue;
+            const mm = Number(chuva);
+            const ms = new Date(dt.replace(' ', 'T') + '-03:00').getTime();
+            if (isNaN(mm) || isNaN(ms) || mm < 0 || ms > nowMs) continue;
+            samples.push({ ms, mm });
+          }
+          if (samples.length === 0) return;
+
+          const lastMs = Math.max(...samples.map((s) => s.ms));
+          if (nowMs - lastMs > ANA_MAX_AGE_MS) return;
+
+          const windowSum = (hours: number) => {
+            const from = nowMs - hours * 60 * 60 * 1000;
+            const inWindow = samples.filter((s) => s.ms > from);
+            const coverage = inWindow.length / (hours * 4);
+            return { total: Number(inWindow.reduce((a, s) => a + s.mm, 0).toFixed(2)), coverage };
+          };
+          const w72 = windowSum(72);
+          if (w72.coverage < ANA_MIN_COVERAGE) return;
+          const w7d = windowSum(168);
+
+          out.set(city.slug, {
+            rain1h: windowSum(1).total,
+            rain6h: windowSum(6).total,
+            rain24h: windowSum(24).total,
+            rain72h: w72.total,
+            rain7d: w7d.coverage >= ANA_MIN_COVERAGE ? w7d.total : null,
+            lastMs
+          });
+        } catch {
+          // sem dado da ANA: essa estação segue com a estimativa do modelo
+        }
+      })
+  );
+  return out;
+}
+
 export async function fetchFromANA(catalogCities: DBCity[] = []): Promise<RawStationPayload[]> {
   const brDate = (d: Date) => d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
   const dataFim = brDate(new Date());

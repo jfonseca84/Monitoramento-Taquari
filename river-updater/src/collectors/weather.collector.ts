@@ -1,6 +1,6 @@
 import { LoggerService } from '../logs/logger.service.js';
 import { SupabaseService, DBCity } from '../services/supabase.service.js';
-import { fetchWithRetry } from './river.collector.js';
+import { fetchWithRetry, fetchAnaRain, AnaRain } from './river.collector.js';
 
 const OPEN_METEO_BASE_URL = 'https://api.open-meteo.com/v1/forecast';
 
@@ -76,6 +76,9 @@ export class WeatherCollector {
     let errorsCount = 0;
     const errors: string[] = [];
 
+    // Chuva medida (pluviômetros da ANA) das estações que têm; as demais seguem com o modelo Open-Meteo
+    const anaRain = await fetchAnaRain(cities).catch(() => new Map<string, AnaRain>());
+
     const readingsToUpsert: any[] = [];
     const forecastsToUpsert: any[] = [];
 
@@ -116,15 +119,16 @@ export class WeatherCollector {
           const rain72h = sumPrecipitation(hourly, nowIndex - 71, nowIndex);
           const rain7d = sumPrecipitation(hourly, nowIndex - 167, nowIndex);
 
+          const ana = anaRain.get(city.slug);
           readingsToUpsert.push({
             city_id: city.id,
             recorded_at: recordedAt,
             precipitation_mm: hourly.precipitation?.[nowIndex] ?? null,
-            rain_1h_mm: rain1h,
-            rain_6h_mm: rain6h,
-            rain_24h_mm: rain24h,
-            rain_72h_mm: rain72h,
-            rain_7d_mm: rain7d,
+            rain_1h_mm: ana ? ana.rain1h : rain1h,
+            rain_6h_mm: ana ? ana.rain6h : rain6h,
+            rain_24h_mm: ana ? ana.rain24h : rain24h,
+            rain_72h_mm: ana ? ana.rain72h : rain72h,
+            rain_7d_mm: ana?.rain7d ?? rain7d,
             soil_moisture_0_1cm: hourly.soil_moisture_0_to_1cm?.[nowIndex] ?? null,
             soil_moisture_1_3cm: hourly.soil_moisture_1_to_3cm?.[nowIndex] ?? null,
             soil_moisture_3_9cm: hourly.soil_moisture_3_to_9cm?.[nowIndex] ?? null,
@@ -140,7 +144,7 @@ export class WeatherCollector {
             uv_index: hourly.uv_index?.[nowIndex] ?? null,
             solar_radiation: hourly.shortwave_radiation?.[nowIndex] ?? null,
             visibility_m: hourly.visibility?.[nowIndex] ?? null,
-            source: 'open-meteo',
+            source: ana ? 'open-meteo+ana' : 'open-meteo',
           });
 
           // Próximas 48h de previsão de chuva

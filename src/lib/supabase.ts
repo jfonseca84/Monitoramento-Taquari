@@ -899,6 +899,7 @@ export interface WeatherReadingRow {
   uv_index: number | null;
   solar_radiation: number | null;
   visibility_m: number | null;
+  source?: string | null; // 'open-meteo' (modelo) ou 'open-meteo+ana' (chuva medida em pluviômetro da ANA)
   created_at: string;
 }
 

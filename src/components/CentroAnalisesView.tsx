@@ -4068,7 +4068,7 @@ export const CentroAnalisesView: React.FC<CentroAnalisesViewProps> = ({
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="font-semibold text-slate-400">Fonte:</span>
-                  <span className="px-2 py-0.5 rounded bg-blue-900/60 border border-blue-700/60 text-blue-300 font-bold text-[9px] uppercase">OPEN-METEO</span>
+                  <span className="px-2 py-0.5 rounded bg-blue-900/60 border border-blue-700/60 text-blue-300 font-bold text-[9px] uppercase">{/ana/.test(weatherNow?.source ?? '') ? 'OPEN-METEO + ANA (chuva medida)' : 'OPEN-METEO'}</span>
                 </div>
               </div>
               </EditableComponent>
