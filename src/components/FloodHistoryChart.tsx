@@ -99,7 +99,8 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
   const nowValid = isValidNumber(now);
   const trend = city.trend;
   const trendLabel = trend === 'subindo' ? 'Subindo' : trend === 'descendo' ? 'Descendo' : 'Estável';
-  const trendColor = '#FFFFFF';
+  // Único indicador de estado colorido além da régua: subindo (vermelho), descendo (verde), estável (neutro)
+  const trendColor = trend === 'subindo' ? '#E5776B' : trend === 'descendo' ? '#5FC08A' : '#D6D9DD';
   const TrendIcon = trend === 'subindo' ? ArrowUp : trend === 'descendo' ? ArrowDown : Minus;
   const rate = Number(city.rate_of_change);
   // Data e hora da última sincronização do site (o nível se atualiza junto com ela)

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Header } from './components/Header';
 import { CitySidebar } from './components/CitySidebar';
 import { LiveCameraHero } from './components/LiveCameraHero';
@@ -10,6 +10,7 @@ import { Footer } from './components/Footer';
 import { AdminDashboard } from './components/AdminDashboard';
 import { HistoricoPage } from './components/HistoricoPage';
 import { FloodDetailPanel } from './components/FloodDetailPanel';
+import { FloodDetailModal } from './components/FloodDetailModal';
 import { HISTORICAL_FLOODS_BY_CITY } from './data/historicalFloodsData';
 import { DefesaCivilView } from './components/DefesaCivilView';
 import { PrefeiturasView } from './components/PrefeiturasView';
@@ -58,13 +59,19 @@ export default function App() {
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   // Cheia clicada no gráfico da aba Histórico (aparece no painel da esquerda); volta ao recorde ao trocar de cidade
   const [selectedFloodId, setSelectedFloodId] = useState<string | null>(null);
-  useEffect(() => setSelectedFloodId(null), [selectedCity?.slug]);
+  // Em telas estreitas os detalhes abrem em um pop-up (em telas largas ficam no painel da esquerda)
+  const [floodModalOpen, setFloodModalOpen] = useState(false);
+  useEffect(() => {
+    setSelectedFloodId(null);
+    setFloodModalOpen(false);
+  }, [selectedCity?.slug]);
+  useEffect(() => {
+    if (activeTab !== 'historico') setFloodModalOpen(false);
+  }, [activeTab]);
+  const closeFloodModal = useCallback(() => setFloodModalOpen(false), []);
   const handleSelectFlood = (id: string) => {
     setSelectedFloodId(id);
-    // Em telas estreitas o painel fica abaixo do gráfico: leva a tela até ele
-    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-      window.setTimeout(() => document.getElementById('painel-enchente')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-    }
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) setFloodModalOpen(true);
   };
   // Bacia exibida no mapa e no menu de estações da página Início
   const [basin, setBasin] = useState<BasinKey>('taquari');
@@ -359,7 +366,7 @@ export default function App() {
 
             {/* ESQUERDA: MAPA DA BACIA na Início; detalhes da enchente selecionada no Histórico (no celular fica por último) */}
             {activeTab === 'historico' ? (
-              <div className="order-3 lg:order-1 relative z-0 lg:h-full min-h-0 flex flex-col">
+              <div className="hidden lg:flex lg:order-1 relative z-0 lg:h-full min-h-0 flex-col">
                 <FloodDetailPanel city={selectedCity} events={HISTORICAL_FLOODS_BY_CITY[selectedCity.slug] ?? []} selectedId={selectedFloodId} />
               </div>
             ) : (
@@ -429,6 +436,13 @@ export default function App() {
 
       {/* FOOTER (na página Início, no desktop, ele fica dentro da coluna central) */}
       <Footer className={isHomeLayout ? 'lg:hidden' : ''} />
+
+      {/* DETALHES DA ENCHENTE (celular): pop-up com botão de fechar fixo embaixo */}
+      {activeTab === 'historico' && (
+        <FloodDetailModal open={floodModalOpen} onClose={closeFloodModal}>
+          <FloodDetailPanel city={selectedCity} events={HISTORICAL_FLOODS_BY_CITY[selectedCity.slug] ?? []} selectedId={selectedFloodId} />
+        </FloodDetailModal>
+      )}
 
       {/* ADMINISTRATIVE DASHBOARD MODAL */}
       <AdminDashboard

@@ -30,7 +30,6 @@ const Item: React.FC<{ Icon: LucideIcon; label: string; value: string; sub?: str
 export const FloodDetailPanel: React.FC<FloodDetailPanelProps> = ({ city, events, selectedId }) => {
   const shell = (children: React.ReactNode) => (
     <aside
-      id="painel-enchente"
       aria-label="Detalhes da enchente selecionada"
       className="w-full lg:h-full min-h-0 overflow-y-auto no-scrollbar bg-white text-[#1B222B] px-5 py-6 flex flex-col gap-5"
     >
