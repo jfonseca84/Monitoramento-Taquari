@@ -30,6 +30,9 @@ const NAV_ITEMS = [
 ];
 const ENABLED_NAV_ITEMS = ['inicio'];
 
+// Descrição abaixo do nome do site no cabeçalho (fixa; site_subtitle segue valendo no título da aba, rodapé e Sobre)
+const LOGO_TAGLINE = 'O VALE BEM INFORMADO';
+
 export const Header: React.FC<HeaderProps> = ({
   activeTab,
   setActiveTab,
@@ -43,13 +46,13 @@ export const Header: React.FC<HeaderProps> = ({
   const logoTimestamp = settings.updated_at ? new Date(settings.updated_at).getTime() : 1;
 
   return (
-    <header className="sticky top-0 z-40 h-14 box-border bg-white border-b border-[#E6E9ED] flex items-center gap-2 md:gap-4 px-[clamp(12px,3.5vw,64px)] font-[family-name:Figtree,system-ui,sans-serif] relative">
+    <header className="sticky top-0 z-40 h-14 box-border bg-white border-b border-[#E6E9ED] flex items-center gap-2 md:gap-4 px-[clamp(12px,3.5vw,64px)] lg:px-0 lg:gap-0 lg:grid lg:grid-cols-[minmax(260px,0.62fr)_minmax(0,1.6fr)_150px] font-[family-name:Figtree,system-ui,sans-serif] relative">
 
       {/* LOGO */}
       <button
         type="button"
         onClick={() => setActiveTab('inicio')}
-        className="flex flex-col leading-[1.05] min-w-[70px] flex-1 md:flex-none md:shrink-0 text-left cursor-pointer"
+        className="flex flex-col leading-[1.05] min-w-[70px] flex-1 md:flex-none md:shrink-0 text-left cursor-pointer lg:pl-[clamp(12px,3.5vw,64px)] lg:justify-self-start"
       >
         {settings.logo_url && !logoFailed ? (
           <img
@@ -64,14 +67,14 @@ export const Header: React.FC<HeaderProps> = ({
               {settings.site_name || 'Nível Taquari'}
             </span>
             <span className="text-[8px] font-extrabold tracking-[0.14em] text-[#1F8FB8] uppercase truncate max-w-full">
-              {settings.site_subtitle || 'Monitoramento em tempo real'}
+              {LOGO_TAGLINE}
             </span>
           </>
         )}
       </button>
 
       {/* MENU (telas largas: tudo em uma linha, sem cortar nada) */}
-      <nav className="hidden lg:flex flex-1 min-w-0 justify-center-safe items-center gap-0.5 overflow-x-auto no-scrollbar" aria-label="Menu principal">
+      <nav className="hidden lg:flex min-w-0 justify-center-safe items-center gap-0 xl:gap-0.5 overflow-x-auto no-scrollbar" aria-label="Menu principal">
         {NAV_ITEMS.map((item) => {
           const enabled = ENABLED_NAV_ITEMS.includes(item.id);
           const active = activeTab === item.id;
@@ -83,7 +86,7 @@ export const Header: React.FC<HeaderProps> = ({
               disabled={!enabled}
               aria-current={active ? 'page' : undefined}
               title={enabled ? undefined : 'Em breve'}
-              className={`shrink-0 flex items-center gap-[5px] px-1.5 py-1.5 rounded-[7px] text-[11px] font-medium tracking-[0.03em] whitespace-nowrap border ${
+              className={`shrink-0 flex items-center gap-[4px] xl:gap-[5px] px-1 xl:px-1.5 py-1.5 rounded-[7px] text-[10px] xl:text-[11px] font-medium tracking-[0.02em] xl:tracking-[0.03em] whitespace-nowrap border ${
                 active
                   ? 'text-[#1F6F95] bg-[#EAF6FB] border-[#A9D6EA]'
                   : enabled
@@ -138,7 +141,7 @@ export const Header: React.FC<HeaderProps> = ({
       )}
 
       {/* GATILHO DO MENU + AÇÕES */}
-      <div className="flex items-center gap-2 lg:gap-3.5 shrink-0 ml-auto">
+      <div className="flex items-center gap-2 lg:gap-3.5 shrink-0 ml-auto lg:ml-0 lg:justify-self-end lg:pr-[clamp(12px,3.5vw,64px)]">
         {/* GATILHO DO MENU (telas estreitas: nada fica escondido, vai para um painel) */}
         <button
           type="button"

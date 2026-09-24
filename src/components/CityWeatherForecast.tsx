@@ -221,14 +221,6 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
       return !isNaN(t) && t > max ? t : max;
     }, 0)
   );
-  const updatedLabel = (() => {
-    if (!lastUpdateMs) return null;
-    const diffMin = Math.round((Date.now() - lastUpdateMs) / 60000);
-    if (diffMin < 1) return 'coletado há menos de 1 min';
-    if (diffMin < 60) return `coletado há ${diffMin} min`;
-    const diffH = Math.round(diffMin / 60);
-    return `coletado há ${diffH}h`;
-  })();
   // Idade da leitura: a última linha do banco pode ser antiga se uma coleta falhou; ela continua visível,
   // mas não é apresentada como se fosse de agora
   const ageMin = lastUpdateMs ? Math.max(0, Math.round((Date.now() - lastUpdateMs) / 60000)) : null;
@@ -344,33 +336,22 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
 
   return (
     <section
-      className={`${SECTION_PAD} pt-12 sm:pt-14 pb-14 sm:pb-16 flex flex-col gap-6 text-white relative overflow-hidden bg-[#222931]`}
+      className={`${SECTION_PAD} pt-7 sm:pt-8 pb-8 sm:pb-10 flex flex-col gap-4 text-white relative overflow-hidden bg-[#222931]`}
     >
       <svg aria-hidden className="pointer-events-none absolute -top-6 right-0 w-[70%] max-w-[900px] opacity-10" viewBox="0 0 900 160" fill="none">
         <path d="M0 110C120 40 220 150 360 90S600 10 720 70s130 20 180-30" stroke="#4F9BD0" strokeWidth="2" />
         <path d="M0 130C130 60 240 165 380 108S620 30 740 90s120 10 160-20" stroke="#4F9BD0" strokeWidth="1.5" />
       </svg>
 
-      <div className="relative flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+      <div className="relative flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
           <div className="self-stretch w-px bg-[#3A434E]" />
           <div className="leading-[1.2]">
-            <div className="text-lg font-light">Previsão para</div>
-            <div className="text-[30px] sm:text-[34px] font-extrabold leading-[1.1]">Os próximos dias</div>
-            <div className="text-sm text-[#B4B9BF] mt-1.5">Acompanhe a previsão de chuva e o impacto no nível do rio.</div>
+            <div className="text-sm font-light">Previsão para</div>
+            <div className="text-[20px] sm:text-[22px] font-extrabold leading-[1.15]">Os próximos dias</div>
+            <div className="text-xs text-[#B4B9BF] mt-1">Acompanhe a previsão de chuva e o impacto no nível do rio.</div>
           </div>
         </div>
-        {updatedLabel && (
-          <div className={`${CARD} flex items-center gap-3 px-4 py-3`}>
-            <span className="w-11 h-11 rounded-full bg-[#343D48] flex items-center justify-center">
-              <CloudRain className="w-6 h-6 text-[#4F9BD0]" />
-            </span>
-            <div className="leading-tight">
-              <div className="text-sm font-semibold">Previsão: Open-Meteo</div>
-              <div className={`text-xs ${isStale ? 'text-[#E9C145]' : 'text-[#B4B9BF]'}`}>{isStale ? `desatualizado · ${updatedLabel}` : `${isMeasured(reading) || (headRain?.measured ?? 0) > 0 ? 'Chuva medida: ANA · ' : ''}${updatedLabel}`}</div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* PREVISÃO DO TEMPO: resumo do dia selecionado + faixa de 5 dias com indicador móvel */}
