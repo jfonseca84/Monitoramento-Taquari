@@ -323,7 +323,7 @@ export default function App() {
 
                 <LayoutBehaviorWrapper pageKey="inicio" componentKey="weather_forecast">
                   <EditableComponent id="inicio_previsao_tempo" name="Previsão do Tempo" type="widget">
-                    <CityWeatherForecast selectedCity={selectedCity} />
+                    <CityWeatherForecast selectedCity={selectedCity} cities={cities} />
                   </EditableComponent>
                 </LayoutBehaviorWrapper>
 
