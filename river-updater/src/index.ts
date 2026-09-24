@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 import { LoggerService } from './logs/logger.service.js';
 import { SupabaseService } from './services/supabase.service.js';
 import { CronService } from './scheduler/cron.service.js';
-import { HealthService } from './services/health.service.js';
+import { HealthService, STATION_STALE_MINUTES } from './services/health.service.js';
 import { CacheService } from './services/cache.service.js';
 import { WeatherCacheService } from './services/weather-cache.service.js';
 import { NewsCollector } from './collectors/news.collector.js';
@@ -78,8 +78,14 @@ function startHttpServer() {
           nextRunAt: healthInfo.nextRunAt,
           status: healthInfo.status,
           totalExecutions: healthInfo.totalExecutions,
-          totalErrors: healthInfo.totalErrors
-        }
+          totalErrors: healthInfo.totalErrors,
+          minutesSinceLastSuccess: healthInfo.lastSuccessAt
+            ? Math.round((Date.now() - new Date(healthInfo.lastSuccessAt).getTime()) / 60000)
+            : null
+        },
+        sources: HealthService.getSources(),
+        staleStations: HealthService.getStations().filter((s) => s.ageMinutes > STATION_STALE_MINUTES),
+        stations: HealthService.getStations()
       };
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(response, null, 2));

@@ -2,6 +2,7 @@ import { LoggerService } from '../logs/logger.service.js';
 import { SupabaseService, DBCity, DBStation } from '../services/supabase.service.js';
 import { ValidationService, RawStationPayload } from '../services/validation.service.js';
 import { AuditService } from '../services/audit.service.js';
+import { HealthService } from '../services/health.service.js';
 
 export type { DBCity, DBStation };
 
@@ -397,7 +398,8 @@ export async function fetchFromANA(catalogCities: DBCity[] = []): Promise<RawSta
           ts: new Date(last.ms).toISOString(),
           source_origin: 'telemetria.ana.gov.br'
         } as RawStationPayload;
-      } catch {
+      } catch (err: any) {
+        LoggerService.warn('SOURCE', `ANA | ${city.slug} | falha: ${err?.message || err}`);
         return null;
       }
     });
@@ -480,7 +482,8 @@ export async function fetchFromNivelGuaiba(baseUrl: string = 'https://nivelguaib
         ts: tsIso,
         source_origin: 'nivelguaiba.com.br'
       } as RawStationPayload;
-    } catch {
+    } catch (err: any) {
+      LoggerService.warn('SOURCE', `nivelguaiba | ${city.slug} | falha: ${err?.message || err}`);
       return null;
     }
   });
@@ -574,6 +577,7 @@ export class RiverCollector {
 
       // 4. Buscar medições das fontes externas
       const fetchPromises = dataSources.map(async (source) => {
+        const sourceStart = Date.now();
         try {
           let items: RawStationPayload[] = [];
           if (source.name.includes('nivelguaiba') || source.url.includes('nivelguaiba')) {
@@ -599,9 +603,13 @@ export class RiverCollector {
             }));
           }
           sourcesSuccessCount++;
+          const sourceMs = Date.now() - sourceStart;
+          HealthService.recordSource(source.name, true, items.length, sourceMs);
+          LoggerService.info('SOURCE', `${source.name} | ok | ${items.length} estações | ${sourceMs}ms`);
           return items;
         } catch (err: any) {
           sourcesFailedCount++;
+          HealthService.recordSource(source.name, false, 0, Date.now() - sourceStart, err?.message || String(err));
           LoggerService.warn(this.PREFIX, `Aviso ao consultar fonte ${source.name}: ${err.message}`);
           return [];
         }
@@ -609,6 +617,10 @@ export class RiverCollector {
 
       const resultsNested = await Promise.all(fetchPromises);
       const rawPayloads: RawStationPayload[] = resultsNested.flat();
+
+      // Frescor por estação: só registra e expõe no /health, não altera o que é gravado.
+      // A niveldosrios carimba a hora da consulta (não informa a hora da medição), então fica de fora.
+      HealthService.setStationFreshness(rawPayloads.filter((p) => !String(p.source_origin || '').includes('guerreiros')));
 
       // 5. Carregar histórico para deduplicação
       const allStationIds = dbStations.map((s) => s.id).filter(isValidUuid);
