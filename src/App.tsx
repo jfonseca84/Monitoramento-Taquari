@@ -11,6 +11,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { HistoricoPage } from './components/HistoricoPage';
 import { FloodDetailPanel } from './components/FloodDetailPanel';
 import { FloodDetailModal } from './components/FloodDetailModal';
+import { SiteScrollbar } from './components/SiteScrollbar';
 import { HISTORICAL_FLOODS_BY_CITY } from './data/historicalFloodsData';
 import { DefesaCivilView } from './components/DefesaCivilView';
 import { PrefeiturasView } from './components/PrefeiturasView';
@@ -312,7 +313,7 @@ export default function App() {
             </LayoutBehaviorWrapper>
 
             {/* CENTRO: CONTEÚDO ROLÁVEL */}
-            <div className="order-2 lg:order-2 min-w-0 lg:h-full lg:overflow-y-auto no-scrollbar dark:bg-[#2B333D] bg-white">
+            <div data-main-scroll className="order-2 lg:order-2 min-w-0 lg:h-full lg:overflow-y-auto no-scrollbar dark:bg-[#2B333D] bg-white">
               {activeTab === 'historico' ? (
                 <HistoricoPage selectedCity={selectedCity} selectedFloodId={selectedFloodId} onSelectFlood={handleSelectFlood} lastUpdatedText={lastUpdatedText} />
               ) : (
@@ -436,6 +437,9 @@ export default function App() {
 
       {/* FOOTER (na página Início, no desktop, ele fica dentro da coluna central) */}
       <Footer className={isHomeLayout ? 'lg:hidden' : ''} />
+
+      {/* BARRA DE ROLAGEM fina e branca na borda direita (telas largas) */}
+      <SiteScrollbar />
 
       {/* DETALHES DA ENCHENTE (celular): pop-up com botão de fechar fixo embaixo */}
       {activeTab === 'historico' && (

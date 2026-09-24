@@ -114,6 +114,8 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
   const cotaAtencao = Number(city.attention_level);
   const cotaAlerta = Number(city.alert_level);
   const rulerColor = levelColor(now, { attention: cotaAtencao, alert: cotaAlerta, flood: floodCota });
+  // Linha "Agora" do gráfico: mesmo estado da régua, mas verde (em vez de azul) quando normal
+  const nowLineColor = levelColor(now, { attention: cotaAtencao, alert: cotaAlerta, flood: floodCota }, STATUS_COLORS.normal);
   // Marcas das cotas na própria régua (só quando a escala é a cota de inundação)
   const rulerCotas =
     isFinite(floodCota) && floodCota > 0
@@ -278,15 +280,15 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
                   <div key={v} className="absolute inset-x-0 border-t border-dashed border-[#3A434E]" style={{ bottom: `${pct(v)}%` }} />
                 ))}
                 {showCota && (
-                  <div className="absolute inset-x-0 border-t border-dashed z-[1]" style={{ bottom: `${pct(floodCota)}%`, borderColor: '#FFFFFF', opacity: 0.5 }}>
-                    <span className="absolute left-1 -top-4 text-[10px] font-bold text-white">
+                  <div className="absolute inset-x-0 border-t border-dashed z-[1]" style={{ bottom: `${pct(floodCota)}%`, borderColor: COLOR_RECORD, opacity: 0.9 }}>
+                    <span className="absolute left-1 -top-4 text-[10px] font-extrabold" style={{ color: COLOR_RECORD, textShadow: '0 1px 2px rgba(0,0,0,0.7)' }}>
                       Cota de inundação {formatLevel(floodCota)} m
                     </span>
                   </div>
                 )}
                 {showNow && (
-                  <div className="absolute inset-x-0 border-t border-dashed z-[1]" style={{ bottom: `${pct(now)}%`, borderColor: '#FFFFFF', opacity: 0.85 }}>
-                    <span className="absolute left-1 -top-4 text-[10px] font-bold text-white">Agora {formatLevel(now)} m</span>
+                  <div className="absolute inset-x-0 border-t border-dashed z-[1]" style={{ bottom: `${pct(now)}%`, borderColor: nowLineColor, opacity: 0.95 }}>
+                    <span className="absolute left-1 -top-4 text-[10px] font-extrabold" style={{ color: nowLineColor, textShadow: '0 1px 2px rgba(0,0,0,0.7)' }}>Agora {formatLevel(now)} m</span>
                   </div>
                 )}
                 <div className="relative flex h-full items-end">

@@ -211,5 +211,12 @@ body {
   font-family: inherit !important;
 }
 
-
-
+/* A barra de rolagem do site é a SiteScrollbar (branca, fina, na borda direita); em telas largas esconde a nativa da janela */
+@media (min-width: 1024px) {
+  html {
+    scrollbar-width: none;
+  }
+  html::-webkit-scrollbar {
+    display: none;
+  }
+}
