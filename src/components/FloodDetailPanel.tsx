@@ -31,7 +31,7 @@ export const FloodDetailPanel: React.FC<FloodDetailPanelProps> = ({ city, events
   const shell = (children: React.ReactNode) => (
     <aside
       aria-label="Detalhes da enchente selecionada"
-      className="w-full lg:h-full min-h-0 overflow-y-auto no-scrollbar bg-white text-[#1B222B] px-5 py-6 flex flex-col gap-5"
+      className="w-full lg:h-full min-h-0 overflow-y-auto thin-y-scrollbar bg-white text-[#1B222B] px-5 py-6 flex flex-col gap-5"
     >
       {children}
     </aside>

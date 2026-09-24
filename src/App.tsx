@@ -259,12 +259,7 @@ export default function App() {
   if (!selectedCity) {
     return (
       <div className="min-h-screen bg-[#2B333D] flex items-center justify-center text-white font-[family-name:Figtree,system-ui,sans-serif]">
-        <div className="flex items-center gap-3">
-          <div className="w-6 h-6 border-2 border-[#7CC3E6] border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm font-semibold tracking-wider uppercase text-[#7CC3E6]">
-            Carregando Telemetria em Tempo Real...
-          </span>
-        </div>
+        <div role="status" aria-label="Carregando" className="w-10 h-10 border-[3px] border-[#7CC3E6] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }

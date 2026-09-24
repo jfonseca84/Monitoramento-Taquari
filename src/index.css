@@ -220,3 +220,22 @@ body {
     display: none;
   }
 }
+
+/* Barra de rolagem vertical discreta (painéis claros, pensada para notebook) */
+.thin-y-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #C3CAD1 transparent;
+}
+.thin-y-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.thin-y-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.thin-y-scrollbar::-webkit-scrollbar-thumb {
+  background: #C3CAD1;
+  border-radius: 999px;
+}
+.thin-y-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #9AA4AE;
+}
