@@ -31,7 +31,7 @@ export const CITY_THRESHOLDS: Record<string, HydrologicalThresholds> = {
   "Passo Tainhas": { normal: 2.5, attention: 4.0, alert: 5.5, flood: 10.5, normal_level: 2.5, attention_level: 4.0, alert_level: 5.5, flood_level: 10.5 },
   "Taquari": { normal: 3.0, attention: 4.0, alert: 6.5, flood: 8.5, normal_level: 3.0, attention_level: 4.0, alert_level: 6.5, flood_level: 8.5 },
   "Taquara": { normal: 3.0, attention: 4.0, alert: 5.0, flood: 6.0, normal_level: 3.0, attention_level: 4.0, alert_level: 5.0, flood_level: 6.0 },
-  "Cachoeira do Sul": { normal: 12.0, attention: 14.0, alert: 16.0, flood: 21.5, normal_level: 12.0, attention_level: 14.0, alert_level: 16.0, flood_level: 21.5 },
+  "Cachoeira do Sul": { normal: 6.0, attention: 7.5, alert: 8.0, flood: 9.0, normal_level: 6.0, attention_level: 7.5, alert_level: 8.0, flood_level: 9.0 },
   "Dona Francisca": { normal: 4.0, attention: 5.5, alert: 6.5, flood: 7.5, normal_level: 4.0, attention_level: 5.5, alert_level: 6.5, flood_level: 7.5 },
   "Feliz": { normal: 4.5, attention: 6.0, alert: 7.5, flood: 9.0, normal_level: 4.5, attention_level: 6.0, alert_level: 7.5, flood_level: 9.0 }
 };

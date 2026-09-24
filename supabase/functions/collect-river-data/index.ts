@@ -28,7 +28,7 @@ const CITY_THRESHOLDS: Record<string, { normal: number; attention: number; alert
   'São Sebastião do Caí': { normal: 4.0, attention: 5.0, alert: 7.0, flood: 10.5 },
   'Taquari': { normal: 3.0, attention: 4.0, alert: 6.5, flood: 8.5 },
   'Taquara': { normal: 3.0, attention: 4.0, alert: 5.0, flood: 6.0 },
-  'Cachoeira do Sul': { normal: 12.0, attention: 14.0, alert: 16.0, flood: 21.5 },
+  'Cachoeira do Sul': { normal: 6.0, attention: 7.5, alert: 8.0, flood: 9.0 },
   'Dona Francisca': { normal: 4.0, attention: 5.5, alert: 6.5, flood: 7.5 },
   'Feliz': { normal: 4.5, attention: 6.0, alert: 7.5, flood: 9.0 },
 };
@@ -638,8 +638,8 @@ Deno.serve(async (req) => {
 
         // Cidades cujas fontes usam réguas diferentes: só uma delas é a régua das cotas oficiais.
         // Roca Sales: a niveldosrios devolve a régua de Encantado. Porto Alegre: a nivelguaiba lê o Gasômetro
-        // (zero 40 cm acima do Cais Mauá, usado nas cotas). Cachoeira do Sul: a nivelguaiba lê Passo São Lourenço.
-        const PREFERRED_SOURCE: Record<string, string> = { rocasales: 'nivelguaiba', portoalegre: 'niveldosrios', cachoeiradosul: 'niveldosrios' };
+        // (zero 40 cm acima do Cais Mauá, usado nas cotas). Cachoeira do Sul: régua Passo São Lourenço (nivelguaiba), cota de inundação 9,00 m.
+        const PREFERRED_SOURCE: Record<string, string> = { rocasales: 'nivelguaiba', portoalegre: 'niveldosrios', cachoeiradosul: 'nivelguaiba' };
         const preferredSource = PREFERRED_SOURCE[matchResult.city.slug];
         if (preferredSource && !sourceOrigin.includes(preferredSource)) continue;
 
