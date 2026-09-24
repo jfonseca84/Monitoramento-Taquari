@@ -149,10 +149,10 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity, ci
         </div>
 
         <div className="flex items-start leading-[0.8]">
-          <span className="text-[clamp(56px,22cqw,200px)] font-black tracking-[-0.06em]">
+          <span className="text-[clamp(56px,min(22cqw,20vh),200px)] font-black tracking-[-0.06em]">
             {formatLevel(selectedCity.current_level)}
           </span>
-          <span className="text-[clamp(24px,7.3cqw,68px)] font-extrabold ml-2.5 mt-1.5">m</span>
+          <span className="text-[clamp(24px,min(7.3cqw,6.6vh),68px)] font-extrabold ml-2.5 mt-1.5">m</span>
         </div>
 
         <div className={`flex max-w-[440px] w-full rounded-[4px] ${status === 'inundacao' ? 'flood-badge-wave' : ''}`}>

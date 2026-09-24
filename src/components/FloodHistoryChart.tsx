@@ -325,7 +325,7 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
                         className={`flex flex-col items-center justify-end cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-white/30 rounded-t-md transition-colors ${
                           on ? 'text-white' : 'text-[#B4B9BF]'
                         }`}
-                        style={{ width: SLOT_W, height: '100%' }}
+                        style={{ flex: `1 0 ${SLOT_W}px`, height: '100%' }}
                       >
                         <span className={`mb-1 text-[10px] leading-none ${on ? 'font-extrabold' : 'font-semibold'}`}>{formatLevel(e.maxLevel)}</span>
                         <span className="relative block" style={{ width: BAR_W, height: h }}>
@@ -359,7 +359,7 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
                     <div
                       key={e.id}
                       className={`text-center text-[10px] leading-[1.15] pt-2 pb-1 transition-colors ${on ? 'text-white font-extrabold' : `${MUTED} font-semibold`}`}
-                      style={{ width: SLOT_W }}
+                      style={{ flex: `1 0 ${SLOT_W}px` }}
                       title={e.monthYear}
                     >
                       {e.month}
