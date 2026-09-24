@@ -114,6 +114,10 @@ interface HeadwaterRain { r24: number | null; r72: number | null; f72: number | 
 const isMeasured = (r?: WeatherReadingRow | null) => /ana/.test(r?.source ?? '');
 
 const DAYS_TO_SHOW = 5;
+// A coleta de clima roda a cada 30 min e a leitura horária pode ter até ~30 min a mais de idade.
+// Acima de 90 min (2 ciclos seguidos sem atualizar) a leitura deixa de ser tratada como atual.
+// Mesmo corte usado pelo coletor (STALE_AFTER_MIN em weather.collector.ts).
+const STALE_AFTER_MIN = 90;
 // Dias futuros só entram com a previsão (quase) completa, para não subestimar a chuva do dia
 const MIN_HOURS_FOR_FULL_DAY = 20;
 
@@ -203,6 +207,16 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
     const diffH = Math.round(diffMin / 60);
     return `coletado há ${diffH}h`;
   })();
+  // Idade da leitura: a última linha do banco pode ser antiga se uma coleta falhou; ela continua visível,
+  // mas não é apresentada como se fosse de agora
+  const ageMin = lastUpdateMs ? Math.max(0, Math.round((Date.now() - lastUpdateMs) / 60000)) : null;
+  const isStale = ageMin !== null && ageMin > STALE_AFTER_MIN;
+  const lastUpdateLabel = lastUpdateMs
+    ? new Date(lastUpdateMs)
+        .toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+        .replace(', ', ' às ')
+    : null;
+  const fmtAgo = (m: number) => (m < 1 ? 'há menos de 1 min' : m < 60 ? `há ${m} min` : `há ${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`);
 
   const rain24h = reading?.rain_24h_mm;
   const rain72h = reading?.rain_72h_mm;
@@ -290,7 +304,7 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
       ? {
           temp: typeof reading?.temperature === 'number' ? reading.temperature : nearestRow?.temperature_2m ?? activeDay.maxTemp,
           sub: typeof reading?.apparent_temperature === 'number' ? `Sensação de ${fmtTemp(reading.apparent_temperature)}` : null,
-          when: 'Agora',
+          when: ageMin === null ? 'Agora' : isStale ? 'Desatualizado' : `Atualizado ${fmtAgo(ageMin)}`,
           cond: conditionFor(
             nearestRow?.precipitation_mm ?? 0,
             nearestRow?.precipitation_probability ?? (activeDay.probCount ? activeDay.probSum / activeDay.probCount : 0),
@@ -331,7 +345,7 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
             </span>
             <div className="leading-tight">
               <div className="text-sm font-semibold">Fonte: Open-Meteo</div>
-              <div className="text-xs text-[#B4B9BF]">{updatedLabel}</div>
+              <div className={`text-xs ${isStale ? 'text-[#E9C145]' : 'text-[#B4B9BF]'}`}>{isStale ? `desatualizado · ${updatedLabel}` : updatedLabel}</div>
             </div>
           </div>
         )}
@@ -350,8 +364,11 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
               </div>
             </div>
             <div className="text-right leading-tight">
-              <div className="text-sm text-[#B4B9BF]">{headline.when}</div>
+              <div className={`text-sm ${isStale && isTodayActive ? 'font-semibold text-[#E9C145]' : 'text-[#B4B9BF]'}`}>{headline.when}</div>
               <div className="text-lg font-extrabold">{headline.cond.label}</div>
+              {isStale && isTodayActive && lastUpdateLabel && (
+                <div className="text-xs text-[#E9C145] mt-0.5">Última leitura: {lastUpdateLabel}</div>
+              )}
             </div>
           </div>
 

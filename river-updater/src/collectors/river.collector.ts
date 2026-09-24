@@ -248,12 +248,34 @@ const ANA_MIN_COVERAGE = 0.6;
 // Sem leitura recente, o pluviômetro é ignorado e vale a estimativa do modelo
 const ANA_MAX_AGE_MS = 3 * 60 * 60 * 1000;
 
+// Busca o XML da ANA para a chuva, devolvendo o motivo real da falha (HTTP, timeout ou rede) em vez de
+// uma mensagem genérica. Função própria da chuva: não altera o fetchWithRetry usado pelos níveis.
+async function fetchAnaRainText(url: string): Promise<string> {
+  let reason = 'sem resposta';
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 20000);
+    try {
+      const response = await fetch(url, { headers: { Accept: 'application/xml' }, signal: controller.signal });
+      if (response.ok) return await response.text();
+      reason = `HTTP ${response.status}`;
+      if (response.status < 500 && response.status !== 429) break;
+    } catch (err: any) {
+      reason = err?.name === 'AbortError' ? 'TIMEOUT 20000ms' : `erro de rede: ${err?.cause?.code || err?.message || err}`;
+    } finally {
+      clearTimeout(timer);
+    }
+    if (attempt < 2) await new Promise((res) => setTimeout(res, 800));
+  }
+  throw new Error(reason);
+}
+
 /**
  * Chuva MEDIDA (pluviômetro) das estações telemétricas da ANA, por slug de cidade.
  * O campo <Chuva> é o incremento de cada leitura de 15 min, então o acumulado é a soma.
  * Estação sem dado recente ou com muitas falhas fica de fora (o chamador usa o modelo).
  */
-export async function fetchAnaRain(catalogCities: DBCity[] = []): Promise<Map<string, AnaRain>> {
+export async function fetchAnaRain(catalogCities: DBCity[] = [], failures?: Map<string, string>): Promise<Map<string, AnaRain>> {
   const brDate = (d: Date) => d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
   const nowMs = Date.now();
   const dataFim = brDate(new Date(nowMs));
@@ -266,8 +288,7 @@ export async function fetchAnaRain(catalogCities: DBCity[] = []): Promise<Map<st
       .map(async (city) => {
         const apiUrl = `https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos?CodEstacao=${ANA_RAIN_STATION_CODES[city.slug]}&DataInicio=${encodeURIComponent(dataInicio)}&DataFim=${encodeURIComponent(dataFim)}`;
         try {
-          const response = await fetchWithRetry(apiUrl, { headers: { 'Accept': 'application/xml' } }, 2, 800, 20000);
-          const xml = await response.text();
+          const xml = await fetchAnaRainText(apiUrl);
 
           const samples: { ms: number; mm: number }[] = [];
           for (const block of xml.matchAll(/<DadosHidrometereologicos[^>]*>([\s\S]*?)<\/DadosHidrometereologicos>/g)) {
@@ -279,10 +300,16 @@ export async function fetchAnaRain(catalogCities: DBCity[] = []): Promise<Map<st
             if (isNaN(mm) || isNaN(ms) || mm < 0 || ms > nowMs) continue;
             samples.push({ ms, mm });
           }
-          if (samples.length === 0) return;
+          if (samples.length === 0) {
+            failures?.set(city.slug, 'ANA sem leituras de chuva no período');
+            return;
+          }
 
           const lastMs = Math.max(...samples.map((s) => s.ms));
-          if (nowMs - lastMs > ANA_MAX_AGE_MS) return;
+          if (nowMs - lastMs > ANA_MAX_AGE_MS) {
+            failures?.set(city.slug, `última leitura da ANA com mais de ${ANA_MAX_AGE_MS / 3600000}h`);
+            return;
+          }
 
           const windowSum = (hours: number) => {
             const from = nowMs - hours * 60 * 60 * 1000;
@@ -291,7 +318,10 @@ export async function fetchAnaRain(catalogCities: DBCity[] = []): Promise<Map<st
             return { total: Number(inWindow.reduce((a, s) => a + s.mm, 0).toFixed(2)), coverage };
           };
           const w72 = windowSum(72);
-          if (w72.coverage < ANA_MIN_COVERAGE) return;
+          if (w72.coverage < ANA_MIN_COVERAGE) {
+            failures?.set(city.slug, `cobertura insuficiente (${Math.round(w72.coverage * 100)}% das leituras em 72h)`);
+            return;
+          }
           const w7d = windowSum(168);
 
           out.set(city.slug, {
@@ -302,8 +332,9 @@ export async function fetchAnaRain(catalogCities: DBCity[] = []): Promise<Map<st
             rain7d: w7d.coverage >= ANA_MIN_COVERAGE ? w7d.total : null,
             lastMs
           });
-        } catch {
-          // sem dado da ANA: essa estação segue com a estimativa do modelo
+        } catch (err: any) {
+          // sem dado da ANA: essa estação segue sem chuva medida (o motivo é devolvido ao chamador)
+          failures?.set(city.slug, err?.message || String(err));
         }
       })
   );
