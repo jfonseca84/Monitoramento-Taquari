@@ -157,19 +157,21 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
   );
 
   const liveBlock = (
-    <div className="flex items-center justify-between gap-4 px-5 py-4 bg-[#222931] rounded-t-2xl">
-      <div className="flex items-center gap-4">
+    <div className="flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-4 bg-[#222931] rounded-t-2xl">
+      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
         {ruler}
         <div className="leading-tight">
           <div className="text-xs font-extrabold uppercase tracking-wide text-[#B4B9BF] mb-1 notranslate" translate="no">{city.name}</div>
-          <div className="text-[44px] font-extrabold leading-none" aria-live="polite">{nowValid ? formatLevel(now) : '--'} m</div>
-          <div className="text-sm text-[#B4B9BF] mt-1">
-            {syncDate} · Atualizado às {syncTime}
+          <div className="text-[34px] sm:text-[44px] font-extrabold leading-none whitespace-nowrap" aria-live="polite">{nowValid ? formatLevel(now) : '--'} m</div>
+          <div className="text-xs sm:text-sm text-[#B4B9BF] mt-1">
+            <span className="block sm:inline">{syncDate}</span>
+            <span className="hidden sm:inline"> · </span>
+            <span className="block sm:inline">Atualizado às {syncTime}</span>
           </div>
         </div>
       </div>
       <div className="text-right leading-tight shrink-0">
-        <div className="text-lg font-extrabold inline-flex items-center justify-end gap-1.5" style={{ color: trendColor }}>
+        <div className="text-base sm:text-lg font-extrabold inline-flex items-center justify-end gap-1.5" style={{ color: trendColor }}>
           <TrendIcon className="w-4 h-4" strokeWidth={2.6} />
           {trendLabel}
         </div>
@@ -230,17 +232,29 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
     ...marks.map(({ label, event, Icon, tint }) => ({ full: label, label: SHORT_LABEL[label] || label, Icon, tint, value: formatLevel(event.maxLevel), sub: event.monthYear })),
     { full: 'Média das cheias', label: 'Média', Icon: BarChart3, tint: '#FFFFFF', value: formatLevel(average), sub: 'pico médio' }
   ];
+  // Os 4 indicadores ficam sempre em UMA linha, separados por uma linha fina (no celular ocupam a largura toda, em fonte pequena;
+  // a partir de sm ficam ao lado do título)
   const chipsRow = (
-    <div className="relative flex flex-wrap lg:flex-nowrap items-center gap-x-2.5 gap-y-2">
+    <div className="relative w-full sm:w-auto flex items-stretch sm:items-center sm:gap-x-2.5">
       {chipItems.map(({ full, label, Icon, tint, value, sub }, i) => (
-        <div key={full} title={full} className={`leading-tight whitespace-nowrap ${i > 0 ? 'lg:border-l border-[#3A434E] lg:pl-2.5' : ''}`}>
+        <div
+          key={full}
+          title={full}
+          className={`leading-tight whitespace-nowrap min-w-0 flex-1 sm:flex-none px-2 sm:px-0 ${
+            i === 0 ? 'pl-0' : 'border-l border-[#3A434E] sm:pl-2.5'
+          } ${i === chipItems.length - 1 ? 'pr-0' : ''}`}
+        >
           <div className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: tint }}>
-            <Icon className="w-3 h-3 shrink-0" strokeWidth={2} />
+            <Icon className="hidden sm:block w-3 h-3 shrink-0" strokeWidth={2} />
             {label}
           </div>
           <div>
             <span className="text-[15px] font-extrabold tracking-[-0.02em]">{value}</span>
-            <span className="text-[10px] text-[#B4B9BF] ml-1">m · {sub}</span>
+            <span className="text-[10px] text-[#B4B9BF] ml-0.5 sm:ml-1">m</span>
+            <span className="block sm:inline text-[10px] text-[#B4B9BF] sm:ml-1">
+              <span className="hidden sm:inline">· </span>
+              {sub}
+            </span>
           </div>
         </div>
       ))}

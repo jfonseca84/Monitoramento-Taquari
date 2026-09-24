@@ -1100,7 +1100,7 @@ export async function saveCity(cityData: Partial<City>): Promise<City> {
       slug: cityData.slug,
       river: cityData.river,
       basin: cityData.basin,
-      current_level: cityData.current_level,
+      // current_level NÃO é gravado aqui: o nível vem só das leituras do coletor (o valor do formulário pode estar velho)
       camera_url: cityData.camera_url,
       description: cityData.description,
       ordem: cityData.ordem,
@@ -1215,19 +1215,8 @@ export async function saveCity(cityData: Partial<City>): Promise<City> {
         camera_image: getBestImage(data.camera_image, data.camera_image_url, cameraImageUrl)
       } as City;
 
-      if (cityData.current_level !== undefined) {
-        try {
-          await supabase.from('river_levels').insert({
-            city_id: updatedCity.id,
-            level: Number(cityData.current_level),
-            trend: cityData.trend || updatedCity.trend || 'estavel',
-            rate_of_change: Number(cityData.rate_of_change || 0),
-            recorded_at: new Date().toISOString()
-          });
-        } catch (rlErr) {
-          console.warn('Could not insert level into river_levels:', rlErr);
-        }
-      }
+      // Salvar cadastro NÃO gera leitura: gravar aqui o nível do formulário criava uma medição falsa (sem estação nem fonte)
+      // que aparecia como a mais recente da cidade.
     } else if (result?.error) {
       console.warn('Supabase city update failed, falling back to localStore:', result.error);
     }

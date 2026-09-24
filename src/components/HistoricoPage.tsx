@@ -215,7 +215,34 @@ export const HistoricoPage: React.FC<HistoricoPageProps> = ({ selectedCity, sele
 
         {!rangeInvalid && ready && rows.length > 0 && (
           <div className={`${CARD_B} overflow-hidden`}>
-            <div className="overflow-x-auto">
+            {/* Celular: cada leitura em um cartão compacto (a tabela larga fica cortada em telas estreitas) */}
+            <ul className="md:hidden divide-y divide-[#3A434E]">
+              {rows.slice(0, visible).map((r, i) => {
+                const st = statusOf(r.level);
+                return (
+                  <li key={`m-${r.recorded_at}-${i}`} className="px-4 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className={`font-mono text-xs ${MUTED}`}>{fmtDateTime(r.recorded_at)}</span>
+                      <span
+                        className="inline-block px-2 py-0.5 rounded-[4px] text-[11px] font-extrabold"
+                        style={{ backgroundColor: STATUS_COLORS[st], color: STATUS_INK[st] }}
+                      >
+                        {STATUS_LABELS[st]}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex items-end justify-between gap-3">
+                      <span className="text-[22px] leading-none font-extrabold text-[#7CC3E6]">{formatLevel(r.level)} m</span>
+                      <span className={`text-xs text-right leading-tight ${MUTED}`}>
+                        {fmtTrend(r.trend)} · {fmtRate(r.rate_of_change)}
+                        <br />
+                        <span className="notranslate" translate="no">{r.station || selectedCity.name}</span>
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-[13px]">
                 <thead className={`bg-[#222931] text-[11px] uppercase tracking-wide ${MUTED}`}>
                   <tr>
