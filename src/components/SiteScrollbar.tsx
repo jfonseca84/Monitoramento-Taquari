@@ -25,15 +25,18 @@ const readMetrics = (el: HTMLElement | null): Metrics => {
   return { scrollTop: d.scrollTop, scrollHeight: d.scrollHeight, clientHeight: window.innerHeight };
 };
 
-const scrollTarget = (el: HTMLElement | null, top: number) => {
-  if (el) el.scrollTop = top;
-  else window.scrollTo({ top });
+// smooth: rolagem animada (cliques na trilha e roda do mouse); sem animação ao arrastar o polegar
+const scrollTarget = (el: HTMLElement | null, top: number, smooth = false) => {
+  const behavior: ScrollBehavior = smooth ? 'smooth' : 'auto';
+  if (el) el.scrollTo({ top, behavior });
+  else window.scrollTo({ top, behavior });
 };
 
 export const SiteScrollbar: React.FC = () => {
   const trackRef = useRef<HTMLDivElement>(null);
   const [m, setM] = useState<Metrics>({ scrollTop: 0, scrollHeight: 0, clientHeight: 0 });
   const [dragging, setDragging] = useState(false);
+  const [hover, setHover] = useState(false);
   const drag = useRef<{ startY: number; startScroll: number; scroller: HTMLElement | null } | null>(null);
 
   const update = useCallback(() => {
@@ -68,10 +71,11 @@ export const SiteScrollbar: React.FC = () => {
   const thumbH = Math.min(Math.max((m.clientHeight / m.scrollHeight) * trackHeight, MIN_THUMB), trackHeight);
   const travel = Math.max(trackHeight - thumbH, 1);
   const thumbTop = Math.min(Math.max((m.scrollTop / range) * travel, 0), travel);
+  const active = dragging || hover;
 
   const onThumbDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
-    e.stopPropagation();
+    e.stopPropagation(); // não deixa o clique cair na trilha (que rola uma página)
     try {
       (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
     } catch {
@@ -95,21 +99,30 @@ export const SiteScrollbar: React.FC = () => {
       /* já liberado */
     }
   };
-  // Clique na trilha: rola uma "página" na direção do clique
+  // Clique na trilha: rola uma "página" (com animação) na direção do clique
   const onTrackDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const rect = trackRef.current?.getBoundingClientRect();
     if (!rect) return;
     const scroller = getMainScroller();
     const cur = readMetrics(scroller);
     const dir = e.clientY < rect.top + thumbTop ? -1 : 1;
-    scrollTarget(scroller, cur.scrollTop + dir * cur.clientHeight * 0.9);
+    scrollTarget(scroller, cur.scrollTop + dir * cur.clientHeight * 0.9, true);
+  };
+  // Roda do mouse / touchpad sobre a barra também rola a página
+  const onWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    const scroller = getMainScroller();
+    if (scroller) scroller.scrollTop += e.deltaY;
+    else window.scrollBy({ top: e.deltaY });
   };
 
   return (
     <div
       ref={trackRef}
       onPointerDown={onTrackDown}
-      className="hidden lg:block fixed right-0 bottom-0 w-3 z-50"
+      onWheel={onWheel}
+      onPointerEnter={() => setHover(true)}
+      onPointerLeave={() => setHover(false)}
+      className="hidden lg:block fixed right-0 bottom-0 w-4 z-50"
       style={{ top: HEADER_H }}
       role="scrollbar"
       aria-orientation="vertical"
@@ -118,14 +131,20 @@ export const SiteScrollbar: React.FC = () => {
       aria-valuemax={100}
       aria-valuenow={Math.round((m.scrollTop / range) * 100)}
     >
+      {/* Área de agarrar: ocupa a largura toda da trilha (16 px), então é fácil pegar o polegar de 4 px */}
       <div
         onPointerDown={onThumbDown}
         onPointerMove={onThumbMove}
         onPointerUp={onThumbUp}
         onPointerCancel={onThumbUp}
-        className="absolute right-[2px] rounded-full bg-white cursor-pointer touch-none transition-[width,opacity] duration-150"
-        style={{ top: thumbTop, height: thumbH, width: dragging ? 6 : 4, opacity: dragging ? 1 : 0.75 }}
-      />
+        className={`absolute right-0 w-4 touch-none ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        style={{ top: thumbTop, height: thumbH }}
+      >
+        <div
+          className="absolute right-[3px] top-0 bottom-0 rounded-full bg-white pointer-events-none transition-[width,opacity] duration-150"
+          style={{ width: active ? 6 : 4, opacity: active ? 1 : 0.75 }}
+        />
+      </div>
     </div>
   );
 };
