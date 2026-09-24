@@ -132,6 +132,68 @@ export class CacheService {
     return result;
   }
 
+  private static readingsCache = new Map<string, { data: any; cachedAt: number }>();
+  private static READINGS_TTL_MS = 5 * 60 * 1000; // 5 minutos para a aba Histórico
+  private static READINGS_MAX_ROWS = 10000;
+  private static READINGS_MAX_DAYS = 90;
+
+  /**
+   * Leituras brutas de uma cidade entre duas datas (dia inteiro no horário de Brasília), da mais recente
+   * para a mais antiga, para a aba Histórico. Lê em páginas de 1000 linhas (sem o limite do /api/history).
+   * from/to: "AAAA-MM-DD".
+   */
+  public static async getCityReadings(cityId: string, from: string, to: string): Promise<any> {
+    const isDay = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
+    if (!isDay(from) || !isDay(to)) throw new Error('from e to devem estar no formato AAAA-MM-DD');
+    const fromMs = new Date(`${from}T00:00:00-03:00`).getTime();
+    const toMs = new Date(`${to}T23:59:59.999-03:00`).getTime();
+    if (isNaN(fromMs) || isNaN(toMs)) throw new Error('Data inválida');
+    if (fromMs > toMs) throw new Error('A data inicial é maior que a final');
+    if (toMs - fromMs > this.READINGS_MAX_DAYS * 24 * 60 * 60 * 1000) {
+      throw new Error(`O período máximo é de ${this.READINGS_MAX_DAYS} dias`);
+    }
+
+    const key = `${cityId}_${from}_${to}`;
+    const now = Date.now();
+    const cached = this.readingsCache.get(key);
+    if (cached && now - cached.cachedAt < this.READINGS_TTL_MS) return cached.data;
+
+    const client = SupabaseService.getClient();
+    const PAGE = 1000;
+    const rows: any[] = [];
+    let truncated = false;
+    for (let offset = 0; ; offset += PAGE) {
+      if (rows.length >= this.READINGS_MAX_ROWS) { truncated = true; break; }
+      const { data, error } = await client
+        .from('river_levels')
+        .select('recorded_at, level, trend, rate_of_change, station:stations(name)')
+        .eq('city_id', cityId)
+        .gte('recorded_at', new Date(fromMs).toISOString())
+        .lte('recorded_at', new Date(toMs).toISOString())
+        .order('recorded_at', { ascending: false })
+        .range(offset, offset + PAGE - 1);
+      if (error) throw new Error(error.message);
+      if (!data || data.length === 0) break;
+      rows.push(...data);
+      if (data.length < PAGE) break;
+    }
+
+    const result = {
+      from,
+      to,
+      truncated,
+      rows: rows.map((r: any) => ({
+        recorded_at: r.recorded_at,
+        level: Number(r.level),
+        trend: r.trend,
+        rate_of_change: r.rate_of_change,
+        station: r.station?.name ?? null
+      }))
+    };
+    this.readingsCache.set(key, { data: result, cachedAt: now });
+    return result;
+  }
+
   /**
    * Invalida todo o cache em memória
    */
@@ -139,5 +201,6 @@ export class CacheService {
     this.telemetryCache = null;
     this.telemetryCacheTime = 0;
     this.historyCache.clear();
+    this.readingsCache.clear();
   }
 }

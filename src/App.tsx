@@ -8,7 +8,9 @@ import { HOME_FONT, BASIN_DEFAULT_CITY, BASIN_STATIONS, BasinKey, basinOfCity } 
 import { NewsSection } from './components/NewsSection';
 import { Footer } from './components/Footer';
 import { AdminDashboard } from './components/AdminDashboard';
-import { HistoryView } from './components/HistoryView';
+import { HistoricoPage } from './components/HistoricoPage';
+import { FloodDetailPanel } from './components/FloodDetailPanel';
+import { HISTORICAL_FLOODS_BY_CITY } from './data/historicalFloodsData';
 import { DefesaCivilView } from './components/DefesaCivilView';
 import { PrefeiturasView } from './components/PrefeiturasView';
 import { AboutView } from './components/AboutView';
@@ -35,7 +37,7 @@ import { AlertTriangle, X, Radio, Video, ChevronRight } from 'lucide-react';
 export default function App() {
   // Por enquanto só a página Início está ativa (as demais aguardam o novo design)
   const [activeTab, setActiveTab] = useState<string>('inicio');
-  const ENABLED_TABS = ['inicio'];
+  const ENABLED_TABS = ['inicio', 'historico'];
 
   const handleTabChange = (tab: string) => {
     if (!ENABLED_TABS.includes(tab)) return;
@@ -54,6 +56,16 @@ export default function App() {
   };
   const [cities, setCities] = useState<City[]>([]);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
+  // Cheia clicada no gráfico da aba Histórico (aparece no painel da esquerda); volta ao recorde ao trocar de cidade
+  const [selectedFloodId, setSelectedFloodId] = useState<string | null>(null);
+  useEffect(() => setSelectedFloodId(null), [selectedCity?.slug]);
+  const handleSelectFlood = (id: string) => {
+    setSelectedFloodId(id);
+    // Em telas estreitas o painel fica abaixo do gráfico: leva a tela até ele
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      window.setTimeout(() => document.getElementById('painel-enchente')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    }
+  };
   // Bacia exibida no mapa e no menu de estações da página Início
   const [basin, setBasin] = useState<BasinKey>('taquari');
   const handleBasinChange = (next: BasinKey) => {
@@ -233,6 +245,9 @@ export default function App() {
     }
   }, [selectedCity, timeframe]);
 
+  // Início e Histórico usam o mesmo layout: mapa | conteúdo central | lista de estações
+  const isHomeLayout = activeTab === 'inicio' || activeTab === 'historico';
+
   if (!selectedCity) {
     return (
       <div className="min-h-screen bg-[#2B333D] flex items-center justify-center text-white font-[family-name:Figtree,system-ui,sans-serif]">
@@ -264,14 +279,14 @@ export default function App() {
       {/* MAIN CONTENT CANVAS */}
       <main
         className={
-          activeTab === 'inicio'
+          isHomeLayout
             ? 'w-full flex-1 min-w-0'
             : 'max-w-[1600px] w-full mx-auto px-2.5 sm:px-4 lg:px-8 py-4 sm:py-6 flex-1 min-w-0'
         }
       >
 
         {/* VIEW ROUTER */}
-        {activeTab === 'inicio' ? (
+        {isHomeLayout ? (
           /* PÁGINA INÍCIO: mapa da bacia | conteúdo rolável | lista de estações (empilha abaixo de lg) */
           <div className={`${HOME_FONT} flex flex-col lg:grid lg:grid-cols-[minmax(260px,0.62fr)_minmax(0,1.6fr)_150px] lg:h-[calc(100vh-56px)] lg:overflow-hidden`}>
 
@@ -291,6 +306,9 @@ export default function App() {
 
             {/* CENTRO: CONTEÚDO ROLÁVEL */}
             <div className="order-2 lg:order-2 min-w-0 lg:h-full lg:overflow-y-auto no-scrollbar dark:bg-[#2B333D] bg-white">
+              {activeTab === 'historico' ? (
+                <HistoricoPage selectedCity={selectedCity} selectedFloodId={selectedFloodId} onSelectFlood={handleSelectFlood} lastUpdatedText={lastUpdatedText} />
+              ) : (
               <LayoutBehaviorWrapper pageKey="inicio" componentKey="operational_panel">
                 <LayoutBehaviorWrapper pageKey="inicio" componentKey="camera_hero">
                   <EditableComponent id="inicio_camera_hero" name="Câmera ao Vivo Hero" type="card">
@@ -333,12 +351,18 @@ export default function App() {
                   </EditableComponent>
                 </LayoutBehaviorWrapper>
               </LayoutBehaviorWrapper>
+              )}
 
               {/* RODAPÉ no fim da coluna central (no celular ele vai para o fim da página) */}
               <Footer className="hidden lg:block" />
             </div>
 
-            {/* ESQUERDA: MAPA DA BACIA (no celular fica por último) */}
+            {/* ESQUERDA: MAPA DA BACIA na Início; detalhes da enchente selecionada no Histórico (no celular fica por último) */}
+            {activeTab === 'historico' ? (
+              <div className="order-3 lg:order-1 relative z-0 lg:h-full min-h-0 flex flex-col">
+                <FloodDetailPanel city={selectedCity} events={HISTORICAL_FLOODS_BY_CITY[selectedCity.slug] ?? []} selectedId={selectedFloodId} />
+              </div>
+            ) : (
             <LayoutBehaviorWrapper pageKey="inicio" componentKey="map" className="order-3 lg:order-1 relative z-0 isolate h-[440px] lg:h-full">
               <EditableComponent id="inicio_mapa_interativo" name="Mapa Hidrológico Regional" type="map" className="relative z-0 isolate w-full h-full">
                 <BasinMap
@@ -350,6 +374,7 @@ export default function App() {
                 />
               </EditableComponent>
             </LayoutBehaviorWrapper>
+            )}
 
           </div>
         ) : activeTab === 'nivel' || activeTab === 'centro-analises' ? (
@@ -368,14 +393,6 @@ export default function App() {
             <LiveCamerasView
               selectedCity={selectedCity}
               cities={cities}
-              onSelectCity={(city) => setSelectedCity(city)}
-            />
-          </EditableComponent>
-        ) : activeTab === 'historico' ? (
-          <EditableComponent id="history_view_module" name="Módulo Histórico Teleférico e Cotas" type="module">
-            <HistoryView
-              cities={cities}
-              selectedCity={selectedCity}
               onSelectCity={(city) => setSelectedCity(city)}
             />
           </EditableComponent>
@@ -411,7 +428,7 @@ export default function App() {
       </main>
 
       {/* FOOTER (na página Início, no desktop, ele fica dentro da coluna central) */}
-      <Footer className={activeTab === 'inicio' ? 'lg:hidden' : ''} />
+      <Footer className={isHomeLayout ? 'lg:hidden' : ''} />
 
       {/* ADMINISTRATIVE DASHBOARD MODAL */}
       <AdminDashboard

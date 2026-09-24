@@ -572,3 +572,9 @@ export const LAJEADO_HISTORICAL_FLOODS: HistoricalFloodEvent[] = [
     description: 'Cheia moderada registrada no fim de outubro de 2025.'
   }
 ];
+
+// Histórico de cheias por cidade (chave = slug). Só há registros catalogados para Lajeado; as demais cidades
+// aparecem sem dados na aba Histórico até serem incluídas aqui.
+export const HISTORICAL_FLOODS_BY_CITY: Record<string, HistoricalFloodEvent[]> = {
+  lajeado: LAJEADO_HISTORICAL_FLOODS
+};

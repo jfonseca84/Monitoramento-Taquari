@@ -213,6 +213,30 @@ function startHttpServer() {
       return;
     }
 
+    if (pathname === '/api/history/readings') {
+      const cityId = parsedUrl.searchParams.get('cityId') || '';
+      const from = parsedUrl.searchParams.get('from') || '';
+      const to = parsedUrl.searchParams.get('to') || '';
+      if (!cityId) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'cityId é obrigatório' }));
+        return;
+      }
+      CacheService.getCityReadings(cityId, from, to)
+        .then((data) => {
+          res.writeHead(200, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'public, max-age=120'
+          });
+          res.end(JSON.stringify(data));
+        })
+        .catch((err) => {
+          res.writeHead(400, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+          res.end(JSON.stringify({ error: err?.message || String(err) }));
+        });
+      return;
+    }
+
     if (pathname === '/api/history') {
       const cityId = parsedUrl.searchParams.get('cityId') || '';
       const timeframe = parsedUrl.searchParams.get('timeframe') || '24h';

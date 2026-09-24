@@ -28,7 +28,7 @@ const NAV_ITEMS = [
   { id: 'sobre', label: 'SOBRE' },
   { id: 'contato', label: 'CONTATO' }
 ];
-const ENABLED_NAV_ITEMS = ['inicio'];
+const ENABLED_NAV_ITEMS = ['inicio', 'historico'];
 
 // Descrição abaixo do nome do site no cabeçalho (fixa; site_subtitle segue valendo no título da aba, rodapé e Sobre)
 const LOGO_TAGLINE = 'O VALE BEM INFORMADO';
