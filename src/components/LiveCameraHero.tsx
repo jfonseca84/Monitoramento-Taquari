@@ -174,7 +174,7 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity, ci
           </div>
         </div>
 
-        <div className={`text-[13px] ${MUTED}`}>
+        <div className={`text-[15px] ${MUTED}`}>
           {readingLabel}
         </div>
       </section>
