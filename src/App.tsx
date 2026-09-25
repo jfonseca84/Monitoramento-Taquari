@@ -8,7 +8,9 @@ import { StationInfoCard } from './components/StationInfoCard';
 import { HOME_FONT, BASIN_DEFAULT_CITY, BASIN_STATIONS, BasinKey, basinOfCity } from './components/homeTheme';
 import { NewsSection } from './components/NewsSection';
 import { Footer } from './components/Footer';
-import { AdminDashboard } from './components/AdminDashboard';
+import { isAdminPath } from './lib/adminRoute';
+// O painel administrativo só é baixado quando o endereço reservado é aberto
+const AdminDashboard = React.lazy(() => import('./components/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
 import { HistoricoPage } from './components/HistoricoPage';
 import { FloodDetailPanel } from './components/FloodDetailPanel';
 import { FloodDetailModal } from './components/FloodDetailModal';
@@ -132,7 +134,7 @@ export default function App() {
   // Modals & Admin Route Handling
   const [isAdminOpen, setIsAdminOpen] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
-      return window.location.pathname === '/admin' || window.location.hash === '#admin';
+      return isAdminPath(window.location.pathname);
     }
     return false;
   });
@@ -154,7 +156,7 @@ export default function App() {
 
   useEffect(() => {
     const handlePopState = () => {
-      if (window.location.pathname === '/admin' || window.location.hash === '#admin') {
+      if (isAdminPath(window.location.pathname)) {
         setIsAdminOpen(true);
       } else {
         setIsAdminOpen(false);
@@ -164,18 +166,9 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  const openAdmin = () => {
-    setIsAdminOpen(true);
-    if (window.location.pathname !== '/admin') {
-      try {
-        window.history.pushState({}, '', '/admin');
-      } catch (e) {}
-    }
-  };
-
   const closeAdmin = () => {
     setIsAdminOpen(false);
-    if (window.location.pathname === '/admin' || window.location.hash === '#admin') {
+    if (isAdminPath(window.location.pathname)) {
       try {
         window.history.pushState({}, '', '/');
       } catch (e) {}
@@ -278,7 +271,6 @@ export default function App() {
       <Header
         activeTab={activeTab}
         setActiveTab={handleTabChange}
-        onOpenAdmin={openAdmin}
         isSyncing={isSyncing}
         theme={theme}
         onToggleTheme={toggleTheme}
@@ -450,12 +442,16 @@ export default function App() {
       )}
 
       {/* ADMINISTRATIVE DASHBOARD MODAL */}
-      <AdminDashboard
-        isOpen={isAdminOpen}
-        onClose={closeAdmin}
-        cities={cities}
-        onRefreshData={loadData}
-      />
+      {isAdminOpen && (
+        <React.Suspense fallback={null}>
+          <AdminDashboard
+            isOpen={isAdminOpen}
+            onClose={closeAdmin}
+            cities={cities}
+            onRefreshData={loadData}
+          />
+        </React.Suspense>
+      )}
 
       {/* AVISO DE SITE EM DESENVOLVIMENTO */}
       {isDevNoticeOpen && (

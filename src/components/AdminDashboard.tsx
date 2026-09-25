@@ -602,6 +602,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  // Página do painel fora dos buscadores
+  useEffect(() => {
+    if (!isOpen) return;
+    const meta = document.createElement('meta');
+    meta.name = 'robots';
+    meta.content = 'noindex, nofollow';
+    document.head.appendChild(meta);
+    return () => {
+      meta.remove();
+    };
+  }, [isOpen]);
+
   // Session check and Auth Listener
   useEffect(() => {
     const initSession = async () => {
@@ -722,7 +734,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  // Login com o Google (o retorno abre /admin e a verificação de autorização acontece como no login por senha)
+  // Login com o Google (o retorno volta à mesma página e a verificação de autorização acontece como no login por senha)
   const handleGoogleLogin = async () => {
     setAuthError(null);
     setAuthInfo(null);
@@ -732,7 +744,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/admin` }
+      options: { redirectTo: `${window.location.origin}${window.location.pathname}` }
     });
     if (error) setAuthError('Não foi possível entrar com o Google. Tente novamente ou use e-mail e senha.');
   };
@@ -750,7 +762,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setAuthError('O serviço de autenticação não está configurado.');
       return;
     }
-    await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/admin` });
+    await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}${window.location.pathname}` });
     setAuthInfo('Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha.');
   };
 
@@ -761,7 +773,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setRecoveryMode(false);
     setAuthInfo('Senha alterada com sucesso.');
     try {
-      window.history.replaceState({}, '', '/admin');
+      window.history.replaceState({}, '', window.location.pathname);
     } catch (e) {}
   };
 
@@ -1522,63 +1534,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         </div>
 
-        {/* LOGIN FORM IF NOT AUTHENTICATED */}
-        {!isAuthenticated ? (
-          <div className="flex-1 flex items-center justify-center p-6 bg-[#070F22]">
-            <form onSubmit={handleLogin} className="bg-[#0F172A] border border-slate-800 p-8 rounded-3xl max-w-md w-full shadow-2xl">
-              <div className="text-center mb-6">
-                <div className="w-12 h-12 bg-cyan-950/80 text-cyan-400 border border-cyan-800 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
-                  <Lock className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-bold text-white">Autenticação do Operador</h3>
-                <p className="text-xs text-slate-400 mt-1">Acesso via Supabase Auth para Gestores da Defesa Civil.</p>
-              </div>
-
-              {authError && (
-                <div className="mb-4 p-3 bg-red-950/80 border border-red-800 text-red-300 text-xs rounded-xl">
-                  {authError}
-                </div>
-              )}
-
-              <div className="space-y-4 text-xs">
-                <div>
-                  <label className="block text-slate-300 font-medium mb-1">E-mail</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-cyan-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-slate-300 font-medium mb-1">Senha</label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-cyan-500"
-                    required
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isLoggingIn}
-                  className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl shadow-lg transition-all mt-2 cursor-pointer"
-                >
-                  {isLoggingIn ? 'Autenticando...' : 'Entrar no Painel'}
-                </button>
-              </div>
-            </form>
-          </div>
-        ) : (
+        {/* PAINEL (a tela de login é a página AdminLoginPage, exibida antes deste ponto) */}
+        {(
           /* MAIN DASHBOARD LAYOUT */
           <div className="contents">
             
             {/* MENU: agora na coluna da direita */}
-            <aside className="order-2 lg:order-3 w-full lg:h-full bg-[#0B132B] border-t lg:border-t-0 lg:border-l border-slate-800 p-3 flex flex-row lg:flex-col gap-1 overflow-x-auto lg:overflow-x-hidden lg:overflow-y-auto shrink-0">
+            <aside className="order-2 lg:order-3 w-full lg:h-full bg-[#0B132B] border-t lg:border-t-0 lg:border-l border-slate-800 p-3 flex flex-row lg:flex-col gap-1 overflow-x-auto lg:overflow-x-hidden lg:overflow-y-auto no-scrollbar shrink-0">
               {[
                 { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
                 { id: 'centro_analises', label: 'Centro de Análises', icon: BarChart3 },
@@ -1619,7 +1581,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </aside>
 
             {/* CONFIGURAÇÕES: no card central */}
-            <main className="order-3 lg:order-2 min-w-0 lg:h-full bg-[#070F22] p-6 lg:overflow-y-auto">
+            <main data-main-scroll className="order-3 lg:order-2 min-w-0 lg:h-full bg-[#070F22] p-6 lg:overflow-y-auto no-scrollbar">
               
               {/* TAB 1: DASHBOARD */}
               {activeTab === 'dashboard' && (

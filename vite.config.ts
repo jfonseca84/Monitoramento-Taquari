@@ -39,6 +39,7 @@ function geminiApiPlugin(): Plugin {
 
 export default defineConfig(() => {
   return {
+    build: { sourcemap: false }, // sem mapas de código no site publicado
     plugins: [react(), tailwindcss(), geminiApiPlugin()],
     resolve: {
       alias: {

@@ -14,8 +14,11 @@ interface Metrics {
 }
 
 const getMainScroller = (): HTMLElement | null => {
-  const el = document.querySelector<HTMLElement>('[data-main-scroll]');
-  if (el && el.offsetParent !== null && getComputedStyle(el).overflowY !== 'visible' && el.scrollHeight > el.clientHeight + 1) return el;
+  // O painel admin abre por cima da página e vem depois dela no documento: vale o último elemento marcado que estiver rolando
+  const els = Array.from(document.querySelectorAll<HTMLElement>('[data-main-scroll]')).reverse();
+  for (const el of els) {
+    if (el.offsetParent !== null && getComputedStyle(el).overflowY !== 'visible' && el.scrollHeight > el.clientHeight + 1) return el;
+  }
   return null;
 };
 

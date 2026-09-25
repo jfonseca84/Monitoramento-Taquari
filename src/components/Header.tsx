@@ -7,7 +7,7 @@ import { useVisualEditor } from '../context/VisualEditorContext';
 interface HeaderProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  onOpenAdmin: () => void;
+  onOpenAdmin?: () => void;
   isSyncing?: boolean;
   theme?: 'dark' | 'light';
   onToggleTheme?: () => void;
@@ -190,6 +190,7 @@ export const Header: React.FC<HeaderProps> = ({
           {theme === 'light' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4 fill-current" />}
         </button>
 
+        {onOpenAdmin && (
         <button
           onClick={onOpenAdmin}
           title="Entrar"
@@ -198,6 +199,7 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <Lock className="w-4 h-4 text-[#2A7FA8]" />
         </button>
+        )}
       </div>
     </header>
   );
