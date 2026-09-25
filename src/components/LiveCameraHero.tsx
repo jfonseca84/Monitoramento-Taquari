@@ -31,13 +31,13 @@ const HeroPhoto: React.FC<{ src: string }> = ({ src }) => (
   <div className="hero-bg absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden>
     <img src={src} alt="" className="hero-photo-zoom absolute inset-0 w-full h-full object-cover" />
     {/* Camada escura sobre toda a foto */}
-    <div className="absolute inset-0 bg-[#1B222B]/66" />
+    <div className="absolute inset-0 bg-[rgb(var(--hero-ov2)/0.66)]" />
     {/* Degradê: bem escuro onde aparece o nível (esquerda), mais leve à direita, formando o fundo do card */}
-    <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(31,38,46,0.98) 0%, rgba(31,38,46,0.93) 34%, rgba(31,38,46,0.71) 70%, rgba(31,38,46,0.4) 100%)' }} />
+    <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgb(var(--hero-ov)/0.98) 0%, rgb(var(--hero-ov)/0.93) 34%, rgb(var(--hero-ov)/0.71) 70%, rgb(var(--hero-ov)/0.4) 100%)' }} />
     {/* Topo em degradê da cor do cabeçalho: a foto surge de forma suave, sem uma linha marcando a divisão */}
-    <div className="absolute inset-x-0 top-0 h-24" style={{ background: 'linear-gradient(180deg, #2B333D 0%, rgba(43,51,61,0.7) 35%, rgba(43,51,61,0) 100%)' }} />
+    <div className="absolute inset-x-0 top-0 h-24" style={{ background: 'linear-gradient(180deg, rgb(var(--hero-top)) 0%, rgb(var(--hero-top)/0.7) 35%, rgb(var(--hero-top)/0) 100%)' }} />
     {/* Base escurecida para emendar com o bloco de cotas */}
-    <div className="absolute inset-x-0 bottom-0 h-16" style={{ background: 'linear-gradient(180deg, rgba(43,51,61,0) 0%, rgba(43,51,61,0.9) 100%)' }} />
+    <div className="absolute inset-x-0 bottom-0 h-16" style={{ background: 'linear-gradient(180deg, rgb(var(--hero-bot)/0) 0%, rgb(var(--hero-bot)/0.9) 100%)' }} />
   </div>
 );
 
@@ -140,7 +140,7 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity, ci
   const isUp = selectedCity.trend === 'subindo';
   const isDown = selectedCity.trend === 'descendo';
   const trendArrow = isUp ? '▲' : isDown ? '▼' : '■';
-  const trendColor = isUp ? '#F2A65A' : isDown ? '#7DCB9A' : '#FFFFFF';
+  const trendColor = isUp ? 'var(--hero-up)' : isDown ? 'var(--hero-down)' : 'var(--hm-text)';
   const rateStr = isValidNumber(rate) ? `${rate > 0 ? '+' : ''}${formatLevel(rate)} m/h` : '-- m/h';
 
   // Hora da leitura exibida: recorded_at da linha de river_levels com o mesmo nível na tela
@@ -157,7 +157,7 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity, ci
     { label: 'Cota de Atenção', value: thresholds.attention, prefix: '', color: STATUS_COLORS.atencao },
     { label: 'Cota de Alerta', value: thresholds.alert, prefix: '', color: STATUS_COLORS.alerta },
     { label: 'Cota de Inundação', value: thresholds.flood, prefix: '', color: STATUS_COLORS.inundacao },
-    { label: 'Máxima no dia', value: maxToday, prefix: '', color: '#FFFFFF' }
+    { label: 'Máxima no dia', value: maxToday, prefix: '', color: 'var(--hm-text)' }
   ];
 
   return (
@@ -166,11 +166,11 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity, ci
       <CitySearchHeader selectedCity={selectedCity} cities={cities} onSelectCity={onSelectCity} />
 
       {/* b) NÍVEL ATUAL (HERO) */}
-      <section className={`relative overflow-hidden [&>*:not(.hero-bg)]:relative [&>*:not(.hero-bg)]:z-[1] ${SURFACE_A} ${SECTION_PAD} pt-10 sm:pt-14 pb-12 sm:pb-16 [@media(max-height:820px)]:pt-6 [@media(max-height:820px)]:pb-8 flex flex-col gap-[30px] [@media(max-height:820px)]:gap-5`}>
+      <section className={`relative overflow-hidden [&>*:not(.hero-bg)]:relative [&>*:not(.hero-bg)]:z-[1] ${SURFACE_A} ${SECTION_PAD} pt-10 sm:pt-14 pb-12 [@media(min-width:640px)_and_(min-height:821px)]:pb-8 [@media(max-height:820px)]:pt-6 [@media(max-height:820px)]:pb-8 flex flex-col gap-[30px] [@media(max-height:820px)]:gap-5`}>
         {selectedCity.slug === 'lajeado' && <HeroPhoto src={LAJEADO_HERO_PHOTOS[status ?? 'normal'] ?? LAJEADO_HERO_PHOTOS.normal} />}
 
-        <div className="text-lg font-light text-[#D6D9DD]">
-          Nível do <strong className="font-extrabold text-white notranslate" translate="no">{riverName}</strong>
+        <div className="text-lg font-light text-[var(--hm-soft)]">
+          Nível do <strong className="font-extrabold text-[var(--hm-text)] notranslate" translate="no">{riverName}</strong>
         </div>
 
         <div className="flex items-start leading-[0.8]">
@@ -186,20 +186,20 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity, ci
             style={
               status
                 ? { backgroundColor: STATUS_COLORS[status], color: STATUS_INK[status] }
-                : { backgroundColor: '#4A535E', color: '#FFFFFF' }
+                : { backgroundColor: 'var(--hm-line)', color: 'var(--hm-text)' }
             }
           >
             {status ? STATUS_LABELS[status] : '--'}
           </div>
           <div
-            className="flex-1 px-5 py-4 [@media(max-height:820px)]:py-3 text-sm font-extrabold uppercase tracking-[0.03em] rounded-r-[4px] bg-[#3F4955] whitespace-nowrap"
+            className="flex-1 px-5 py-4 [@media(max-height:820px)]:py-3 text-sm font-extrabold uppercase tracking-[0.03em] rounded-r-[4px] bg-[var(--hm-chip)] whitespace-nowrap"
             style={{ color: trendColor }}
           >
             {trendArrow} {rateStr}
           </div>
         </div>
 
-        <div className={`text-[15px] ${MUTED}`}>
+        <div className={`text-[15px] [@media(min-width:640px)_and_(min-height:821px)]:-mt-3 ${MUTED}`}>
           {readingLabel}
         </div>
       </section>
@@ -212,7 +212,7 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity, ci
         <div className="grid grid-cols-5 gap-1.5 sm:gap-4">
           {quotas.map((q) => (
             <div key={q.label} className="flex flex-col gap-0.5 border-l-[3px] pl-1.5 sm:pl-3 min-w-0" style={{ borderLeftColor: q.color }}>
-              <span className="text-[clamp(7px,1.9cqw,12px)] font-semibold text-[#C4C8CD] whitespace-nowrap overflow-hidden text-ellipsis">{q.label}</span>
+              <span className="text-[clamp(7px,1.9cqw,12px)] font-semibold text-[var(--hm-soft)] whitespace-nowrap overflow-hidden text-ellipsis">{q.label}</span>
               <span className="text-[clamp(9px,2.8cqw,20px)] font-extrabold tracking-[-0.02em] whitespace-nowrap overflow-hidden text-ellipsis">
                 {isValidNumber(q.value) ? `${q.prefix}${formatLevel(q.value)} m` : '--'}
               </span>

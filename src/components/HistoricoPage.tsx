@@ -59,8 +59,8 @@ const fmtTrend = (trend?: string | null) => {
   return 'Estável';
 };
 
-const CARD = 'rounded-2xl border border-[#3A434E] bg-[#222931]';
-const CARD_B = 'rounded-2xl border border-[#3A434E] bg-[#2B333D]';
+const CARD = 'rounded-2xl border border-[var(--hm-line)] bg-[var(--hm-b)]';
+const CARD_B = 'rounded-2xl border border-[var(--hm-line)] bg-[var(--hm-a)]';
 const LABEL = `block text-xs font-semibold ${MUTED} mb-1.5`;
 
 export const HistoricoPage: React.FC<HistoricoPageProps> = ({ selectedCity, selectedFloodId = null, onSelectFlood, lastUpdatedText }) => {
@@ -141,7 +141,7 @@ export const HistoricoPage: React.FC<HistoricoPageProps> = ({ selectedCity, sele
   };
 
   const dateInputClass =
-    'w-full bg-[#2B333D] border border-[#3A434E] rounded-lg px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-[#7CC3E6] cursor-pointer';
+    'w-full bg-[var(--hm-a)] border border-[var(--hm-line)] rounded-lg px-3.5 py-2.5 text-sm text-[var(--hm-text)] font-mono focus:outline-none focus:border-[var(--hm-accent)] cursor-pointer';
 
   return (
     <>
@@ -160,7 +160,7 @@ export const HistoricoPage: React.FC<HistoricoPageProps> = ({ selectedCity, sele
           <div>
             <span className={LABEL}>Cidade / Estação</span>
             <div
-              className="w-full bg-[#2B333D] border border-[#3A434E] rounded-lg px-3.5 py-2.5 text-sm font-semibold truncate notranslate"
+              className="w-full bg-[var(--hm-a)] border border-[var(--hm-line)] rounded-lg px-3.5 py-2.5 text-sm font-semibold truncate notranslate"
               translate="no"
               title="Troque a cidade pelo menu à direita"
             >
@@ -216,7 +216,7 @@ export const HistoricoPage: React.FC<HistoricoPageProps> = ({ selectedCity, sele
         {!rangeInvalid && ready && rows.length > 0 && (
           <div className={`${CARD_B} overflow-hidden`}>
             {/* Celular: cada leitura em um cartão compacto (a tabela larga fica cortada em telas estreitas) */}
-            <ul className="md:hidden divide-y divide-[#3A434E]">
+            <ul className="md:hidden divide-y divide-[var(--hm-line)]">
               {rows.slice(0, visible).map((r, i) => {
                 const st = statusOf(r.level);
                 return (
@@ -231,7 +231,7 @@ export const HistoricoPage: React.FC<HistoricoPageProps> = ({ selectedCity, sele
                       </span>
                     </div>
                     <div className="mt-1 flex items-end justify-between gap-3">
-                      <span className="text-[22px] leading-none font-extrabold text-[#7CC3E6]">{formatLevel(r.level)} m</span>
+                      <span className="text-[22px] leading-none font-extrabold text-[var(--hm-accent)]">{formatLevel(r.level)} m</span>
                       <span className={`text-xs text-right leading-tight ${MUTED}`}>
                         {fmtTrend(r.trend)} · {fmtRate(r.rate_of_change)}
                         <br />
@@ -244,7 +244,7 @@ export const HistoricoPage: React.FC<HistoricoPageProps> = ({ selectedCity, sele
             </ul>
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-[13px]">
-                <thead className={`bg-[#222931] text-[11px] uppercase tracking-wide ${MUTED}`}>
+                <thead className={`bg-[var(--hm-b)] text-[11px] uppercase tracking-wide ${MUTED}`}>
                   <tr>
                     <th className="px-4 py-3 font-extrabold whitespace-nowrap">Data e hora (BRT)</th>
                     <th className="px-4 py-3 font-extrabold">Estação</th>
@@ -258,10 +258,10 @@ export const HistoricoPage: React.FC<HistoricoPageProps> = ({ selectedCity, sele
                   {rows.slice(0, visible).map((r, i) => {
                     const st = statusOf(r.level);
                     return (
-                      <tr key={`${r.recorded_at}-${i}`} className="border-t border-[#3A434E] hover:bg-[#222931]">
+                      <tr key={`${r.recorded_at}-${i}`} className="border-t border-[var(--hm-line)] hover:bg-[var(--hm-b)]">
                         <td className="px-4 py-2.5 whitespace-nowrap font-mono text-xs">{fmtDateTime(r.recorded_at)}</td>
                         <td className="px-4 py-2.5 font-semibold notranslate" translate="no">{r.station || selectedCity.name}</td>
-                        <td className="px-4 py-2.5 font-extrabold text-[#7CC3E6] whitespace-nowrap">{formatLevel(r.level)} m</td>
+                        <td className="px-4 py-2.5 font-extrabold text-[var(--hm-accent)] whitespace-nowrap">{formatLevel(r.level)} m</td>
                         <td className="px-4 py-2.5 whitespace-nowrap">{fmtTrend(r.trend)}</td>
                         <td className="px-4 py-2.5 whitespace-nowrap font-mono text-xs">{fmtRate(r.rate_of_change)}</td>
                         <td className="px-4 py-2.5">
@@ -282,7 +282,7 @@ export const HistoricoPage: React.FC<HistoricoPageProps> = ({ selectedCity, sele
               <button
                 type="button"
                 onClick={() => setVisible((v) => v + PAGE_SIZE)}
-                className="w-full py-3 text-xs font-bold text-[#7CC3E6] hover:bg-[#222931] border-t border-[#3A434E] cursor-pointer"
+                className="w-full py-3 text-xs font-bold text-[var(--hm-accent)] hover:bg-[var(--hm-b)] border-t border-[var(--hm-line)] cursor-pointer"
               >
                 Mostrar mais ({rows.length - visible} restantes)
               </button>
@@ -298,7 +298,7 @@ export const HistoricoPage: React.FC<HistoricoPageProps> = ({ selectedCity, sele
         <div className={`${CARD_B} px-5 py-4 flex flex-wrap items-center justify-between gap-4`}>
           <div>
             <h2 className="text-xl font-extrabold flex items-center gap-2.5">
-              <Calendar className="w-5 h-5 text-[#7CC3E6]" />
+              <Calendar className="w-5 h-5 text-[var(--hm-accent)]" />
               Histórico de Leituras Hidrológicas
             </h2>
             <p className={`text-xs ${MUTED} mt-1`}>Consulte e exporte medições oficiais arquivadas no sistema (em Horário de Brasília).</p>

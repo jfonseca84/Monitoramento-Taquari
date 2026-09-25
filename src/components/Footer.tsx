@@ -91,7 +91,7 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
 
   const renderSlot = (sponsor: Sponsor | null, idx: number) => {
     const key = `${sponsor?.id || 'slot'}-${idx}`;
-    const boxClass = 'aspect-square max-w-[150px] mx-auto rounded-[10px] border border-[#3A434E] flex items-center justify-center overflow-hidden';
+    const boxClass = 'aspect-square max-w-[150px] mx-auto rounded-[10px] border border-[var(--hm-line)] flex items-center justify-center overflow-hidden';
 
     if (sponsor && sponsor.logo_url) {
       const content = (
@@ -121,8 +121,8 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
 
     return (
       <div key={key} className="shrink-0 px-1.5" style={{ flexBasis: `${100 / LOGOS_PER_VIEW}%` }}>
-        <div className={`${boxClass} bg-[#2B333D] select-none`}>
-          <span className="text-xs font-bold tracking-[0.08em] uppercase text-[#8A9199]">
+        <div className={`${boxClass} bg-[var(--hm-a)] select-none`}>
+          <span className="text-xs font-bold tracking-[0.08em] uppercase text-[var(--hm-muted)]">
             {sponsor?.name ? sponsor.name.substring(0, 10) : 'LOGO'}
           </span>
         </div>
@@ -130,14 +130,14 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
     );
   };
 
-  const iconBox = 'shrink-0 w-[34px] h-[34px] rounded-lg flex items-center justify-center bg-[#353E49] border border-[#3A434E] text-[#7CC3E6]';
+  const iconBox = 'shrink-0 w-[34px] h-[34px] rounded-lg flex items-center justify-center bg-[var(--hm-chip)] border border-[var(--hm-line)] text-[var(--hm-accent)]';
 
   return (
-    <footer className={`bg-[#222931] text-white pt-11 pb-7 px-5 sm:pr-9 sm:pl-[clamp(24px,5vw,86px)] transition-colors font-[family-name:Figtree,system-ui,sans-serif] ${className}`}>
+    <footer className={`bg-[var(--hm-b)] text-[var(--hm-text)] pt-11 pb-7 px-5 sm:pr-9 sm:pl-[clamp(24px,5vw,86px)] transition-colors font-[family-name:Figtree,system-ui,sans-serif] ${className}`}>
       <div className="max-w-[1600px] mx-auto flex flex-col gap-8 min-w-0">
 
         {/* 1. MENSAGEM DE AGRADECIMENTO E APRESENTAÇÃO INSTITUCIONAL (TOPO DO RODAPÉ) */}
-        <p className="m-0 px-[22px] py-[18px] rounded-[10px] bg-[#2B333D] border border-[#3A434E] text-[13px] leading-[1.6] text-[#E3E6E9] text-center">
+        <p className="m-0 px-[22px] py-[18px] rounded-[10px] bg-[var(--hm-a)] border border-[var(--hm-line)] text-[13px] leading-[1.6] text-[var(--hm-soft)] text-center">
           A plataforma Nível Rio Taquari realiza o acompanhamento dos níveis dos rios da Bacia Taquari-Antas, com foco no Rio Taquari e seus principais afluentes (como os rios das Antas, Guaporé, Forqueta, Fão, Carreiro e Prata), oferecendo informações em tempo real e prevenção para o Vale do Taquari. Este projeto existe graças às empresas que acreditam na informação de qualidade e na proteção da população regional.
         </p>
 
@@ -145,9 +145,9 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
         {slots.length > 0 && (
           <div className="flex flex-col gap-[18px] min-w-0">
             <div className="flex items-center gap-4">
-              <span className="flex-1 h-px bg-[#3A434E]" />
+              <span className="flex-1 h-px bg-[var(--hm-line)]" />
               <h3 className="text-xs font-extrabold tracking-[0.1em] whitespace-nowrap">EMPRESAS PARCEIRAS DO PROJETO</h3>
-              <span className="flex-1 h-px bg-[#3A434E]" />
+              <span className="flex-1 h-px bg-[var(--hm-line)]" />
             </div>
 
             <div
@@ -180,7 +180,7 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
                     className="h-1.5 rounded-[3px] cursor-pointer transition-[width] duration-300"
                     style={{
                       width: i === currentPage ? 22 : 6,
-                      backgroundColor: i === currentPage ? '#7CC3E6' : '#4A535E'
+                      backgroundColor: i === currentPage ? 'var(--hm-accent)' : 'var(--hm-line)'
                     }}
                   />
                 ))}
@@ -190,7 +190,7 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
         )}
 
         {/* 3. INFORMAÇÕES INSTITUCIONAIS (ABAIXO DOS PATROCINADORES) */}
-        <div className="pt-8 border-t border-[#3A434E]">
+        <div className="pt-8 border-t border-[var(--hm-line)]">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
 
             {/* COL 1: SITE OFICIAL DE MONITORAMENTO */}
@@ -205,7 +205,7 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
                 <p className="text-xs leading-snug">
                   {settings.site_subtitle || 'Plataforma de Monitoramento Hidrológico'}
                 </p>
-                <p className="text-xs text-[#8FC7E0] mt-0.5">
+                <p className="text-xs text-[var(--hm-accent)] mt-0.5">
                   {settings.site_description || 'Vale do Taquari - RS'}
                 </p>
               </div>
@@ -220,7 +220,7 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
                 <h4 className="text-[13px] font-extrabold uppercase tracking-[0.06em] mb-1">
                   FONTES OFICIAIS
                 </h4>
-                <p className="text-xs leading-[1.6] text-[#D6D9DD]">
+                <p className="text-xs leading-[1.6] text-[var(--hm-soft)]">
                   Defesa Civil Estadual, Prefeituras Municipais, Rede de Sensores Automáticos do CPRM/ANA | SGB Bacia Rio Taquari | Projeto Guerreiros do Humaitá Nível dos Rios | Nível Guaíba.
                 </p>
               </div>
@@ -238,7 +238,7 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
                 <p className="text-xs font-mono font-semibold">
                   {formattedDate} - {formattedTime}
                 </p>
-                <p className="text-xs text-[#8FC7E0] mt-0.5">
+                <p className="text-xs text-[var(--hm-accent)] mt-0.5">
                   Sistema PWA • Monitoramento Contínuo
                 </p>
               </div>
@@ -247,14 +247,14 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
           </div>
 
           {/* EM CASO DE EMERGÊNCIA LIGUE: faixa de rodapé, centralizada */}
-          <div className="mt-7 pt-6 border-t border-[#3A434E] flex flex-col items-center text-center gap-1.5">
-            <div className="flex items-center gap-2 text-[#8FC7E0]">
+          <div className="mt-7 pt-6 border-t border-[var(--hm-line)] flex flex-col items-center text-center gap-1.5">
+            <div className="flex items-center gap-2 text-[var(--hm-accent)]">
               <PhoneCall className="w-[15px] h-[15px]" />
-              <h4 className="text-[12px] font-extrabold uppercase tracking-[0.06em] text-white">
+              <h4 className="text-[12px] font-extrabold uppercase tracking-[0.06em] text-[var(--hm-text)]">
                 Em caso de emergência ligue
               </h4>
             </div>
-            <p className="text-[13px] font-extrabold text-[#F0A43C] flex items-center gap-1.5 whitespace-nowrap">
+            <p className="text-[13px] font-extrabold text-[var(--hm-warn)] flex items-center gap-1.5 whitespace-nowrap">
               <span>Defesa Civil 199</span>
               <span>•</span>
               <span>Bombeiros 193</span>
@@ -263,14 +263,14 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
         </div>
 
         {/* 4. RODAPÉ INFERIOR */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#B4B9BF] pt-[18px] border-t border-[#3A434E]">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[var(--hm-muted)] pt-[18px] border-t border-[var(--hm-line)]">
           <p>© {year} {settings.site_name || 'Sistema de Monitoramento Hidrológico'}. Todos os direitos reservados.</p>
           <div className="flex items-center gap-3.5">
-            <a href="#sobre" className="text-[#E3E6E9] hover:text-white hover:underline transition-colors">Termos de Uso</a>
+            <a href="#sobre" className="text-[var(--hm-soft)] hover:text-[var(--hm-text)] hover:underline transition-colors">Termos de Uso</a>
             <span>•</span>
-            <a href="#sobre" className="text-[#E3E6E9] hover:text-white hover:underline transition-colors">Privacidade</a>
+            <a href="#sobre" className="text-[var(--hm-soft)] hover:text-[var(--hm-text)] hover:underline transition-colors">Privacidade</a>
             <span>•</span>
-            <a href="#contato" className="text-[#E3E6E9] hover:text-white hover:underline transition-colors">Imprensa</a>
+            <a href="#contato" className="text-[var(--hm-soft)] hover:text-[var(--hm-text)] hover:underline transition-colors">Imprensa</a>
           </div>
         </div>
 

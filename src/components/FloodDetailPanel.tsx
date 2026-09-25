@@ -4,8 +4,9 @@ import { City } from '../types';
 import { HistoricalFloodEvent } from '../data/historicalFloodsData';
 import { STATUS_COLORS, formatLevel, isValidNumber } from './homeTheme';
 
-// Painel claro (fundo branco): textos secundários em cinza mais escuro para manter o contraste
-const MUTED = 'text-[#5C6672]';
+// Painel sempre no inverso do tema (tema escuro = painel branco; tema claro = painel cinza escuro).
+// As cores vêm das variáveis --hm-inv-* (index.css)
+const MUTED = 'text-[var(--hm-inv-muted)]';
 
 interface FloodDetailPanelProps {
   city: City;
@@ -16,7 +17,7 @@ interface FloodDetailPanelProps {
 const num = (v: number, digits = 0) => v.toLocaleString('pt-BR', { minimumFractionDigits: digits, maximumFractionDigits: digits });
 
 const Item: React.FC<{ Icon: LucideIcon; label: string; value: string; sub?: string }> = ({ Icon, label, value, sub }) => (
-  <div className="rounded-xl border border-[#E1E6EA] bg-[#F3F6F8] px-3 py-2.5 min-w-0">
+  <div className="rounded-xl border border-[var(--hm-inv-line)] bg-[var(--hm-inv-card)] px-3 py-2.5 min-w-0">
     <div className={`flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wide ${MUTED}`}>
       <Icon className="w-3 h-3 shrink-0" strokeWidth={2} />
       <span className="truncate">{label}</span>
@@ -31,7 +32,7 @@ export const FloodDetailPanel: React.FC<FloodDetailPanelProps> = ({ city, events
   const shell = (children: React.ReactNode) => (
     <aside
       aria-label="Detalhes da enchente selecionada"
-      className="w-full lg:h-full min-h-0 overflow-y-auto thin-y-scrollbar bg-white text-[#1B222B] px-5 py-6 flex flex-col gap-5"
+      className="w-full lg:h-full min-h-0 overflow-y-auto thin-y-scrollbar bg-[var(--hm-inv-bg)] text-[var(--hm-inv-text)] px-5 py-6 flex flex-col gap-5"
     >
       {children}
     </aside>
@@ -44,9 +45,9 @@ export const FloodDetailPanel: React.FC<FloodDetailPanelProps> = ({ city, events
           <div className="text-sm font-light">Detalhes da</div>
           <div className="text-[22px] font-extrabold leading-tight">Enchente</div>
         </div>
-        <div className={`rounded-xl border border-[#E1E6EA] bg-[#F3F6F8] px-4 py-6 text-sm leading-relaxed ${MUTED}`}>
+        <div className={`rounded-xl border border-[var(--hm-inv-line)] bg-[var(--hm-inv-card)] px-4 py-6 text-sm leading-relaxed ${MUTED}`}>
           Ainda não há histórico de enchentes cadastrado para{' '}
-          <span className="text-[#1B222B] font-semibold notranslate" translate="no">{city.name}</span>. Quando houver, clique em uma barra do gráfico para ver aqui todos os dados de cada cheia.
+          <span className="text-[var(--hm-inv-text)] font-semibold notranslate" translate="no">{city.name}</span>. Quando houver, clique em uma barra do gráfico para ver aqui todos os dados de cada cheia.
         </div>
       </>
     );
@@ -78,19 +79,19 @@ export const FloodDetailPanel: React.FC<FloodDetailPanelProps> = ({ city, events
         <div className="flex flex-wrap items-center gap-1.5 mt-2">
           {event.isRecord && <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-[3px] bg-[#D9483B] text-white">RECORDE</span>}
           {event.is1941Cheia && <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-[3px] bg-[#E9C145] text-[#3A2E05]">CHEIA DE 1941</span>}
-          <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-[3px] bg-[#E8ECEF] text-[#3A434E]">
+          <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-[3px] bg-[var(--hm-inv-chip)] text-[var(--hm-inv-soft)]">
             {rank}ª MAIOR DE {events.length}
           </span>
         </div>
       </div>
 
       {/* Nível máximo */}
-      <div className="rounded-2xl border border-[#E1E6EA] bg-[#F3F6F8] px-4 py-4">
+      <div className="rounded-2xl border border-[var(--hm-inv-line)] bg-[var(--hm-inv-card)] px-4 py-4">
         <div className={`text-[10px] font-extrabold uppercase tracking-wide ${MUTED}`}>Nível máximo (pico)</div>
         <div className="text-[40px] font-extrabold leading-none mt-1">{formatLevel(event.maxLevel)} <span className="text-lg font-light">m</span></div>
         <div className="mt-2 flex flex-col gap-0.5 text-xs">
           {aboveCota !== null && (
-            <span style={{ color: aboveCota >= 0 ? '#C63B2F' : undefined }} className={aboveCota >= 0 ? 'font-semibold' : MUTED}>
+            <span style={{ color: aboveCota >= 0 ? 'var(--hm-inv-red)' : undefined }} className={aboveCota >= 0 ? 'font-semibold' : MUTED}>
               {aboveCota >= 0
                 ? `${formatLevel(aboveCota)} m acima da cota de inundação (${formatLevel(floodCota)} m)`
                 : `${formatLevel(Math.abs(aboveCota))} m abaixo da cota de inundação (${formatLevel(floodCota)} m)`}
@@ -103,7 +104,7 @@ export const FloodDetailPanel: React.FC<FloodDetailPanelProps> = ({ city, events
       {/* Linha do tempo */}
       <div>
         <div className={`text-[10px] font-extrabold uppercase tracking-wide ${MUTED} mb-2`}>Linha do tempo</div>
-        <ol className="relative flex flex-col gap-3 pl-5 border-l border-[#D5DBE0] ml-1.5">
+        <ol className="relative flex flex-col gap-3 pl-5 border-l border-[var(--hm-inv-line)] ml-1.5">
           {timeline.map((t) => (
             <li key={t.label} className="relative">
               <span
@@ -132,12 +133,12 @@ export const FloodDetailPanel: React.FC<FloodDetailPanelProps> = ({ city, events
 
       {/* Comparação com o nível atual */}
       {currentPct !== null && (
-        <div className="rounded-xl border border-[#E1E6EA] bg-[#F3F6F8] px-4 py-3">
+        <div className="rounded-xl border border-[var(--hm-inv-line)] bg-[var(--hm-inv-card)] px-4 py-3">
           <div className="flex items-baseline justify-between gap-2">
             <span className={`text-[10px] font-extrabold uppercase tracking-wide ${MUTED}`}>Nível atual</span>
             <span className="text-sm font-extrabold">{formatLevel(current)} m</span>
           </div>
-          <div className="h-1.5 rounded-full bg-[#DDE3E8] mt-2 overflow-hidden">
+          <div className="h-1.5 rounded-full bg-[var(--hm-inv-track)] mt-2 overflow-hidden">
             <div className="h-full rounded-full bg-[#4F9BD0]" style={{ width: `${currentPct}%` }} />
           </div>
           <div className={`text-[11px] ${MUTED} mt-1.5`}>{num(currentPct)}% do pico desta enchente</div>
@@ -151,11 +152,11 @@ export const FloodDetailPanel: React.FC<FloodDetailPanelProps> = ({ city, events
             <Info className="w-3 h-3" strokeWidth={2} />
             Sobre o evento
           </div>
-          <p className="text-[13px] leading-relaxed text-[#3A434E]">{event.description}</p>
+          <p className="text-[13px] leading-relaxed text-[var(--hm-inv-soft)]">{event.description}</p>
         </div>
       )}
 
-      <div className={`text-[11px] ${MUTED} pt-3 border-t border-[#E1E6EA]`}>
+      <div className={`text-[11px] ${MUTED} pt-3 border-t border-[var(--hm-inv-line)]`}>
         Estação {event.stationName} · {event.riverName}. Dados catalogados no sistema.
       </div>
     </>

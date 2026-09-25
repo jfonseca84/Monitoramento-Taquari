@@ -40,11 +40,11 @@ export const NEWS_CATEGORY_COLORS: Record<string, { bg: string; ink: string }> =
 
 export const HOME_FONT = "font-[family-name:Figtree,system-ui,sans-serif]";
 
-// Superfícies da coluna central (layout novo, somente escuro)
-export const SURFACE_A = 'bg-[#2B333D] text-white';
-export const SURFACE_B = 'bg-[#222931] text-white';
-export const LINE = 'border-[#3A434E]';
-export const MUTED = 'text-[#B4B9BF]';
+// Superfícies da coluna central: seguem o tema (variáveis --hm-* em index.css)
+export const SURFACE_A = 'bg-[var(--hm-a)] text-[var(--hm-text)]';
+export const SURFACE_B = 'bg-[var(--hm-b)] text-[var(--hm-text)]';
+export const LINE = 'border-[var(--hm-line)]';
+export const MUTED = 'text-[var(--hm-muted)]';
 export const SECTION_PAD = 'px-5 sm:pr-9 sm:pl-[clamp(24px,5vw,86px)] lg:pl-[86px]';
 
 // Bacias exibidas na página Início: estações (slugs) de montante para jusante

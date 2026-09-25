@@ -21,7 +21,7 @@ const PLOT_H = 240; // altura da área das barras (px)
 const SLOT_W = 38; // largura reservada para cada cheia (px): barras próximas umas das outras
 const BAR_W = 14; // barras finas
 
-const COLOR_PEAK = '#FFFFFF'; // barras comuns em branco; só 1941 (amarelo) e recorde (vermelho) têm cor
+const COLOR_PEAK = 'var(--hm-bar)'; // barras comuns em branco; só 1941 (amarelo) e recorde (vermelho) têm cor
 const COLOR_1941 = STATUS_COLORS.atencao;
 const COLOR_RECORD = STATUS_COLORS.inundacao;
 
@@ -41,7 +41,7 @@ const niceStep = (range: number) => {
 };
 
 // Mesmo padrão de cartão do card de previsão do tempo
-const CARD = 'rounded-2xl border border-[#3A434E] bg-[#2B333D]';
+const CARD = 'rounded-2xl border border-[var(--hm-line)] bg-[var(--hm-a)]';
 
 export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, events, selectedId = null, onSelect, lastUpdatedText }) => {
   // Da mais antiga para a mais recente (esquerda -> direita)
@@ -67,7 +67,7 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
   const renderHeader = (right?: React.ReactNode) => (
     <div className="relative flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
       <div className="flex items-center gap-3">
-        <div className="self-stretch w-px bg-[#3A434E]" />
+        <div className="self-stretch w-px bg-[var(--hm-line)]" />
         <div className="leading-[1.2]">
           <div className="text-sm font-light">Histórico de</div>
           <div className="text-[20px] sm:text-[22px] font-extrabold leading-[1.15]">Enchentes</div>
@@ -83,10 +83,10 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
   );
 
   const shell = (children: React.ReactNode, right?: React.ReactNode) => (
-    <section className={`${SECTION_PAD} pt-7 sm:pt-8 pb-8 sm:pb-10 flex flex-col gap-4 text-white relative overflow-hidden bg-[#222931]`}>
+    <section className={`${SECTION_PAD} pt-7 sm:pt-8 pb-8 sm:pb-10 flex flex-col gap-4 text-[var(--hm-text)] relative overflow-hidden bg-[var(--hm-b)]`}>
       <svg aria-hidden className="pointer-events-none absolute -top-6 right-0 w-[70%] max-w-[900px] opacity-10" viewBox="0 0 900 160" fill="none">
-        <path d="M0 110C120 40 220 150 360 90S600 10 720 70s130 20 180-30" stroke="#FFFFFF" strokeWidth="2" />
-        <path d="M0 130C130 60 240 165 380 108S620 30 740 90s120 10 160-20" stroke="#FFFFFF" strokeWidth="1.5" />
+        <path d="M0 110C120 40 220 150 360 90S600 10 720 70s130 20 180-30" stroke="currentColor" strokeWidth="2" />
+        <path d="M0 130C130 60 240 165 380 108S620 30 740 90s120 10 160-20" stroke="currentColor" strokeWidth="1.5" />
       </svg>
       {renderHeader(right)}
       {children}
@@ -131,7 +131,7 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
       role="img"
       aria-label={nowValid ? `Régua do nível: ${formatLevel(now)} metros` : 'Régua do nível indisponível'}
     >
-      <div className="relative w-2.5 rounded-full bg-[#3A434E] overflow-hidden">
+      <div className="relative w-2.5 rounded-full bg-[var(--hm-line)] overflow-hidden">
         <div
           className="absolute bottom-0 inset-x-0 rounded-full transition-[height,background-color] duration-700 ease-out"
           style={{ height: `${rulerPct}%`, backgroundColor: rulerColor }}
@@ -141,7 +141,7 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
         {Array.from({ length: 11 }, (_, i) => (
           <span
             key={i}
-            className="absolute left-0 h-px bg-[#8A9199]"
+            className="absolute left-0 h-px bg-[var(--hm-muted)]"
             style={{ bottom: `calc(${i * 10}% - 0.5px)`, width: i % 5 === 0 ? 12 : 6 }}
           />
         ))}
@@ -157,13 +157,13 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
   );
 
   const liveBlock = (
-    <div className="flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-4 bg-[#222931] rounded-t-2xl">
+    <div className="flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-4 bg-[var(--hm-b)] rounded-t-2xl">
       <div className="flex items-center gap-3 sm:gap-4 min-w-0">
         {ruler}
         <div className="leading-tight">
-          <div className="text-xs font-extrabold uppercase tracking-wide text-[#B4B9BF] mb-1 notranslate" translate="no">{city.name}</div>
+          <div className="text-xs font-extrabold uppercase tracking-wide text-[var(--hm-muted)] mb-1 notranslate" translate="no">{city.name}</div>
           <div className="text-[34px] sm:text-[44px] font-extrabold leading-none whitespace-nowrap" aria-live="polite">{nowValid ? formatLevel(now) : '--'} m</div>
-          <div className="text-xs sm:text-sm text-[#B4B9BF] mt-1">
+          <div className="text-xs sm:text-sm text-[var(--hm-muted)] mt-1">
             <span className="block sm:inline">{syncDate}</span>
             <span className="hidden sm:inline"> · </span>
             <span className="block sm:inline">Atualizado às {syncTime}</span>
@@ -176,7 +176,7 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
           {trendLabel}
         </div>
         {trend && isFinite(rate) && city.rate_of_change !== undefined && (
-          <div className="text-xs text-[#B4B9BF] mt-0.5">{rate > 0 ? '+' : ''}{rate.toFixed(2).replace('.', ',')} m/h</div>
+          <div className="text-xs text-[var(--hm-muted)] mt-0.5">{rate > 0 ? '+' : ''}{rate.toFixed(2).replace('.', ',')} m/h</div>
         )}
       </div>
     </div>
@@ -186,10 +186,10 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
     return shell(
       <div className={`relative ${CARD}`}>
         {liveBlock}
-        <div className="h-px bg-[#3A434E]" />
-        <div className={`bg-[#222931] rounded-b-2xl px-5 py-8 text-center text-sm ${MUTED}`}>
+        <div className="h-px bg-[var(--hm-line)]" />
+        <div className={`bg-[var(--hm-b)] rounded-b-2xl px-5 py-8 text-center text-sm ${MUTED}`}>
           Ainda não há histórico de enchentes cadastrado para{' '}
-          <span className="text-white font-semibold notranslate" translate="no">{city.name}</span>. Os registros aparecem aqui assim que forem incluídos.
+          <span className="text-[var(--hm-text)] font-semibold notranslate" translate="no">{city.name}</span>. Os registros aparecem aqui assim que forem incluídos.
         </div>
       </div>
     );
@@ -208,9 +208,9 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
   const ranked = [...sorted].sort((a, b) => b.maxLevel - a.maxLevel);
   const average = levels.reduce((s, v) => s + v, 0) / levels.length;
   const marks = [
-    { label: 'Recorde histórico', event: ranked[0], Icon: Trophy, tint: '#FFFFFF' },
-    { label: '2ª maior marca', event: ranked[1], Icon: Award, tint: '#FFFFFF' },
-    { label: '3ª maior marca', event: ranked[2], Icon: Award, tint: '#FFFFFF' }
+    { label: 'Recorde histórico', event: ranked[0], Icon: Trophy, tint: 'var(--hm-bar)' },
+    { label: '2ª maior marca', event: ranked[1], Icon: Award, tint: 'var(--hm-bar)' },
+    { label: '3ª maior marca', event: ranked[2], Icon: Award, tint: 'var(--hm-bar)' }
   ].filter((m) => m.event);
 
   const showCota = isFinite(floodCota) && floodCota > axisMin && floodCota < axisMax;
@@ -230,7 +230,7 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
   // Indicadores compactos (uma linha), à direita do título
   const chipItems = [
     ...marks.map(({ label, event, Icon, tint }) => ({ full: label, label: SHORT_LABEL[label] || label, Icon, tint, value: formatLevel(event.maxLevel), sub: event.monthYear })),
-    { full: 'Média das cheias', label: 'Média', Icon: BarChart3, tint: '#FFFFFF', value: formatLevel(average), sub: 'pico médio' }
+    { full: 'Média das cheias', label: 'Média', Icon: BarChart3, tint: 'var(--hm-bar)', value: formatLevel(average), sub: 'pico médio' }
   ];
   // Os 4 indicadores ficam sempre em UMA linha, separados por uma linha fina (no celular ocupam a largura toda, em fonte pequena;
   // a partir de sm ficam ao lado do título)
@@ -241,7 +241,7 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
           key={full}
           title={full}
           className={`leading-tight whitespace-nowrap min-w-0 flex-1 sm:flex-none px-2 sm:px-0 ${
-            i === 0 ? 'pl-0' : 'border-l border-[#3A434E] sm:pl-2.5'
+            i === 0 ? 'pl-0' : 'border-l border-[var(--hm-line)] sm:pl-2.5'
           } ${i === chipItems.length - 1 ? 'pr-0' : ''}`}
         >
           <div className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: tint }}>
@@ -250,8 +250,8 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
           </div>
           <div>
             <span className="text-[15px] font-extrabold tracking-[-0.02em]">{value}</span>
-            <span className="text-[10px] text-[#B4B9BF] ml-0.5 sm:ml-1">m</span>
-            <span className="block sm:inline text-[10px] text-[#B4B9BF] sm:ml-1">
+            <span className="text-[10px] text-[var(--hm-muted)] ml-0.5 sm:ml-1">m</span>
+            <span className="block sm:inline text-[10px] text-[var(--hm-muted)] sm:ml-1">
               <span className="hidden sm:inline">· </span>
               {sub}
             </span>
@@ -267,9 +267,9 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
       <div className={`relative ${CARD}`}>
         {liveBlock}
 
-        <div className="h-px bg-[#3A434E]" />
+        <div className="h-px bg-[var(--hm-line)]" />
 
-        <div className="flex bg-[#222931] rounded-b-2xl pr-2 pb-3">
+        <div className="flex bg-[var(--hm-b)] rounded-b-2xl pr-2 pb-3">
           {/* Eixo Y (fixo) */}
           <div className="relative shrink-0 w-11 mt-6" style={{ height: PLOT_H }} aria-hidden="true">
             {ticks.map((v) => (
@@ -281,8 +281,8 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
 
           {/* Área rolável: mais antigas à esquerda, mais recentes à direita */}
           <div
-            className="flex-1 min-w-0 overflow-x-auto pb-3 mt-6 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-[#2B333D] [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#D6D9DD] [&::-webkit-scrollbar-thumb]:rounded-full"
-            style={{ scrollbarColor: '#D6D9DD #2B333D', scrollbarWidth: 'thin' }}
+            className="flex-1 min-w-0 overflow-x-auto pb-3 mt-6 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-[var(--hm-a)] [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[var(--hm-soft)] [&::-webkit-scrollbar-thumb]:rounded-full"
+            style={{ scrollbarColor: 'var(--hm-soft) var(--hm-a)', scrollbarWidth: 'thin' }}
             role="tablist"
             aria-label={`Maiores cheias de ${city.name}, das mais antigas para as mais recentes`}
             onKeyDown={onKey}
@@ -291,7 +291,7 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
             <div className="relative" style={{ width: sorted.length * SLOT_W, minWidth: '100%' }}>
               <div className="relative" style={{ height: PLOT_H }}>
                 {ticks.map((v) => (
-                  <div key={v} className="absolute inset-x-0 border-t border-dashed border-[#3A434E]" style={{ bottom: `${pct(v)}%` }} />
+                  <div key={v} className="absolute inset-x-0 border-t border-dashed border-[var(--hm-line)]" style={{ bottom: `${pct(v)}%` }} />
                 ))}
                 {showCota && (
                   <div className="absolute inset-x-0 border-t border-dashed z-[1]" style={{ bottom: `${pct(floodCota)}%`, borderColor: COLOR_RECORD, opacity: 0.9 }}>
@@ -323,7 +323,7 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
                         aria-label={`${e.monthYear}: ${formatLevel(e.maxLevel)} metros`}
                         title={`${e.monthYear} · ${formatLevel(e.maxLevel)} m — clique para ver os detalhes`}
                         className={`flex flex-col items-center justify-end cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-white/30 rounded-t-md transition-colors ${
-                          on ? 'text-white' : 'text-[#B4B9BF]'
+                          on ? 'text-[var(--hm-text)]' : 'text-[var(--hm-muted)]'
                         }`}
                         style={{ flex: `1 0 ${SLOT_W}px`, height: '100%' }}
                       >
@@ -342,7 +342,7 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
                               backgroundColor: barColor(e),
                               opacity: on ? 1 : 0.7,
                               filter: on ? 'brightness(1.08)' : 'none',
-                              boxShadow: on ? `0 0 6px 0 ${barColor(e)}66` : 'none'
+                              boxShadow: on ? `0 0 6px 0 color-mix(in srgb, ${barColor(e)} 40%, transparent)` : 'none'
                             }}
                           />
                         </span>
@@ -358,7 +358,7 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
                   return (
                     <div
                       key={e.id}
-                      className={`text-center text-[10px] leading-[1.15] pt-2 pb-1 transition-colors ${on ? 'text-white font-extrabold' : `${MUTED} font-semibold`}`}
+                      className={`text-center text-[10px] leading-[1.15] pt-2 pb-1 transition-colors ${on ? 'text-[var(--hm-text)] font-extrabold' : `${MUTED} font-semibold`}`}
                       style={{ flex: `1 0 ${SLOT_W}px` }}
                       title={e.monthYear}
                     >

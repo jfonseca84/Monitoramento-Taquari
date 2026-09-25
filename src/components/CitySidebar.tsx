@@ -38,7 +38,7 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
   const dotColor = (c: City) => (c.status_level ? STATUS_COLORS[c.status_level] : '#8A9199');
 
   return (
-    <aside className={`w-full flex flex-col shrink-0 h-full min-h-0 bg-[#1B222B] text-white ${HOME_FONT}`}>
+    <aside className={`w-full flex flex-col shrink-0 h-full min-h-0 bg-[var(--hm-side)] text-[var(--hm-text)] ${HOME_FONT}`}>
 
       {/* MOBILE MENU TRIGGER (oculto no computador) */}
       <button
@@ -46,18 +46,18 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
         onClick={() => setMobileMenuOpen((open) => !open)}
         aria-expanded={mobileMenuOpen}
         aria-controls="city-menu-panel"
-        className="lg:hidden w-full flex items-center justify-between gap-3 px-4 py-3 border-b border-[#2E3742] cursor-pointer"
+        className="lg:hidden w-full flex items-center justify-between gap-3 px-4 py-3 border-b border-[var(--hm-line-soft)] cursor-pointer"
       >
         <span className="flex items-center gap-2 min-w-0">
           <span className="w-[7px] h-[7px] rounded-full shrink-0" style={{ backgroundColor: dotColor(currentCity) }} />
           <span className="flex flex-col items-start min-w-0">
-            <span className="text-[10px] uppercase tracking-wider font-bold text-[#B4B9BF]">Estações da Bacia</span>
+            <span className="text-[10px] uppercase tracking-wider font-bold text-[var(--hm-muted)]">Estações da Bacia</span>
             <span className="text-sm font-extrabold truncate notranslate" translate="no">{currentCity.name}</span>
           </span>
         </span>
         <span className="flex items-center gap-2 shrink-0">
           <span className="text-[15px] font-light">{formatLevel(currentCity.current_level)} m</span>
-          <ChevronDown className={`w-4 h-4 text-[#B4B9BF] transition-transform ${mobileMenuOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`w-4 h-4 text-[var(--hm-muted)] transition-transform ${mobileMenuOpen ? 'rotate-180' : ''}`} />
         </span>
       </button>
 
@@ -77,20 +77,20 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
         aria-label="Estações da Bacia"
         className={`${
           mobileMenuOpen
-            ? 'flex fixed right-0 top-14 bottom-0 w-[172px] z-40 bg-[#1B222B] shadow-[-10px_0_28px_rgba(0,0,0,0.55)]'
+            ? 'flex fixed right-0 top-14 bottom-0 w-[172px] z-40 bg-[var(--hm-side)] shadow-[-10px_0_28px_rgba(0,0,0,0.55)]'
             : 'hidden'
         } lg:flex lg:static lg:w-auto lg:shadow-none lg:z-auto flex-col flex-1 min-h-0 overflow-y-auto no-scrollbar`}
       >
         {/* Seletor de bacia no celular (no computador ele fica sobre o mapa) */}
         {onChangeBasin && (
-          <div className="lg:hidden flex flex-col gap-0.5 m-2 p-0.5 rounded-[6px] bg-[#2E3742] text-xs font-bold">
+          <div className="lg:hidden flex flex-col gap-0.5 m-2 p-0.5 rounded-[6px] bg-[var(--hm-line-soft)] text-xs font-bold">
             {(Object.keys(BASIN_LABELS) as BasinKey[]).map((key) => (
               <button
                 key={key}
                 type="button"
                 aria-pressed={basin === key}
                 onClick={() => onChangeBasin(key)}
-                className={`py-1.5 rounded-[5px] cursor-pointer ${basin === key ? 'bg-white text-[#2B333D]' : 'text-[#C9CDD2]'}`}
+                className={`py-1.5 rounded-[5px] cursor-pointer ${basin === key ? 'bg-[var(--hm-sel-bg)] text-[var(--hm-sel-text)]' : 'text-[var(--hm-soft)]'}`}
               >
                 {BASIN_LABELS[key]}
               </button>
@@ -98,11 +98,11 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
           </div>
         )}
 
-        <div className="hidden lg:block sticky top-0 z-10 shrink-0 pt-2 pb-1.5 px-2 text-center leading-[1.1] bg-[#1B222B] shadow-[0_1px_0_rgba(255,255,255,0.03)]">
+        <div className="hidden lg:block sticky top-0 z-10 shrink-0 pt-2 pb-1.5 px-2 text-center leading-[1.1] bg-[var(--hm-side)] shadow-[0_1px_0_rgba(255,255,255,0.03)]">
           <div className="text-[11px] font-light whitespace-nowrap">Estações da</div>
           <div className="text-xl font-extrabold whitespace-nowrap">Bacia</div>
           {/* Sombra suave sob o título: no lugar de uma linha, as cidades vão esmaecendo ao passar por baixo */}
-          <div aria-hidden className="pointer-events-none absolute inset-x-0 top-full h-4 bg-gradient-to-b from-[#1B222B] via-[#1B222B]/60 to-transparent" />
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 top-full h-4 bg-gradient-to-b from-[var(--hm-side)] to-transparent" />
         </div>
         {/* Espaço entre a linha do título e a primeira cidade */}
         <div aria-hidden className="hidden lg:block shrink-0 h-3" />
@@ -114,8 +114,8 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
           // Indicador da estação selecionada: branco em nível normal; cor do status
           // (amarelo/laranja/vermelho) só em atenção, alerta ou inundação
           const hasAlert = city.status_level && city.status_level !== 'normal';
-          const selectedBg = hasAlert ? STATUS_COLORS[city.status_level!] : '#FFFFFF';
-          const selectedInk = hasAlert ? STATUS_INK[city.status_level!] : '#2B333D';
+          const selectedBg = hasAlert ? STATUS_COLORS[city.status_level!] : 'var(--hm-sel-bg)';
+          const selectedInk = hasAlert ? STATUS_INK[city.status_level!] : 'var(--hm-sel-text)';
 
           return (
             <button
@@ -128,7 +128,7 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
               aria-current={on ? 'true' : undefined}
               style={on ? { clipPath: SELECTED_CLIP, backgroundColor: selectedBg, color: selectedInk } : undefined}
               className={`shrink-0 h-[50px] pr-3 flex flex-col justify-center items-start gap-px text-left cursor-pointer ${
-                on ? 'pl-6' : 'text-white pl-3.5 hover:bg-[#232B35]'
+                on ? 'pl-6' : 'text-[var(--hm-text)] pl-3.5 hover:bg-[var(--hm-hover)]'
               }`}
             >
               <span className="flex items-center gap-[5px] max-w-full min-w-0">
@@ -136,7 +136,7 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
                 {tag && (
                   <span
                     className={`shrink-0 text-[8px] font-extrabold tracking-[0.04em] px-1 py-px rounded-[3px] ${
-                      on ? 'bg-[#E6E8EB] text-[#58616B]' : 'bg-[#2E3742] text-[#C9CDD2]'
+                      on ? 'bg-[color-mix(in_srgb,var(--hm-sel-text)_14%,transparent)] text-[var(--hm-sel-text)]' : 'bg-[var(--hm-line-soft)] text-[var(--hm-soft)]'
                     }`}
                   >
                     {tag}

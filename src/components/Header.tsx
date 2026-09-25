@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, Menu, Moon, Pencil, X } from 'lucide-react';
+import { Lock, Menu, Moon, Pencil, Sun, X } from 'lucide-react';
 import { ConnectionStatusType } from '../lib/supabase';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { useVisualEditor } from '../context/VisualEditorContext';
@@ -36,7 +36,9 @@ const LOGO_TAGLINE = 'O VALE BEM INFORMADO';
 export const Header: React.FC<HeaderProps> = ({
   activeTab,
   setActiveTab,
-  onOpenAdmin
+  onOpenAdmin,
+  theme = 'dark',
+  onToggleTheme
 }) => {
   const { settings } = useSiteSettings();
   const { isAdmin, isEditMode, setEditMode } = useVisualEditor();
@@ -177,10 +179,16 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         )}
 
-        {/* Tema: o layout novo é somente escuro (ícone mantido como no modelo) */}
-        <span className="w-8 h-8 flex items-center justify-center text-[#1B222B]" title="Tema escuro" aria-hidden="true">
-          <Moon className="w-4 h-4 fill-current" />
-        </span>
+        {/* Tema: o visitante escolhe entre escuro e claro (a escolha fica salva no navegador) */}
+        <button
+          type="button"
+          onClick={onToggleTheme}
+          title={theme === 'light' ? 'Mudar para o tema escuro' : 'Mudar para o tema claro'}
+          aria-label={theme === 'light' ? 'Mudar para o tema escuro' : 'Mudar para o tema claro'}
+          className="w-8 h-8 flex items-center justify-center text-[#1B222B] rounded-md cursor-pointer hover:bg-[#EEF0F3]"
+        >
+          {theme === 'light' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4 fill-current" />}
+        </button>
 
         <button
           onClick={onOpenAdmin}

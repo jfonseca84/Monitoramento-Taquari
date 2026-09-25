@@ -33,7 +33,7 @@ export const FloodDetailModal: React.FC<FloodDetailModalProps> = ({ open, onClos
       <div className="absolute inset-0 bg-black/70" onClick={onClose} aria-hidden="true" />
 
       {/* Janela: o conteúdo rola por dentro; o botão de fechar fica dentro dela, fixo embaixo e centralizado */}
-      <div className="absolute inset-x-3 top-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] rounded-2xl bg-white shadow-2xl overflow-hidden">
+      <div className="absolute inset-x-3 top-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] rounded-2xl bg-[var(--hm-inv-bg)] shadow-2xl overflow-hidden">
         <div className="h-full overflow-y-auto overscroll-contain pb-24">{children}</div>
 
         {/* Sombra em degradê: o texto que passa por trás do botão some suavemente */}

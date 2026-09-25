@@ -104,8 +104,14 @@ export default function App() {
     timeframeRef.current = timeframe;
   }, [timeframe]);
 
-  // Tema: o layout novo é somente escuro
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  // Tema escolhido pelo visitante (escuro é o padrão); a escolha fica salva no navegador
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    try {
+      return localStorage.getItem('theme') === 'light' ? 'light' : 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
 
   useEffect(() => {
     const root = document.documentElement;

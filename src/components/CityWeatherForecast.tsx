@@ -262,7 +262,7 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
     { label: 'Próx. 72h (previsão)', value: rain72hForecast, Icon: Clock }
   ];
 
-  const CARD = 'rounded-2xl border border-[#3A434E] bg-[#2B333D]';
+  const CARD = 'rounded-2xl border border-[var(--hm-line)] bg-[var(--hm-a)]';
 
   // Indicadores complementares para o rio: chuva nas cabeceiras, solo e reação do rio nas cabeceiras
   const soil = soilLevel(reading?.soil_moisture_9_27cm ?? reading?.soil_moisture_3_9cm);
@@ -281,17 +281,17 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
   const Chip: React.FC<{ Icon: LucideIcon; label: string; mobileLabel: string; value: React.ReactNode; sub?: string; mobileSub?: string; title?: string }> = ({ Icon, label, mobileLabel, value, sub, mobileSub, title }) => (
     <div
       title={title}
-      className="min-w-0 flex-1 flex flex-col items-center justify-center text-center px-1 max-sm:not-first:border-l max-sm:border-[#3A434E] sm:flex-row sm:text-left sm:gap-2.5 sm:rounded-xl sm:border sm:border-[#3A434E] sm:bg-[#2B333D] sm:px-3 sm:py-2 sm:min-w-[150px]"
+      className="min-w-0 flex-1 flex flex-col items-center justify-center text-center px-1 max-sm:not-first:border-l max-sm:border-[var(--hm-line)] sm:flex-row sm:text-left sm:gap-2.5 sm:rounded-xl sm:border sm:border-[var(--hm-line)] sm:bg-[var(--hm-a)] sm:px-3 sm:py-2 sm:min-w-[150px]"
     >
-      <Icon className="hidden sm:block w-5 h-5 text-[#7DB6DC] shrink-0" strokeWidth={1.6} />
+      <Icon className="hidden sm:block w-5 h-5 text-[var(--hm-accent)] shrink-0" strokeWidth={1.6} />
       <div className="leading-tight min-w-0">
-        <div className="text-[11px] font-semibold text-white sm:font-normal sm:text-[#B4B9BF]">
+        <div className="text-[11px] font-semibold text-[var(--hm-text)] sm:font-normal sm:text-[var(--hm-muted)]">
           <span className="sm:hidden">{mobileLabel}</span>
           <span className="hidden sm:inline">{label}</span>
         </div>
         <div className="text-[20px] sm:text-base font-extrabold">{value}</div>
         {sub && (
-          <div className="text-[11px] text-[#B4B9BF]">
+          <div className="text-[11px] text-[var(--hm-muted)]">
             <span className="sm:hidden">{mobileSub ?? sub}</span>
             <span className="hidden sm:inline">{sub}</span>
           </div>
@@ -306,7 +306,7 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
         Icon={Mountain}
         label={headRain.measured > 0 ? 'Chuva medida nas cabeceiras (24h)' : 'Chuva estimada nas cabeceiras (24h)'}
         title={headRain.measured > 0 ? `Média de ${headRain.measured} pluviômetro(s) da ANA; previsão: modelo Open-Meteo` : 'Estimativa do modelo Open-Meteo (sem pluviômetro nas cabeceiras)'}
-        value={headRain.r24 !== null ? <>{fmtMm(headRain.r24)}<span className="text-xs font-normal text-[#B4B9BF] ml-1">mm</span></> : '--'}
+        value={headRain.r24 !== null ? <>{fmtMm(headRain.r24)}<span className="text-xs font-normal text-[var(--hm-muted)] ml-1">mm</span></> : '--'}
         mobileLabel="Chuva 24h"
         sub={`72h: ${headRain.r72 !== null ? fmtMm(headRain.r72) : '--'} mm · prev. 72h: ${headRain.f72 !== null ? fmtMm(headRain.f72) : '--'} mm`}
         mobileSub={`72h: ${headRain.r72 !== null ? fmtMm(headRain.r72) : '--'} · prev.: ${headRain.f72 !== null ? fmtMm(headRain.f72) : '--'}`}
@@ -388,7 +388,7 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
 
   return (
     <section
-      className={`${SECTION_PAD} pt-7 sm:pt-8 pb-8 sm:pb-10 flex flex-col gap-4 text-white relative overflow-hidden bg-[#222931]`}
+      className={`${SECTION_PAD} pt-7 sm:pt-8 pb-8 sm:pb-10 flex flex-col gap-4 text-[var(--hm-text)] relative overflow-hidden bg-[var(--hm-b)]`}
     >
       <svg aria-hidden className="pointer-events-none absolute -top-6 right-0 w-[70%] max-w-[900px] opacity-10" viewBox="0 0 900 160" fill="none">
         <path d="M0 110C120 40 220 150 360 90S600 10 720 70s130 20 180-30" stroke="#4F9BD0" strokeWidth="2" />
@@ -397,11 +397,11 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
 
       <div className="relative flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="self-stretch w-px bg-[#3A434E]" />
+          <div className="self-stretch w-px bg-[var(--hm-line)]" />
           <div className="leading-[1.2]">
             <div className="text-sm font-light">Previsão para</div>
             <div className="text-[20px] sm:text-[22px] font-extrabold leading-[1.15]">Os próximos dias</div>
-            <div className="text-xs text-[#B4B9BF] mt-1">Acompanhe a previsão de chuva e o impacto no nível do rio.</div>
+            <div className="text-xs text-[var(--hm-muted)] mt-1">Acompanhe a previsão de chuva e o impacto no nível do rio.</div>
           </div>
         </div>
       </div>
@@ -409,17 +409,17 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
       {/* PREVISÃO DO TEMPO: resumo do dia selecionado + faixa de 5 dias com indicador móvel */}
       {!loading && days.length > 0 && headline && (
         <div className={`relative ${CARD}`}>
-          <div className="flex items-center justify-between gap-4 px-5 py-4 bg-[#222931] rounded-t-2xl">
+          <div className="flex items-center justify-between gap-4 px-5 py-4 bg-[var(--hm-b)] rounded-t-2xl">
             <div className="flex items-center gap-4">
-              <headline.cond.Icon className="w-14 h-14 text-[#B4B9BF] shrink-0" strokeWidth={1.4} />
+              <headline.cond.Icon className="w-14 h-14 text-[var(--hm-muted)] shrink-0" strokeWidth={1.4} />
               <div className="leading-tight">
-                <div className="text-xs font-extrabold uppercase tracking-wide text-[#B4B9BF] mb-1">{selectedCity.name}</div>
+                <div className="text-xs font-extrabold uppercase tracking-wide text-[var(--hm-muted)] mb-1">{selectedCity.name}</div>
                 <div className="text-[44px] font-extrabold leading-none">{fmtTemp(headline.temp)}</div>
-                {headline.sub && <div className="text-sm text-[#B4B9BF] mt-1">{headline.sub}</div>}
+                {headline.sub && <div className="text-sm text-[var(--hm-muted)] mt-1">{headline.sub}</div>}
               </div>
             </div>
             <div className="text-right leading-tight">
-              <div className={`text-sm ${isStale && isTodayActive ? 'font-semibold text-[#E9C145]' : 'text-[#B4B9BF]'}`}>{headline.when}</div>
+              <div className={`text-sm ${isStale && isTodayActive ? 'font-semibold text-[#E9C145]' : 'text-[var(--hm-muted)]'}`}>{headline.when}</div>
               <div className="text-lg font-extrabold">{headline.cond.label}</div>
               {isStale && isTodayActive && lastUpdateLabel && (
                 <div className="text-xs text-[#E9C145] mt-0.5">Última leitura: {lastUpdateLabel}</div>
@@ -427,13 +427,13 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
             </div>
           </div>
 
-          <div className="h-px bg-[#3A434E]" />
+          <div className="h-px bg-[var(--hm-line)]" />
 
           <div
             role="tablist"
             aria-label="Dias da previsão"
             onKeyDown={onTabKey}
-            className="relative grid bg-[#222931] rounded-b-2xl"
+            className="relative grid bg-[var(--hm-b)] rounded-b-2xl"
             style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
           >
             {days.map((d, i) => {
@@ -448,21 +448,21 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
                   tabIndex={active ? 0 : -1}
                   onClick={() => setSelectedIdx(i)}
                   className={`flex flex-col items-center gap-1.5 pt-4 pb-5 first:rounded-bl-2xl last:rounded-br-2xl transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
-                    active ? 'bg-white text-black' : 'hover:bg-[#262E37]'
+                    active ? 'bg-[var(--hm-sel-bg)] text-[var(--hm-sel-text)]' : 'hover:bg-[var(--hm-hover)]'
                   }`}
                 >
                   <span className="text-xs font-extrabold uppercase tracking-wide">{dayName(d, i)}</span>
-                  <span className={`text-xs ${active ? 'text-neutral-600' : 'text-[#B4B9BF]'}`}>{d.dateLabel}</span>
-                  <c.Icon className={`w-9 h-9 my-1 ${active ? 'text-black' : 'text-[#B4B9BF]'}`} strokeWidth={1.4} />
+                  <span className={`text-xs ${active ? 'text-[color-mix(in_srgb,var(--hm-sel-text)_65%,transparent)]' : 'text-[var(--hm-muted)]'}`}>{d.dateLabel}</span>
+                  <c.Icon className={`w-9 h-9 my-1 ${active ? 'text-[var(--hm-sel-text)]' : 'text-[var(--hm-muted)]'}`} strokeWidth={1.4} />
                   <span className="text-sm font-extrabold">
-                    {fmtTemp(d.maxTemp)} <span className={`font-normal ${active ? 'text-neutral-600' : 'text-[#B4B9BF]'}`}>/ {fmtTemp(d.minTemp)}</span>
+                    {fmtTemp(d.maxTemp)} <span className={`font-normal ${active ? 'text-[color-mix(in_srgb,var(--hm-sel-text)_65%,transparent)]' : 'text-[var(--hm-muted)]'}`}>/ {fmtTemp(d.minTemp)}</span>
                   </span>
                 </button>
               );
             })}
             <div
               aria-hidden
-              className="absolute -bottom-[11px] z-10 w-0 h-0 border-x-[11px] border-x-transparent border-t-[11px] border-t-white transition-[left] duration-300 ease-out"
+              className="absolute -bottom-[11px] z-10 w-0 h-0 border-x-[11px] border-x-transparent border-t-[11px] border-t-[var(--hm-sel-bg)] transition-[left] duration-300 ease-out"
               style={{ left: `${((activeIdx + 0.5) / days.length) * 100}%`, transform: 'translateX(-50%)' }}
             />
           </div>
@@ -473,19 +473,19 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
         <div className="relative px-1 py-1">
           {/* Título com a barrinha antes e o texto fora de cartão (padrão do site) */}
           <div className="flex items-stretch gap-2">
-            <span className="w-[3px] shrink-0 rounded-full bg-white" />
+            <span className="w-[3px] shrink-0 rounded-full bg-[var(--hm-text)]" />
             <div className="text-[17px] font-extrabold leading-tight">Leitura da previsão</div>
           </div>
-          <p className="mt-2 text-[13px] leading-relaxed text-[#D5D9DD]">{outlook}</p>
+          <p className="mt-2 text-[13px] leading-relaxed text-[var(--hm-soft)]">{outlook}</p>
         </div>
       )}
 
       {!loading && days.length > 0 && chips.length > 0 && (
         <>
           {/* Celular: linha horizontal separa os blocos; título acima, sem cartão */}
-          <div aria-hidden className="sm:hidden relative h-px bg-[#3A434E]" />
+          <div aria-hidden className="sm:hidden relative h-px bg-[var(--hm-line)]" />
           <div className="sm:hidden relative -mb-2 flex items-center gap-2">
-            <Mountain className="w-4 h-4 text-[#4F9BD0] shrink-0" strokeWidth={1.8} />
+            <Mountain className="w-4 h-4 text-[var(--hm-accent)] shrink-0" strokeWidth={1.8} />
             <span className="text-sm font-semibold">Cabeceiras, solo e rio</span>
           </div>
           <div className="relative flex w-full items-stretch sm:flex-wrap sm:gap-2">{chips}</div>
@@ -493,12 +493,12 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
       )}
 
       {loading ? (
-        <div className="relative flex items-center gap-2 py-6 text-sm text-[#B4B9BF]">
+        <div className="relative flex items-center gap-2 py-6 text-sm text-[var(--hm-muted)]">
           <Loader2 className="w-4 h-4 animate-spin" />
           Carregando previsão...
         </div>
       ) : days.length === 0 && !hasRainData ? (
-        <p className="relative text-sm text-[#B4B9BF]">
+        <p className="relative text-sm text-[var(--hm-muted)]">
           Previsão indisponível no momento para {selectedCity.name}.
         </p>
       ) : (
@@ -507,16 +507,16 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
           {hasRainData && (
             <>
               {/* Celular: o título fica ACIMA do cartão, com linha horizontal separando do bloco anterior */}
-              <div aria-hidden className="sm:hidden relative h-px bg-[#3A434E]" />
+              <div aria-hidden className="sm:hidden relative h-px bg-[var(--hm-line)]" />
               <div className="sm:hidden relative -mb-2 flex items-center gap-2">
-                <Droplet className="w-4 h-4 text-[#4F9BD0] shrink-0" strokeWidth={1.8} />
+                <Droplet className="w-4 h-4 text-[var(--hm-accent)] shrink-0" strokeWidth={1.8} />
                 <span className="text-sm font-semibold">Histórico de chuva acumulada</span>
               </div>
-              <div className="relative flex sm:flex-nowrap items-center sm:gap-x-4 sm:rounded-2xl sm:border sm:border-[#3A434E] sm:bg-[#2B333D] sm:overflow-hidden sm:py-3 sm:px-4">
+              <div className="relative flex sm:flex-nowrap items-center sm:gap-x-4 sm:rounded-2xl sm:border sm:border-[var(--hm-line)] sm:bg-[var(--hm-a)] sm:overflow-hidden sm:py-3 sm:px-4">
                 {/* Telas maiores: título dentro do cartão, ao lado dos valores */}
                 <div className="hidden sm:flex items-center gap-2.5 flex-1 min-w-0">
-                  <span className="w-8 h-8 rounded-full bg-[#343D48] flex items-center justify-center shrink-0">
-                    <Droplet className="w-4 h-4 text-[#4F9BD0]" strokeWidth={1.8} />
+                  <span className="w-8 h-8 rounded-full bg-[var(--hm-chip)] flex items-center justify-center shrink-0">
+                    <Droplet className="w-4 h-4 text-[var(--hm-accent)]" strokeWidth={1.8} />
                   </span>
                   <div className="text-sm font-semibold leading-tight">Histórico de chuva acumulada</div>
                 </div>
@@ -526,19 +526,19 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
                     <div
                       key={label}
                       title={label}
-                      className={`min-w-0 flex-1 flex flex-col items-center justify-center text-center px-1 ${i > 0 ? 'border-l border-[#3A434E]' : ''} sm:flex-none sm:flex-row sm:items-center sm:text-left sm:gap-2 sm:shrink-0 sm:border-l sm:border-[#3A434E] sm:pl-4 sm:pr-0`}
+                      className={`min-w-0 flex-1 flex flex-col items-center justify-center text-center px-1 ${i > 0 ? 'border-l border-[var(--hm-line)]' : ''} sm:flex-none sm:flex-row sm:items-center sm:text-left sm:gap-2 sm:shrink-0 sm:border-l sm:border-[var(--hm-line)] sm:pl-4 sm:pr-0`}
                     >
-                      <span className="hidden sm:flex w-8 h-8 rounded-full bg-[#343D48] items-center justify-center shrink-0">
-                        <Icon className="w-4 h-4 text-[#7DB6DC]" strokeWidth={1.6} />
+                      <span className="hidden sm:flex w-8 h-8 rounded-full bg-[var(--hm-chip)] items-center justify-center shrink-0">
+                        <Icon className="w-4 h-4 text-[var(--hm-accent)]" strokeWidth={1.6} />
                       </span>
                       <div className="leading-tight min-w-0">
-                        <div className="text-[11px] font-semibold text-white sm:text-[13px] sm:font-normal sm:text-[#4F9BD0] whitespace-nowrap">
+                        <div className="text-[11px] font-semibold text-[var(--hm-text)] sm:text-[13px] sm:font-normal sm:text-[var(--hm-accent)] whitespace-nowrap">
                           <span className="sm:hidden">{label.replace(' (previsão)', '')}</span>
                           <span className="hidden sm:inline">{label}</span>
                         </div>
                         <div className="whitespace-nowrap">
                           <span className="text-[20px] sm:text-xl font-extrabold tracking-[-0.02em]">{value !== null ? fmtMm(value) : '--'}</span>
-                          {value !== null && <span className="text-xs text-[#B4B9BF] ml-1">mm</span>}
+                          {value !== null && <span className="text-xs text-[var(--hm-muted)] ml-1">mm</span>}
                         </div>
                       </div>
                     </div>

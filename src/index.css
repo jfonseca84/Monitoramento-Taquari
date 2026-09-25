@@ -281,3 +281,78 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .hero-photo-zoom { animation: none; }
 }
+
+
+/* Tema da página Início: variáveis de cor (escuro é o padrão; html.light troca para claro).
+   .hm-dark força o escuro dentro de um trecho (ex.: o hero, que fica escuro nos dois temas). */
+:root, .hm-dark {
+  --hm-a: #2B333D;
+  --hm-b: #222931;
+  --hm-side: #1B222B;
+  --hm-line: #3A434E;
+  --hm-line-soft: #2E3742;
+  --hm-chip: #343D48;
+  --hm-hover: #232B35;
+  --hm-text: #FFFFFF;
+  --hm-muted: #B4B9BF;
+  --hm-soft: #D5D9DD;
+  --hm-sel-bg: #FFFFFF;
+  --hm-sel-text: #2B333D;
+  --hm-accent: #4F9BD0;
+  --hm-warn: #F0A43C;
+  --hm-bar: #FFFFFF;
+  /* Painel de detalhes da enchente: sempre o inverso do tema (tema escuro = painel branco) */
+  --hm-inv-bg: #FFFFFF;
+  --hm-inv-card: #F3F6F8;
+  --hm-inv-line: #E1E6EA;
+  --hm-inv-text: #1B222B;
+  --hm-inv-muted: #5C6672;
+  --hm-inv-soft: #3A434E;
+  --hm-inv-chip: #E8ECEF;
+  --hm-inv-track: #DDE3E8;
+  --hm-inv-red: #C63B2F;
+}
+html.light:not(.hm-dark) {
+  --hm-a: #FFFFFF;
+  --hm-b: #F4F5F7;
+  --hm-side: #F4F5F7;
+  --hm-line: #E3E6EA;
+  --hm-line-soft: #ECEEF1;
+  --hm-chip: #EEF0F3;
+  --hm-hover: #E9ECEF;
+  --hm-text: #2B333D;
+  --hm-muted: #6B737C;
+  --hm-soft: #4A535E;
+  --hm-sel-bg: #2B333D;
+  --hm-sel-text: #FFFFFF;
+  --hm-accent: #2F6FA3;
+  --hm-warn: #B8690E;
+  --hm-bar: #4A535E;
+  --hm-inv-bg: #2B333D;
+  --hm-inv-card: #222931;
+  --hm-inv-line: #3A434E;
+  --hm-inv-text: #FFFFFF;
+  --hm-inv-muted: #B4B9BF;
+  --hm-inv-soft: #D5D9DD;
+  --hm-inv-chip: #343D48;
+  --hm-inv-track: #3A434E;
+  --hm-inv-red: #E5776B;
+}
+html.light .hm-dark {
+  --hm-a: #2B333D; --hm-b: #222931; --hm-side: #1B222B; --hm-line: #3A434E; --hm-line-soft: #2E3742;
+  --hm-chip: #343D48; --hm-hover: #232B35; --hm-text: #FFFFFF; --hm-muted: #B4B9BF; --hm-soft: #D5D9DD;
+  --hm-sel-bg: #FFFFFF; --hm-sel-text: #2B333D; --hm-accent: #4F9BD0; --hm-warn: #F0A43C; --hm-bar: #FFFFFF;
+  --hm-inv-bg: #FFFFFF; --hm-inv-card: #F3F6F8; --hm-inv-line: #E1E6EA; --hm-inv-text: #1B222B; --hm-inv-muted: #5C6672;
+  --hm-inv-soft: #3A434E; --hm-inv-chip: #E8ECEF; --hm-inv-track: #DDE3E8; --hm-inv-red: #C63B2F;
+}
+/* Força o claro dentro de um trecho (teste: hero claro nos dois temas) */
+.hm-light {
+  --hm-a: #FFFFFF; --hm-b: #F4F5F7; --hm-side: #F4F5F7; --hm-line: #E3E6EA; --hm-line-soft: #ECEEF1;
+  --hm-chip: #EEF0F3; --hm-hover: #E9ECEF; --hm-text: #2B333D; --hm-muted: #6B737C; --hm-soft: #4A535E;
+  --hm-sel-bg: #2B333D; --hm-sel-text: #FFFFFF; --hm-accent: #2F6FA3; --hm-warn: #B8690E; --hm-bar: #4A535E;
+}
+/* Hero: acompanha o tema (triplos RGB para a camada e as bordas da foto) */
+:root { --hero-ov: 31 38 46; --hero-ov2: 27 34 43; --hero-top: 43 51 61; --hero-bot: 43 51 61; }
+html.light { --hero-ov: 255 255 255; --hero-ov2: 255 255 255; --hero-top: 255 255 255; --hero-bot: 244 245 247; }
+:root { --hero-up: #F2A65A; --hero-down: #7DCB9A; }
+html.light { --hero-up: #C9741A; --hero-down: #2E8B57; }
