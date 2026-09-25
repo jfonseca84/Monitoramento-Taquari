@@ -34,6 +34,8 @@ const HeroPhoto: React.FC<{ src: string }> = ({ src }) => (
     <div className="absolute inset-0 bg-[#1B222B]/66" />
     {/* Degradê: bem escuro onde aparece o nível (esquerda), mais leve à direita, formando o fundo do card */}
     <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(31,38,46,0.98) 0%, rgba(31,38,46,0.93) 34%, rgba(31,38,46,0.71) 70%, rgba(31,38,46,0.4) 100%)' }} />
+    {/* Topo em degradê da cor do cabeçalho: a foto surge de forma suave, sem uma linha marcando a divisão */}
+    <div className="absolute inset-x-0 top-0 h-24" style={{ background: 'linear-gradient(180deg, #2B333D 0%, rgba(43,51,61,0.7) 35%, rgba(43,51,61,0) 100%)' }} />
     {/* Base escurecida para emendar com o bloco de cotas */}
     <div className="absolute inset-x-0 bottom-0 h-16" style={{ background: 'linear-gradient(180deg, rgba(43,51,61,0) 0%, rgba(43,51,61,0.9) 100%)' }} />
   </div>

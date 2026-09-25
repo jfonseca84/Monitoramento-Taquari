@@ -98,10 +98,14 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
           </div>
         )}
 
-        <div className="hidden lg:block sticky top-0 z-10 shrink-0 pt-2 pb-1.5 px-2 text-center leading-[1.1] bg-[#1B222B]">
+        <div className="hidden lg:block sticky top-0 z-10 shrink-0 pt-2 pb-1.5 px-2 text-center leading-[1.1] bg-[#1B222B] shadow-[0_1px_0_rgba(255,255,255,0.03)]">
           <div className="text-[11px] font-light whitespace-nowrap">Estações da</div>
           <div className="text-xl font-extrabold whitespace-nowrap">Bacia</div>
+          {/* Sombra suave sob o título: no lugar de uma linha, as cidades vão esmaecendo ao passar por baixo */}
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 top-full h-4 bg-gradient-to-b from-[#1B222B] via-[#1B222B]/60 to-transparent" />
         </div>
+        {/* Espaço entre a linha do título e a primeira cidade */}
+        <div aria-hidden className="hidden lg:block shrink-0 h-3" />
 
         {stations.map((city) => {
           const on = isSelected(city);

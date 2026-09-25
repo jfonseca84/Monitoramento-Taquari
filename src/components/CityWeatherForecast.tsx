@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { City } from '../types';
 import { fetchWeatherForecast, fetchLatestWeatherReading, fetchWeatherBundle, WeatherForecastRow, WeatherReadingRow } from '../lib/supabase';
-import { Loader2, CloudRain, CloudDrizzle, Cloud, CloudSun, CloudMoon, Sun, Moon, Droplet, History, CalendarDays, Clock, Mountain, Sprout, TrendingUp, TrendingDown, Minus, Info, LucideIcon } from 'lucide-react';
+import { Loader2, CloudRain, CloudDrizzle, Cloud, CloudSun, CloudMoon, Sun, Moon, Droplet, History, CalendarDays, Clock, Mountain, Sprout, TrendingUp, TrendingDown, Minus, LucideIcon } from 'lucide-react';
 import { SECTION_PAD, basinOfCity } from './homeTheme';
 
 interface CityWeatherForecastProps {
@@ -470,12 +470,13 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
       )}
 
       {!loading && days.length > 0 && outlook && (
-        <div className="relative rounded-2xl border border-[#3A434E] bg-[#2B333D] px-4 py-3">
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <Info className="w-4 h-4 text-[#4F9BD0] shrink-0" strokeWidth={1.8} />
-            Leitura da previsão
+        <div className="relative px-1 py-1">
+          {/* Título com a barrinha antes e o texto fora de cartão (padrão do site) */}
+          <div className="flex items-stretch gap-2">
+            <span className="w-[3px] shrink-0 rounded-full bg-white" />
+            <div className="text-[17px] font-extrabold leading-tight">Leitura da previsão</div>
           </div>
-          <p className="mt-1.5 text-[13px] leading-relaxed text-[#D5D9DD]">{outlook}</p>
+          <p className="mt-2 text-[13px] leading-relaxed text-[#D5D9DD]">{outlook}</p>
         </div>
       )}
 

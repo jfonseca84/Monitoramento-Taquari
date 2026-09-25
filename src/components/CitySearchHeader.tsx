@@ -89,7 +89,7 @@ export const CitySearchHeader: React.FC<CitySearchHeaderProps> = ({ selectedCity
   const canSearch = !!onSelectCity && searchable.length > 0;
 
   return (
-    <div ref={boxRef} className={`${SURFACE_A} ${LINE} relative border-b flex items-center gap-5 sm:gap-7 py-5 sm:py-[26px] px-5 sm:px-9`}>
+    <div ref={boxRef} className={`${SURFACE_A} relative flex items-center gap-5 sm:gap-7 py-5 sm:py-[26px] px-5 sm:px-9`}>
       <button
         type="button"
         onClick={() => (open ? close() : setOpen(true))}
