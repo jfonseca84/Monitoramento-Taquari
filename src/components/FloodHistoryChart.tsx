@@ -240,11 +240,11 @@ export const FloodHistoryChart: React.FC<FloodHistoryChartProps> = ({ city, even
         <div
           key={full}
           title={full}
-          className={`leading-tight whitespace-nowrap min-w-0 flex-1 sm:flex-none px-2 sm:px-0 ${
-            i === 0 ? 'pl-0' : 'border-l border-[var(--hm-line)] sm:pl-2.5'
-          } ${i === chipItems.length - 1 ? 'pr-0' : ''}`}
+          className={`leading-tight whitespace-nowrap min-w-0 flex-1 sm:flex-none px-1 sm:px-0 text-center sm:text-left ${
+            i === 0 ? 'sm:pl-0' : 'border-l border-[var(--hm-line)] sm:pl-2.5'
+          } ${i === chipItems.length - 1 ? 'sm:pr-0' : ''}`}
         >
-          <div className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: tint }}>
+          <div className="flex items-center justify-center sm:justify-start gap-1 text-[10px] font-semibold" style={{ color: tint }}>
             <Icon className="hidden sm:block w-3 h-3 shrink-0" strokeWidth={2} />
             {label}
           </div>

@@ -84,6 +84,59 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigateToDefesaCivi
 
   const openWhatsApp = () => window.open(WHATSAPP_URL, '_blank', 'noopener,noreferrer');
 
+  // Celular: apresentação centralizada de cada canal no pop-up (ícone em destaque, dado principal e um botão de ação)
+  const renderChannelPopup = (channel: ChannelId | null) => {
+    if (!channel) return null;
+    const cfg = {
+      email: {
+        Icon: Mail, title: 'E-mail de suporte', sub: 'Para site fora do ar e informações inconsistentes',
+        value: EMAIL, note: 'Ou preencha o formulário desta página.',
+        action: { label: 'Enviar e-mail', href: `mailto:${EMAIL}`, bg: '#2F6FA3', Icon: Mail }
+      },
+      whatsapp: {
+        Icon: MessageCircle, title: 'WhatsApp', sub: 'Canal oficial',
+        value: WHATSAPP_LABEL, note: 'Abra a conversa diretamente no WhatsApp.',
+        action: { label: 'Abrir conversa', href: WHATSAPP_URL, bg: '#2E9E5B', Icon: MessageCircle }
+      },
+      instagram: {
+        Icon: Instagram, title: 'Instagram', sub: 'Siga e envie mensagem',
+        value: '@niveltaquari', note: 'Nível Taquari',
+        action: { label: 'Abrir Instagram', href: INSTAGRAM_URL, bg: '#C13584', Icon: Instagram }
+      },
+      ajuda: {
+        Icon: Siren, title: 'Precisa de ajuda urgente?', sub: '',
+        value: '', note: 'Em situações de emergência ou risco iminente, entre em contato imediatamente com a Defesa Civil do seu município.',
+        action: null
+      }
+    }[channel];
+    return (
+      <div className="w-full max-w-[320px] flex flex-col items-center gap-3">
+        <span className="w-[76px] h-[76px] rounded-full bg-[color-mix(in_srgb,var(--hm-text)_10%,transparent)] border border-[color-mix(in_srgb,var(--hm-text)_18%,transparent)] flex items-center justify-center mb-2">
+          <cfg.Icon className="w-9 h-9" />
+        </span>
+        <h2 className="m-0 text-[26px] font-black tracking-[-0.02em] leading-tight">{cfg.title}</h2>
+        {cfg.sub && <p className="m-0 text-[14px] text-[var(--hm-muted)] leading-snug">{cfg.sub}</p>}
+        {cfg.value && <p className="m-0 mt-3 text-[20px] font-mono font-bold break-all">{cfg.value}</p>}
+        <p className="m-0 text-[15px] leading-relaxed text-[var(--hm-soft)]">{cfg.note}</p>
+        {cfg.action ? (
+          <a
+            href={cfg.action.href}
+            target={cfg.action.href.startsWith('http') ? '_blank' : undefined}
+            rel="noopener noreferrer"
+            style={{ backgroundColor: cfg.action.bg }}
+            className="mt-4 w-full inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-[10px] text-white text-[15px] font-bold"
+          >
+            <cfg.action.Icon className="w-5 h-5" /> {cfg.action.label}
+          </a>
+        ) : (
+          <button type="button" onClick={onNavigateToDefesaCivil} className="mt-4 w-full inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-[10px] bg-[#C63B2F] text-white text-[15px] font-bold cursor-pointer">
+            <Phone className="w-5 h-5" /> Defesa Civil
+          </button>
+        )}
+      </div>
+    );
+  };
+
   // Texto que aparece no painel da esquerda: o canal clicado, ou as informações importantes
   const renderLeft = (channel: ChannelId | null) => {
     switch (channel) {
@@ -148,7 +201,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigateToDefesaCivi
   return (
     <div className={`${HOME_FONT} flex flex-col lg:grid lg:grid-cols-[minmax(260px,0.62fr)_minmax(0,1.6fr)_150px] lg:h-[calc(100vh-56px)] lg:overflow-hidden text-[var(--hm-text)]`}>
       {/* DIREITA: CANAIS DE SUPORTE (no celular vira uma fileira no topo) */}
-      <aside className="order-1 lg:order-3 lg:h-full min-h-0 flex flex-col bg-[var(--hm-side)]">
+      <aside className="order-1 lg:order-3 lg:h-full min-h-0 flex flex-col bg-[var(--hm-side)] max-lg:fixed max-lg:bottom-0 max-lg:inset-x-0 max-lg:z-40 max-lg:pb-[env(safe-area-inset-bottom)] max-lg:shadow-[0_-10px_28px_rgba(0,0,0,0.4)] max-lg:border-t max-lg:border-[var(--hm-line)]">
         <div className="hidden lg:block sticky top-0 z-10 shrink-0 pt-3.5 pb-0 px-2 text-center leading-[1.1] bg-[var(--hm-side)] shadow-[0_1px_0_rgba(255,255,255,0.03)]">
           <div className="text-[11px] font-light whitespace-nowrap">Canais de</div>
           <div className="text-xl font-extrabold whitespace-nowrap">Suporte</div>
@@ -289,8 +342,8 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigateToDefesaCivi
         <div className="absolute inset-x-0 bottom-2 text-center text-[10px] text-[var(--map-faint)] pointer-events-none">© {new Date().getFullYear()} Nível Taquari. Todos os direitos reservados.</div>
       </section>
 
-      <InfoPopup open={channel !== null} onClose={() => setChannel(null)} label="Detalhes do canal">
-        {renderLeft(channel)}
+      <InfoPopup open={channel !== null} onClose={() => setChannel(null)} label="Detalhes do canal" center>
+        {renderChannelPopup(channel)}
       </InfoPopup>
     </div>
   );

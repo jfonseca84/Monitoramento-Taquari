@@ -220,7 +220,7 @@ export const AboutPage: React.FC = () => {
   return (
     <div className={`hm-light ${HOME_FONT} flex flex-col lg:grid lg:grid-cols-[minmax(260px,0.62fr)_minmax(0,1.6fr)_150px] lg:h-[calc(100vh-56px)] lg:overflow-hidden text-[var(--hm-text)]`}>
       {/* DIREITA: DESTAQUES (no celular vira uma fileira no topo) */}
-      <aside className="order-1 lg:order-3 lg:h-full min-h-0 flex flex-col bg-[var(--hm-side)]">
+      <aside className="order-1 lg:order-3 lg:h-full min-h-0 flex flex-col bg-[var(--hm-side)] max-lg:fixed max-lg:bottom-0 max-lg:inset-x-0 max-lg:z-40 max-lg:pb-[env(safe-area-inset-bottom)] max-lg:shadow-[0_-10px_28px_rgba(0,0,0,0.4)] max-lg:border-t max-lg:border-[var(--hm-line)]">
         <div className="hidden lg:block sticky top-0 z-10 shrink-0 pt-3.5 pb-0 px-2 text-center leading-[1.1] bg-[var(--hm-side)] shadow-[0_1px_0_rgba(255,255,255,0.03)]">
           <div className="text-[11px] font-light whitespace-nowrap">Destaques do</div>
           <div className="text-xl font-extrabold whitespace-nowrap">Portal</div>

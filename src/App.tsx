@@ -436,6 +436,8 @@ export default function App() {
 
       {/* FOOTER (na página Início, no desktop, ele fica dentro da coluna central) */}
       <Footer className={isHomeLayout ? 'lg:hidden' : ''} />
+      {/* Celular: espaço para a barra fixa de ícones das abas Sobre e Contato não cobrir o fim da página */}
+      {(activeTab === 'sobre' || activeTab === 'contato') && <div aria-hidden className="lg:hidden h-[92px]" />}
 
       {/* BARRA DE ROLAGEM fina e branca na borda direita (telas largas) */}
       <SiteScrollbar />

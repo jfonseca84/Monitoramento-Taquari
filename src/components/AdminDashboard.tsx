@@ -1,3 +1,4 @@
+import { AdminLoginPage } from './AdminLoginPage';
 import React, { useState, useEffect, useRef } from 'react';
 import { City, NewsItem, NewsSource, AlertItem, Sponsor, AdminUser, AlertSubscriber, AlertNotification, AlertStats, AlertHistoryItem, LevelStatus, CityCamera } from '../types';
 import { getCityThresholds } from '../data/cityThresholds';
@@ -130,10 +131,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   cities: initialCities,
   onRefreshData
 }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  // Somente no computador de desenvolvimento (import.meta.env.DEV, removido do site publicado) e sem as chaves de autenticação:
+  // abre o painel sem login para ver o layout. Com as chaves configuradas ou no site publicado, o login é sempre exigido.
+  const DEV_PREVIEW = import.meta.env.DEV && !isSupabaseConfigured;
+  const [isAuthenticated, setIsAuthenticated] = useState(DEV_PREVIEW);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [authInfo, setAuthInfo] = useState<string | null>(null);
+  // Aberto pelo link de redefinição de senha recebido por e-mail
+  const [recoveryMode, setRecoveryMode] = useState<boolean>(
+    () => typeof window !== 'undefined' && /type=recovery/.test(window.location.hash)
+  );
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const { isEditMode, setEditMode, setIsAdmin, exportLayoutJSON, importLayoutJSON, resetToDefaultLayout, configs } = useVisualEditor();
@@ -596,6 +605,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Session check and Auth Listener
   useEffect(() => {
     const initSession = async () => {
+      if (DEV_PREVIEW) return;
       if (isSupabaseConfigured && supabase) {
         try {
           const { data: { session }, error } = await supabase.auth.getSession();
@@ -633,6 +643,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     if (isSupabaseConfigured && supabase) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'PASSWORD_RECOVERY') setRecoveryMode(true);
         if (event === 'SIGNED_OUT' || !session?.user) {
           setIsAuthenticated(false);
           setCurrentAdminUser(null);
@@ -672,7 +683,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setIsLoggingIn(true);
 
     if (!isSupabaseConfigured || !supabase) {
-      setAuthError('O serviço de autenticação do Supabase não está configurado.');
+      setAuthError('O serviço de autenticação não está configurado.');
       setIsLoggingIn(false);
       return;
     }
@@ -709,6 +720,49 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     } finally {
       setIsLoggingIn(false);
     }
+  };
+
+  // Login com o Google (o retorno abre /admin e a verificação de autorização acontece como no login por senha)
+  const handleGoogleLogin = async () => {
+    setAuthError(null);
+    setAuthInfo(null);
+    if (!isSupabaseConfigured || !supabase) {
+      setAuthError('O serviço de autenticação não está configurado.');
+      return;
+    }
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/admin` }
+    });
+    if (error) setAuthError('Não foi possível entrar com o Google. Tente novamente ou use e-mail e senha.');
+  };
+
+  // "Esqueci a senha": envia o link de redefinição sem revelar se o e-mail existe
+  const handleForgotPassword = async () => {
+    setAuthError(null);
+    setAuthInfo(null);
+    if (!email.trim()) {
+      // sem e-mail digitado: leva o cursor ao campo, sem mensagem de erro
+      document.getElementById('login-email')?.focus();
+      return;
+    }
+    if (!isSupabaseConfigured || !supabase) {
+      setAuthError('O serviço de autenticação não está configurado.');
+      return;
+    }
+    await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/admin` });
+    setAuthInfo('Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha.');
+  };
+
+  const handleSetNewPassword = async (newPassword: string) => {
+    if (!isSupabaseConfigured || !supabase) throw new Error('O serviço de autenticação não está configurado.');
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+    setRecoveryMode(false);
+    setAuthInfo('Senha alterada com sucesso.');
+    try {
+      window.history.replaceState({}, '', '/admin');
+    } catch (e) {}
   };
 
   const handleLogout = async () => {
@@ -1386,12 +1440,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  // Sem login: a tela de entrada ocupa o centro do site, no formato da página Início
+  if (!isAuthenticated || recoveryMode) {
+    return (
+      <AdminLoginPage
+        email={email}
+        setEmail={setEmail}
+        password={password}
+        setPassword={setPassword}
+        onSubmit={handleLogin}
+        isLoggingIn={isLoggingIn}
+        error={authError}
+        info={authInfo}
+        onGoogle={handleGoogleLogin}
+        onForgot={handleForgotPassword}
+        recoveryMode={recoveryMode}
+        onSetNewPassword={handleSetNewPassword}
+        onClose={onClose}
+      />
+    );
+  }
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 lg:p-6 animate-fade-in">
-      <div className="bg-[#0F172A] border border-slate-800 rounded-3xl w-full max-w-6xl h-[90vh] flex flex-col overflow-hidden shadow-2xl relative">
+    <div className="admin-theme hm-dark fixed inset-x-0 top-14 bottom-0 z-30 bg-[#070F22] animate-fade-in">
+      <div className="h-full flex flex-col lg:grid lg:grid-cols-[minmax(240px,0.5fr)_minmax(0,1.6fr)_240px] overflow-y-auto lg:overflow-hidden relative">
         
         {/* HEADER BAR */}
-        <div className="flex items-center justify-between px-6 py-4 bg-[#0B132B] border-b border-slate-800">
+        <div className="order-1 lg:h-full flex flex-col items-stretch gap-6 px-6 py-6 bg-[#0B132B] lg:overflow-y-auto">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-cyan-600/30 border border-cyan-500/50 flex items-center justify-center text-cyan-400">
               <Lock className="w-4 h-4" />
@@ -1401,14 +1476,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 ÁREA ADMINISTRATIVA
               </h2>
               <p className="text-[11px] text-slate-400">
-                Centro de Operações e Gestão de Telemetria (Supabase Integrated)
+                Centro de Operações e Gestão de Telemetria
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col items-stretch gap-3">
             {isAuthenticated && (
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs">
                 <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 <span className="font-medium text-slate-200">{currentAdminUser?.nome || 'Operador'}</span>
                 <span className="px-2 py-0.5 rounded-md bg-cyan-950 text-cyan-400 font-bold text-[10px] uppercase border border-cyan-800">
@@ -1500,10 +1575,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         ) : (
           /* MAIN DASHBOARD LAYOUT */
-          <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+          <div className="contents">
             
-            {/* SIDEBAR MENU */}
-            <aside className="w-full md:w-64 bg-[#0B132B] border-r border-slate-800 p-3 flex flex-row md:flex-col gap-1 overflow-x-auto shrink-0">
+            {/* MENU: agora na coluna da direita */}
+            <aside className="order-2 lg:order-3 w-full lg:h-full bg-[#0B132B] border-t lg:border-t-0 lg:border-l border-slate-800 p-3 flex flex-row lg:flex-col gap-1 overflow-x-auto lg:overflow-x-hidden lg:overflow-y-auto shrink-0">
               {[
                 { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
                 { id: 'centro_analises', label: 'Centro de Análises', icon: BarChart3 },
@@ -1543,8 +1618,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               })}
             </aside>
 
-            {/* MAIN PANEL */}
-            <main className="flex-1 bg-[#070F22] p-6 overflow-y-auto">
+            {/* CONFIGURAÇÕES: no card central */}
+            <main className="order-3 lg:order-2 min-w-0 lg:h-full bg-[#070F22] p-6 lg:overflow-y-auto">
               
               {/* TAB 1: DASHBOARD */}
               {activeTab === 'dashboard' && (

@@ -379,3 +379,34 @@ html.light {
   --map-edge: #4F8DB8;
   color: var(--hm-text);
 }
+
+/* Painel administrativo: reaplica as cores e o desenho do site sobre as classes escuras antigas do painel.
+   Sempre no escuro (a classe hm-dark trava as variáveis). Troca a escala de cinzas e os azuis-piscina pelo azul/cinza do site,
+   deixa os cantos menos arredondados e tira as sombras pesadas. */
+.admin-theme {
+  --color-slate-950: #1B222B; --color-slate-900: #222931; --color-slate-800: #3A434E; --color-slate-700: #4A535E;
+  --color-slate-600: #6B737C; --color-slate-500: #8A9199; --color-slate-400: #B4B9BF; --color-slate-300: #D5D9DD;
+  --color-slate-200: #E6E9EC; --color-slate-100: #F4F5F7; --color-slate-50: #FFFFFF;
+  --color-cyan-950: #1B2D3F; --color-cyan-900: #1F3A52; --color-cyan-800: #285A80; --color-cyan-700: #2F6FA3;
+  --color-cyan-600: #2F6FA3; --color-cyan-500: #4F9BD0; --color-cyan-400: #6FB1DD; --color-cyan-300: #9BCBEA; --color-cyan-200: #C4E0F3;
+  --color-sky-400: #6FB1DD; --color-blue-400: #6FB1DD; --color-blue-300: #9BCBEA;
+  --color-blue-950: #1B2D3F; --color-blue-900: #1F3A52; --color-blue-800: #285A80;
+  --radius-lg: 6px; --radius-xl: 8px; --radius-2xl: 10px; --radius-3xl: 10px;
+  font-family: Figtree, system-ui, sans-serif;
+  color: var(--hm-text);
+}
+.admin-theme [class*="bg-[#0F172A]"] { background-color: var(--hm-a); }
+.admin-theme [class*="bg-[#050A18]"], .admin-theme [class*="bg-[#0A1326]"], .admin-theme [class*="bg-[#0A1633]"], .admin-theme [class*="bg-[#0B132B]"] { background-color: var(--hm-side); }
+.admin-theme [class*="bg-[#070F22]"] { background-color: var(--hm-b); }
+.admin-theme [class*="border-[#1A315F]"] { border-color: var(--hm-line); }
+.admin-theme aside button[class*="bg-[#1E293B]"] { background-color: var(--hm-sel-bg); color: var(--hm-sel-text); border-color: transparent; box-shadow: none; }
+.admin-theme [class*="shadow-2xl"], .admin-theme [class*="shadow-xl"], .admin-theme [class*="shadow-lg"], .admin-theme [class*="shadow-md"] { box-shadow: none; }
+/* Painel administrativo: nada passa da largura do card central. Tabelas mantêm a largura natural das colunas e rolam na horizontal
+   quando não cabem; só endereços longos (fonte monoespaçada) quebram em qualquer ponto. */
+.admin-theme main { min-width: 0; overflow-x: hidden; }
+.admin-theme main div:has(> table) { overflow-x: auto; max-width: 100%; scrollbar-width: thin; scrollbar-color: var(--hm-soft) var(--hm-side); }
+.admin-theme main table { width: 100%; min-width: 0; }
+.admin-theme main table th, .admin-theme main table td { padding-left: 6px; padding-right: 6px; font-size: 11.5px; }
+.admin-theme main table th, .admin-theme main table td { overflow-wrap: break-word; }
+.admin-theme main table td.font-mono, .admin-theme main table td [class*="font-mono"] { word-break: break-all; }
+.admin-theme main pre, .admin-theme main code { white-space: pre-wrap; overflow-wrap: anywhere; }
