@@ -18,6 +18,27 @@ import {
   isValidNumber
 } from './homeTheme';
 
+// Foto de fundo do nível (somente Lajeado; uma foto para cada situação do rio): aproxima devagar (zoom) e vai e volta; parada com "reduzir movimento".
+// Foto de fundo do hero de Lajeado por situação do rio
+const LAJEADO_HERO_PHOTOS: Record<string, string> = {
+  normal: '/images/hero-lajeado-normal.jpg',
+  atencao: '/images/hero-lajeado-alerta.jpg',
+  alerta: '/images/hero-lajeado-alerta.jpg',
+  inundacao: '/images/hero-lajeado-inundacao.jpg'
+};
+
+const HeroPhoto: React.FC<{ src: string }> = ({ src }) => (
+  <div className="hero-bg absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden>
+    <img src={src} alt="" className="hero-photo-zoom absolute inset-0 w-full h-full object-cover" />
+    {/* Camada escura sobre toda a foto */}
+    <div className="absolute inset-0 bg-[#1B222B]/66" />
+    {/* Degradê: bem escuro onde aparece o nível (esquerda), mais leve à direita, formando o fundo do card */}
+    <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(31,38,46,0.98) 0%, rgba(31,38,46,0.93) 34%, rgba(31,38,46,0.71) 70%, rgba(31,38,46,0.4) 100%)' }} />
+    {/* Base escurecida para emendar com o bloco de cotas */}
+    <div className="absolute inset-x-0 bottom-0 h-16" style={{ background: 'linear-gradient(180deg, rgba(43,51,61,0) 0%, rgba(43,51,61,0.9) 100%)' }} />
+  </div>
+);
+
 interface LiveCameraHeroProps {
   selectedCity: City;
   onOpenCameraModal: () => void;
@@ -143,7 +164,9 @@ export const LiveCameraHero: React.FC<LiveCameraHeroProps> = ({ selectedCity, ci
       <CitySearchHeader selectedCity={selectedCity} cities={cities} onSelectCity={onSelectCity} />
 
       {/* b) NÍVEL ATUAL (HERO) */}
-      <section className={`${SURFACE_A} ${SECTION_PAD} pt-10 sm:pt-14 pb-12 sm:pb-16 [@media(max-height:820px)]:pt-6 [@media(max-height:820px)]:pb-8 flex flex-col gap-[30px] [@media(max-height:820px)]:gap-5`}>
+      <section className={`relative overflow-hidden [&>*:not(.hero-bg)]:relative [&>*:not(.hero-bg)]:z-[1] ${SURFACE_A} ${SECTION_PAD} pt-10 sm:pt-14 pb-12 sm:pb-16 [@media(max-height:820px)]:pt-6 [@media(max-height:820px)]:pb-8 flex flex-col gap-[30px] [@media(max-height:820px)]:gap-5`}>
+        {selectedCity.slug === 'lajeado' && <HeroPhoto src={LAJEADO_HERO_PHOTOS[status ?? 'normal'] ?? LAJEADO_HERO_PHOTOS.normal} />}
+
         <div className="text-lg font-light text-[#D6D9DD]">
           Nível do <strong className="font-extrabold text-white notranslate" translate="no">{riverName}</strong>
         </div>

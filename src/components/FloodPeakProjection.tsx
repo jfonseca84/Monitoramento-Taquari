@@ -15,7 +15,7 @@ interface FloodPeakProjectionProps {
 
 // Cidades-cabeceira da Bacia do Taquari (nascentes / trecho superior), de onde a onda de cheia
 // se origina e se propaga rio abaixo até as demais estações.
-const HEADWATER_SLUGS = ['santatereza', 'linhajosejulio', 'passocarreiro', 'linhacolombo', 'passotainhas', 'barradofao'];
+export const HEADWATER_SLUGS = ['santatereza', 'linhajosejulio', 'passocarreiro', 'linhacolombo', 'passotainhas', 'barradofao'];
 
 // Tempo de deslocamento aproximado da onda de cheia a partir das cabeceiras (Santa Tereza / Alto
 // Taquari) até cada estação, em horas [mínimo, máximo]. Não é calculado ao vivo: vem dos boletins
@@ -23,7 +23,7 @@ const HEADWATER_SLUGS = ['santatereza', 'linhajosejulio', 'passocarreiro', 'linh
 // Tereza -> Muçum ~2-3h, Muçum -> Encantado ~3-4h, Encantado -> Roca Sales ~2h, e ~8-12h no total
 // até Lajeado/Estrela. Jusante de Lajeado (Bom Retiro, Porto Mariante, Taquari) é uma extrapolação
 // grosseira desses mesmos intervalos, sem fonte documentada própria.
-const PROPAGATION_HOURS: Record<string, [number, number]> = {
+export const PROPAGATION_HOURS: Record<string, [number, number]> = {
   mucum: [2, 3],
   encantado: [5, 7],
   rocasales: [7, 9],

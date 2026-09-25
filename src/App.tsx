@@ -4,6 +4,7 @@ import { CitySidebar } from './components/CitySidebar';
 import { LiveCameraHero } from './components/LiveCameraHero';
 import { LevelChart } from './components/LevelChart';
 import { BasinMap } from './components/BasinMap';
+import { StationInfoCard } from './components/StationInfoCard';
 import { HOME_FONT, BASIN_DEFAULT_CITY, BASIN_STATIONS, BasinKey, basinOfCity } from './components/homeTheme';
 import { NewsSection } from './components/NewsSection';
 import { Footer } from './components/Footer';
@@ -374,6 +375,7 @@ export default function App() {
                   onSelectCity={(city) => setSelectedCity(city)}
                   basin={basin}
                   onChangeBasin={handleBasinChange}
+                  infoCard={<StationInfoCard city={selectedCity} />}
                 />
               </EditableComponent>
             </LayoutBehaviorWrapper>

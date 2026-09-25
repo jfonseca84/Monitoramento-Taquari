@@ -8,6 +8,7 @@ interface BasinMapProps {
   onSelectCity: (city: City) => void;
   basin: BasinKey;
   onChangeBasin: (basin: BasinKey) => void;
+  infoCard?: React.ReactNode;
 }
 
 type Ring = [number, number][];
@@ -149,12 +150,22 @@ const trendOf = (c: City): { glyph: string; color: string } => {
   return r > 0 ? { glyph: '▲', color: TREND_UP } : { glyph: '▼', color: TREND_DOWN };
 };
 
-export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSelectCity, basin, onChangeBasin }) => {
+// Legenda entre o desenho da bacia e o card de dados (computador): altura dos 4 itens empilhados e folga sobre eles
+const LEGEND_H = 16;
+// Card de dados responsivo: largura e fonte acompanham a largura do mapa
+const cardWidthFor = (mapW: number) => Math.min(280, Math.max(222, mapW * 0.79));
+const cardFontFor = (mapW: number) => Math.min(11.3, Math.max(9.8, mapW / 30));
+const LEGEND_GAP = 24;
+const CARD_GAP = 34; // folga entre a legenda e o card de dados
+
+export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSelectCity, basin, onChangeBasin, infoCard }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const config = BASIN_CONFIG[basin];
   const [shapes, setShapes] = useState<BasinFeature[] | null>(geoCache.get(config.url) || null);
   const [loadError, setLoadError] = useState(false);
+  const [cardEl, setCardEl] = useState<HTMLDivElement | null>(null);
+  const [cardH, setCardH] = useState(126); // altura real do card (medida), para reservar espaço no mapa
 
   useEffect(() => {
     let alive = true;
@@ -178,6 +189,15 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
     return () => ro.disconnect();
   }, []);
 
+  useEffect(() => {
+    if (!cardEl) return;
+    const update = () => setCardH(cardEl.offsetHeight);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(cardEl);
+    return () => ro.disconnect();
+  }, [cardEl]);
+
   // Estações da bacia ativa com coordenadas do banco
   const basinCities = useMemo(
     () => cities.filter((c) => c.active !== false && BASIN_STATIONS[basin].includes(c.slug) && hasCoords(c)),
@@ -197,7 +217,9 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
     };
     for (const f of shapes) for (const poly of f.geometry.coordinates) for (const [lon, lat] of poly[0]) add(lon, lat);
     for (const c of basinCities) add(c.longitude, c.latitude);
-    const pad = { l: 18, r: 18, t: 72, b: 60 };
+    // No computador o card de dados da estação ocupa a base do mapa: o desenho da bacia se ajusta acima dele
+    const cardReserve = infoCard && typeof window !== 'undefined' && window.innerWidth >= 1024 ? LEGEND_GAP + LEGEND_H + CARD_GAP + cardH - 58 : 0; // espaço para a legenda e o card sob o desenho
+    const pad = { l: 18, r: 18, t: 72, b: 60 + cardReserve };
     const availW = size.w - pad.l - pad.r;
     const availH = size.h - pad.t - pad.b;
     const k = Math.min(availW / (maxX - minX), availH / (maxY - minY));
@@ -210,8 +232,10 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
     // Latitude central para a escala gráfica
     const centerLat = ((2 * Math.atan(Math.exp((minY + maxY) / 2)) - Math.PI / 2) * 180) / Math.PI;
     const kmPerPx = (EARTH_RADIUS_KM * Math.cos((centerLat * Math.PI) / 180)) / k;
-    return { project, kmPerPx };
-  }, [shapes, basinCities, size.w, size.h]);
+    // Base do desenho: o card de dados fica logo abaixo dele (com folga para os nomes das estações do sul)
+    const drawingBottom = offY + (maxY - minY) * k;
+    return { project, kmPerPx, drawingBottom };
+  }, [shapes, basinCities, size.w, size.h, cardH]);
 
   const basinPaths = useMemo(() => {
     if (!shapes || !projection) return [];
@@ -327,6 +351,11 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
     { k: 'inundacao', label: 'Inundação' }
   ] as const;
 
+  const legendTop =
+    infoCard && projection && typeof window !== 'undefined' && window.innerWidth >= 1024
+      ? Math.min(projection.drawingBottom + LEGEND_GAP, size.h - 36 - cardH - LEGEND_H - CARD_GAP)
+      : undefined;
+
   return (
     <div
       ref={containerRef}
@@ -341,6 +370,10 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
           </button>
         ))}
       </div>
+
+      {infoCard && projection && (
+        <div ref={setCardEl} className="hidden lg:block absolute left-1/2 -translate-x-1/2 z-10" style={{ top: Math.min(projection.drawingBottom + LEGEND_GAP + LEGEND_H + CARD_GAP, size.h - 36 - cardH), width: cardWidthFor(size.w), fontSize: cardFontFor(size.w) }}>{infoCard}</div>
+      )}
 
       {!projection && (
         <div className="absolute inset-0 flex items-center justify-center text-xs text-[#6B737C]">
@@ -468,9 +501,15 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
         </svg>
       )}
 
-      {/* Legenda */}
+      {/* Direitos reservados, na base do card do mapa */}
+      <div className="absolute inset-x-0 bottom-2 text-center text-[10px] text-[#7A828B] pointer-events-none">© {new Date().getFullYear()} Nível Taquari. Todos os direitos reservados.</div>
+
+      {/* Legenda: itens lado a lado e centralizados; no computador fica entre o desenho da bacia e o card de dados */}
       {projection && (
-        <div className="absolute left-3 right-3 bottom-2.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-[#58616B] pointer-events-none">
+        <div
+          className={`absolute left-3 right-3 ${legendTop === undefined ? 'bottom-7' : ''} flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 text-[10px] text-[#58616B] pointer-events-none`}
+          style={legendTop === undefined ? undefined : { top: legendTop }}
+        >
           {LEGEND.map(({ k, label }) => (
             <span key={k} className="inline-flex items-center gap-1">
               <span className="w-2 h-2 rounded-full" style={{ backgroundColor: STATUS_COLORS[k] }} />

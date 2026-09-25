@@ -266,3 +266,18 @@ body {
 .flood-badge-wave {
   animation: floodBadgeWave 1.8s ease-out infinite;
 }
+
+
+/* Zoom lento na foto do hero do nível (Lajeado) */
+@keyframes heroPhotoZoom {
+  from { transform: scale(1) translate(0, 0); }
+  to { transform: scale(1.12) translate(-2%, -1%); }
+}
+.hero-photo-zoom {
+  animation: heroPhotoZoom 26s ease-in-out infinite alternate;
+  transform-origin: 70% 60%;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-photo-zoom { animation: none; }
+}
