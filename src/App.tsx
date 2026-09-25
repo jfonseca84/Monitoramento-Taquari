@@ -16,8 +16,8 @@ import { SiteScrollbar } from './components/SiteScrollbar';
 import { HISTORICAL_FLOODS_BY_CITY } from './data/historicalFloodsData';
 import { DefesaCivilView } from './components/DefesaCivilView';
 import { PrefeiturasView } from './components/PrefeiturasView';
-import { AboutView } from './components/AboutView';
-import { ContactView } from './components/ContactView';
+import { AboutPage } from './components/AboutPage';
+import { ContactPage } from './components/ContactPage';
 import { CentroAnalisesView } from './components/CentroAnalisesView';
 import { RiverLevelDetailModal } from './components/RiverLevelDetailModal';
 import { LiveCamerasView } from './components/LiveCamerasView';
@@ -40,7 +40,7 @@ import { AlertTriangle, X, Radio, Video, ChevronRight } from 'lucide-react';
 export default function App() {
   // Por enquanto só a página Início está ativa (as demais aguardam o novo design)
   const [activeTab, setActiveTab] = useState<string>('inicio');
-  const ENABLED_TABS = ['inicio', 'historico'];
+  const ENABLED_TABS = ['inicio', 'historico', 'contato', 'sobre'];
 
   const handleTabChange = (tab: string) => {
     if (!ENABLED_TABS.includes(tab)) return;
@@ -261,7 +261,7 @@ export default function App() {
   }, [selectedCity, timeframe]);
 
   // Início e Histórico usam o mesmo layout: mapa | conteúdo central | lista de estações
-  const isHomeLayout = activeTab === 'inicio' || activeTab === 'historico';
+  const isHomeLayout = activeTab === 'inicio' || activeTab === 'historico' || activeTab === 'contato' || activeTab === 'sobre';
 
   if (!selectedCity) {
     return (
@@ -296,7 +296,11 @@ export default function App() {
       >
 
         {/* VIEW ROUTER */}
-        {isHomeLayout ? (
+        {activeTab === 'sobre' ? (
+          <AboutPage />
+        ) : activeTab === 'contato' ? (
+          <ContactPage onNavigateToDefesaCivil={() => handleTabChange('defesa-civil')} />
+        ) : isHomeLayout ? (
           /* PÁGINA INÍCIO: mapa da bacia | conteúdo rolável | lista de estações (empilha abaixo de lg) */
           <div className={`${HOME_FONT} flex flex-col lg:grid lg:grid-cols-[minmax(260px,0.62fr)_minmax(0,1.6fr)_150px] lg:h-[calc(100vh-56px)] lg:overflow-hidden`}>
 
@@ -421,14 +425,6 @@ export default function App() {
         ) : activeTab === 'prefeituras' ? (
           <EditableComponent id="prefeituras_module" name="Módulo Prefeituras Integradas" type="module">
             <PrefeiturasView cities={cities} />
-          </EditableComponent>
-        ) : activeTab === 'sobre' ? (
-          <EditableComponent id="sobre_module" name="Módulo Sobre o Portal" type="module">
-            <AboutView />
-          </EditableComponent>
-        ) : activeTab === 'contato' ? (
-          <EditableComponent id="contato_module" name="Módulo Fale Conosco / Contato" type="module">
-            <ContactView onNavigateToDefesaCivil={() => handleTabChange('defesa-civil')} />
           </EditableComponent>
         ) : (
           <EditableComponent id="news_full_module" name="Módulo Notícias em Página Inteira" type="module">

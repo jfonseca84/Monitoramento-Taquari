@@ -371,3 +371,11 @@ html.light {
   --map-card-bg: rgb(43 51 61 / 0.6); --map-card-line: rgb(255 255 255 / 0.12); --map-card-sep: rgb(255 255 255 / 0.12);
   --map-card-teal: #4FC3D6; --map-card-tag-bg: #23414A; --map-card-tag-text: #7FD6E6; --map-card-tag-line: #2F5A66;
 }
+/* Trava o tema claro dentro de um trecho (aba Sobre): variáveis do mapa e do painel invertido também no claro */
+.hm-light {
+  --hm-inv-bg: #2B333D; --hm-inv-card: #222931; --hm-inv-line: #3A434E; --hm-inv-text: #FFFFFF; --hm-inv-muted: #B4B9BF;
+  --hm-inv-soft: #D5D9DD; --hm-inv-chip: #343D48; --hm-inv-track: #3A434E; --hm-inv-red: #E5776B;
+  --map-bg: #1B222B; --map-text: #FFFFFF; --map-soft: #D5D9DD; --map-muted: #B4B9BF; --map-faint: #8A929B;
+  --map-edge: #4F8DB8;
+  color: var(--hm-text);
+}
