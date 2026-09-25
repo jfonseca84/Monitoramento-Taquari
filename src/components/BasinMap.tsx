@@ -191,12 +191,13 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
 
   useEffect(() => {
     if (!cardEl) return;
-    const update = () => setCardH(cardEl.offsetHeight);
-    update();
+    // Reserva a MAIOR altura já vista para a largura atual: trocar de cidade (texto que quebra de linha) não move mais o mapa
+    setCardH(cardEl.offsetHeight);
+    const update = () => setCardH((prev) => Math.max(prev, cardEl.offsetHeight));
     const ro = new ResizeObserver(update);
     ro.observe(cardEl);
     return () => ro.disconnect();
-  }, [cardEl]);
+  }, [cardEl, size.w]);
 
   // Estações da bacia ativa com coordenadas do banco
   const basinCities = useMemo(
