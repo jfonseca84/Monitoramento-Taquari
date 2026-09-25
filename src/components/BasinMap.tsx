@@ -82,9 +82,9 @@ function loadGeo(url: string): Promise<BasinFeature[]> {
   return req;
 }
 
-const C_BASIN = '#BAD9EE'; // preenchimento da bacia
-const C_EDGE = '#2F6FA3'; // contorno bem visível da bacia
-const C_RIVER = '#2F5BD0';
+const C_BASIN = 'var(--map-basin)'; // preenchimento da bacia
+const C_EDGE = 'var(--map-edge)'; // contorno bem visível da bacia
+const C_RIVER = 'var(--map-river)';
 const C_INK = '#2B333D';
 const EARTH_RADIUS_KM = 6371;
 
@@ -341,7 +341,7 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
 
   const tabClass = (active: boolean) =>
     `px-3 py-1.5 rounded-[5px] text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
-      active ? 'bg-[#2B333D] text-white' : 'text-[#3A434E] hover:bg-[#DCE1E6]'
+      active ? 'bg-[var(--map-tab-on-bg)] text-[var(--map-tab-on-text)]' : 'text-[var(--map-soft)] hover:bg-[var(--map-tab-hover)]'
     }`;
 
   const LEGEND = [
@@ -360,10 +360,10 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
     <div
       ref={containerRef}
       id="mapa-estacoes"
-      className="relative w-full h-full min-h-[420px] bg-[#EFF1F3] text-[#2B333D] overflow-hidden font-[family-name:Figtree,system-ui,sans-serif]"
+      className="relative w-full h-full min-h-[420px] bg-[var(--map-bg)] text-[var(--map-text)] overflow-hidden font-[family-name:Figtree,system-ui,sans-serif]"
     >
       {/* SELETOR DE BACIA */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-0.5 p-0.5 rounded-[7px] bg-white border border-[#D5DAE0] shadow-sm" role="tablist" aria-label="Bacia exibida">
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-0.5 p-0.5 rounded-[7px] bg-[var(--map-tab-bg)] border border-[var(--map-tab-line)] shadow-sm" role="tablist" aria-label="Bacia exibida">
         {(Object.keys(BASIN_LABELS) as BasinKey[]).map((key) => (
           <button key={key} type="button" role="tab" aria-selected={basin === key} onClick={() => onChangeBasin(key)} className={tabClass(basin === key)}>
             {BASIN_LABELS[key]}
@@ -376,7 +376,7 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
       )}
 
       {!projection && (
-        <div className="absolute inset-0 flex items-center justify-center text-xs text-[#6B737C]">
+        <div className="absolute inset-0 flex items-center justify-center text-xs text-[var(--map-muted)]">
           {loadError ? 'Não foi possível carregar o mapa.' : 'Carregando mapa…'}
         </div>
       )}
@@ -405,7 +405,7 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
             {basinPaths
               .filter((b) => b.key === selectedMunKey)
               .map((b) => (
-                <path key={`s-${b.key}`} d={b.d} fill={selectedFill} fillOpacity={0.65} stroke="#2B333D" strokeWidth={1.4} strokeLinejoin="round" />
+                <path key={`s-${b.key}`} d={b.d} fill={selectedFill} fillOpacity={0.65} stroke="var(--map-pin-on)" strokeWidth={1.4} strokeLinejoin="round" />
               ))}
           </g>
 
@@ -423,7 +423,7 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
               />
             ))}
             {labels.rivers.map((r) => (
-              <text key={`l-${r.nome}`} x={r.x} y={r.y} textAnchor="middle" fontSize={10} fontStyle="italic" fontWeight={600} fill={C_RIVER} stroke="#EEF5FA" strokeWidth={3} paintOrder="stroke" pointerEvents="none">
+              <text key={`l-${r.nome}`} x={r.x} y={r.y} textAnchor="middle" fontSize={10} fontStyle="italic" fontWeight={600} fill={C_RIVER} stroke="var(--map-halo)" strokeWidth={3} paintOrder="stroke" pointerEvents="none">
                 {r.nome}
               </text>
             ))}
@@ -463,7 +463,7 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
                     cy={p[1]}
                     r={baseR}
                     fill={color}
-                    stroke={on ? '#2B333D' : '#FFFFFF'}
+                    stroke={on ? 'var(--map-pin-on)' : 'var(--map-halo)'}
                     strokeWidth={on ? 2.4 : 1.8}
                     className="cursor-pointer"
                     role="button"
@@ -486,11 +486,11 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
               const city = stations.find((s) => s.city.id === l.id)?.city;
               return (
                 <g key={`t-${l.id}`} className="cursor-pointer select-none" onClick={() => city && onSelectCity(city)}>
-                  <text x={l.x} y={l.y1} textAnchor={l.anchor} fontSize={l.on ? 12 : 10.5} fontWeight={800} fill="#2B333D" stroke="#EEF5FA" strokeWidth={3.2} paintOrder="stroke" strokeLinejoin="round">
+                  <text x={l.x} y={l.y1} textAnchor={l.anchor} fontSize={l.on ? 12 : 10.5} fontWeight={800} fill="var(--map-text)" stroke="var(--map-halo)" strokeWidth={3.2} paintOrder="stroke" strokeLinejoin="round">
                     {l.name}
                   </text>
                   {l.y2 !== null && (
-                    <text x={l.x} y={l.y2} textAnchor={l.anchor} fontSize={9.5} fontWeight={600} fill="#3A434E" stroke="#EEF5FA" strokeWidth={3} paintOrder="stroke" strokeLinejoin="round">
+                    <text x={l.x} y={l.y2} textAnchor={l.anchor} fontSize={9.5} fontWeight={600} fill="var(--map-soft)" stroke="var(--map-halo)" strokeWidth={3} paintOrder="stroke" strokeLinejoin="round">
                       {l.info}
                     </text>
                   )}
@@ -502,12 +502,12 @@ export const BasinMap: React.FC<BasinMapProps> = ({ cities, selectedCity, onSele
       )}
 
       {/* Direitos reservados, na base do card do mapa */}
-      <div className="absolute inset-x-0 bottom-2 text-center text-[10px] text-[#7A828B] pointer-events-none">© {new Date().getFullYear()} Nível Taquari. Todos os direitos reservados.</div>
+      <div className="absolute inset-x-0 bottom-2 text-center text-[10px] text-[var(--map-faint)] pointer-events-none">© {new Date().getFullYear()} Nível Taquari. Todos os direitos reservados.</div>
 
       {/* Legenda: itens lado a lado e centralizados; no computador fica entre o desenho da bacia e o card de dados */}
       {projection && (
         <div
-          className={`absolute left-3 right-3 ${legendTop === undefined ? 'bottom-7' : ''} flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 text-[10px] text-[#58616B] pointer-events-none`}
+          className={`absolute left-3 right-3 ${legendTop === undefined ? 'bottom-7' : ''} flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 text-[10px] text-[var(--map-muted)] pointer-events-none`}
           style={legendTop === undefined ? undefined : { top: legendTop }}
         >
           {LEGEND.map(({ k, label }) => (

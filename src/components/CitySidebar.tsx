@@ -98,7 +98,7 @@ export const CitySidebar: React.FC<CitySidebarProps> = ({
           </div>
         )}
 
-        <div className="hidden lg:block sticky top-0 z-10 shrink-0 pt-2 pb-1.5 px-2 text-center leading-[1.1] bg-[var(--hm-side)] shadow-[0_1px_0_rgba(255,255,255,0.03)]">
+        <div className="hidden lg:block sticky top-0 z-10 shrink-0 pt-3.5 pb-0 px-2 text-center leading-[1.1] bg-[var(--hm-side)] shadow-[0_1px_0_rgba(255,255,255,0.03)]">
           <div className="text-[11px] font-light whitespace-nowrap">Estações da</div>
           <div className="text-xl font-extrabold whitespace-nowrap">Bacia</div>
           {/* Sombra suave sob o título: no lugar de uma linha, as cidades vão esmaecendo ao passar por baixo */}

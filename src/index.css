@@ -356,3 +356,18 @@ html.light .hm-dark {
 html.light { --hero-ov: 255 255 255; --hero-ov2: 255 255 255; --hero-top: 255 255 255; --hero-bot: 244 245 247; }
 :root { --hero-up: #F2A65A; --hero-down: #7DCB9A; }
 html.light { --hero-up: #C9741A; --hero-down: #2E8B57; }
+/* Card do mapa: claro no tema escuro; escuro no tema claro */
+:root {
+  --map-bg: #EFF1F3; --map-text: #2B333D; --map-soft: #3A434E; --map-muted: #58616B; --map-faint: #7A828B;
+  --map-tab-bg: #FFFFFF; --map-tab-line: #D5DAE0; --map-tab-hover: #DCE1E6; --map-tab-on-bg: #2B333D; --map-tab-on-text: #FFFFFF;
+  --map-basin: #BAD9EE; --map-edge: #2F6FA3; --map-river: #2F5BD0; --map-halo: #EEF5FA; --map-pin-on: #2B333D;
+  --map-card-bg: rgb(255 255 255 / 0.55); --map-card-line: rgb(255 255 255 / 0.7); --map-card-sep: rgb(43 51 61 / 0.1);
+  --map-card-teal: #0E8FA6; --map-card-tag-bg: #E3F4F7; --map-card-tag-text: #0E6F80; --map-card-tag-line: #A9DCE5;
+}
+html.light {
+  --map-bg: #1B222B; --map-text: #FFFFFF; --map-soft: #D5D9DD; --map-muted: #B4B9BF; --map-faint: #8A929B;
+  --map-tab-bg: #2B333D; --map-tab-line: #3A434E; --map-tab-hover: #343D48; --map-tab-on-bg: #FFFFFF; --map-tab-on-text: #2B333D;
+  --map-basin: #34556F; --map-edge: #4F8DB8; --map-river: #6EA6FF; --map-halo: #1B222B; --map-pin-on: #FFFFFF;
+  --map-card-bg: rgb(43 51 61 / 0.6); --map-card-line: rgb(255 255 255 / 0.12); --map-card-sep: rgb(255 255 255 / 0.12);
+  --map-card-teal: #4FC3D6; --map-card-tag-bg: #23414A; --map-card-tag-text: #7FD6E6; --map-card-tag-line: #2F5A66;
+}
