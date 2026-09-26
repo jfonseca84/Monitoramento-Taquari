@@ -327,18 +327,41 @@ export const CityWeatherForecast: React.FC<CityWeatherForecastProps> = ({ select
     const worst = Math.max(v, c);
     const cityName = selectedCity?.name ?? 'a cidade';
     const when = day.dateKey === todayKey ? 'hoje' : idx === 1 ? 'amanhã' : `${day.dayLabel.toLowerCase()} (${day.dateLabel})`;
-    const headTxt = cab !== null ? ` Nas cabeceiras, a previsão é de ${mm(c)} nas próximas 72h.` : '';
+    const span = idx === 0 ? 'hoje e nos três próximos dias' : 'os próximos dias';
 
-    if (worst < 5) return `Sem chuva significativa prevista para ${when} (${mm(v)} em ${cityName}).${headTxt} Sem risco de alagamento ou de enchente por chuva nesse período.`;
+    // Em que parte do dia a chuva do Vale está prevista (só as horas que ainda vão acontecer, se for hoje)
+    const PERIODS = [
+      { name: 'de madrugada', from: 0, to: 6 },
+      { name: 'pela manhã', from: 6, to: 12 },
+      { name: 'à tarde', from: 12, to: 17 },
+      { name: 'ao fim da tarde', from: 17, to: 19 },
+      { name: 'no início da noite', from: 19, to: 22 },
+      { name: 'no fim da noite', from: 22, to: 24 }
+    ];
+    const perMm = PERIODS.map(() => 0);
+    for (const r of rows) {
+      const t = new Date(r.forecast_for);
+      if (isNaN(t.getTime()) || typeof r.precipitation_mm !== 'number') continue;
+      if (t.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }) !== day.dateKey) continue;
+      if (day.dateKey === todayKey && t.getTime() < nowMs - 60 * 60 * 1000) continue;
+      const h = Number(t.toLocaleString('en-GB', { timeZone: 'America/Sao_Paulo', hour: '2-digit', hour12: false })) % 24;
+      const i = PERIODS.findIndex((p) => h >= p.from && h < p.to);
+      if (i >= 0) perMm[i] += r.precipitation_mm;
+    }
+    const totalPer = perMm.reduce((x, y) => x + y, 0);
+    const rainy = PERIODS.filter((_, i) => totalPer >= 0.5 && perMm[i] >= totalPer * 0.25).map((p) => p.name);
+    const timing = rainy.length ? `, com chuva prevista ${rainy.join(' e ')}` : '';
+
+    if (worst < 5) return `Sem chuva significativa prevista para ${when} (${mm(v)} em ${cityName}).${cab !== null ? ` Nas cabeceiras, a previsão é de ${mm(c)} nas próximas 72h.` : ''} Sem risco de alagamento ou de enchente por chuva nesse período.`;
 
     const where =
       c >= 10 && v < 10
-        ? `A chuva se concentra nas cabeceiras (${mm(c)} em 72h), com pouco volume no Vale ${when} (${mm(v)}). Essa água chega ao rio depois, então o nível em ${cityName} pode subir com atraso de horas ou dias.`
+        ? `Chuva prevista para ${span}, podendo chegar a ${mm(c)} em 72h nas cabeceiras. No Vale, ${when} tem pouco volume previsto (${mm(v)})${timing}. Essa água chega ao rio depois, então o nível em ${cityName} pode subir com atraso de horas ou dias.`
         : v >= 10 && c < 10
-          ? `A chuva de ${when} se concentra no Vale (${mm(v)} em ${cityName})${cab !== null ? `, com pouco volume nas cabeceiras (${mm(c)} em 72h)` : ''}. O efeito tende a ser local e mais rápido.`
+          ? `Chuva prevista para ${when} no Vale: ${mm(v)} em ${cityName}${timing}${cab !== null ? `, com pouco volume nas cabeceiras (${mm(c)} em 72h)` : ''}. O efeito tende a ser local e mais rápido.`
           : v < 10 && c < 10
-            ? `Chuva fraca prevista para ${when}: ${mm(v)} no Vale.${headTxt}`
-            : `Há chuva prevista no Vale ${when} (${mm(v)}) e nas cabeceiras (${mm(c)} em 72h). As duas regiões contribuem, e o rio pode subir de forma mais forte.`;
+            ? `Chuva fraca prevista para ${when}: ${mm(v)} no Vale${timing}.${cab !== null ? ` Nas cabeceiras, a previsão é de ${mm(c)} nas próximas 72h.` : ''}`
+            : `Chuva prevista para ${span}, podendo chegar a ${mm(c)} em 72h nas cabeceiras e ${mm(v)} no Vale ${when}${timing}. As duas regiões contribuem, e o rio pode subir de forma mais forte.`;
 
     const risk =
       worst < 15
